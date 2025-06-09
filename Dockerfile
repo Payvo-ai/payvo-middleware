@@ -9,13 +9,13 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
-COPY middleware/requirements.txt .
+COPY payvo-middleware/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy middleware code
-COPY middleware/ .
+COPY payvo-middleware/ .
 
 # Expose port
 EXPOSE 8000

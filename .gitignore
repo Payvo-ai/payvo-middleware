@@ -78,18 +78,26 @@ celerybeat.pid
 # Redis dump
 dump.rdb
 
-# Node modules (if any)
-node_modules/
+# Node modules (React Native app dependencies)
+payvo-test-app/node_modules/
+payvo-test-app/.expo/
+payvo-test-app/dist/
+payvo-test-app/web-build/
+
+# React Native
+payvo-test-app/ios/build/
+payvo-test-app/android/build/
+payvo-test-app/android/app/build/
+payvo-test-app/.bundle/
+payvo-test-app/vendor/bundle/
 
 # Temporary files
 tmp/
 temp/
+session_id.tmp
 
 # Railway
 .railway/
 
 # Docker
-.dockerignore
-
-# React Native Test App (separate repository)
-PayvoTestApp/ 
+.dockerignore 

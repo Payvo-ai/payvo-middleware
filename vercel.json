@@ -2,17 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "middleware/app/main.py",
+      "src": "payvo-middleware/app/main.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "middleware/app/main.py"
+      "dest": "payvo-middleware/app/main.py"
     }
   ],
   "env": {
-    "PYTHONPATH": "middleware"
+    "PYTHONPATH": "payvo-middleware"
   }
 } 
