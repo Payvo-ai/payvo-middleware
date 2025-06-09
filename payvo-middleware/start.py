@@ -44,6 +44,12 @@ def main():
     debug = os.getenv("PAYVO_DEBUG", "false").lower() == "true"
     
     logger.info(f"📡 Configuration: host={host}, port={port}, debug={debug}")
+    logger.info(f"🔧 Environment variables: PORT={os.getenv('PORT')}, PAYVO_PORT={os.getenv('PAYVO_PORT')}")
+    
+    # Validate port
+    if port < 1 or port > 65535:
+        logger.error(f"❌ Invalid port: {port}")
+        sys.exit(1)
     
     # Test startup
     loop = asyncio.new_event_loop()
@@ -59,6 +65,7 @@ def main():
     logger.info("✅ Pre-startup tests passed")
     logger.info("🏪 Enhanced GPS-First MCC Prediction System Active!")
     logger.info("📱 Ready for payment routing requests")
+    logger.info(f"🌐 Starting server on {host}:{port}")
     
     # Start the server
     try:
