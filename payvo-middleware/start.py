@@ -38,13 +38,26 @@ def main():
     """Main startup function"""
     logger.info("🚀 Starting Payvo Middleware...")
     
-    # Get configuration from environment
+    # Get configuration from environment with Railway-specific handling
+    railway_port = os.getenv("PORT")  # Railway sets this
+    payvo_port = os.getenv("PAYVO_PORT")
+    
+    # Railway uses PORT, fallback to PAYVO_PORT, then default
+    if railway_port:
+        port = int(railway_port)
+        logger.info(f"🚂 Using Railway PORT: {port}")
+    elif payvo_port:
+        port = int(payvo_port)
+        logger.info(f"🔧 Using PAYVO_PORT: {port}")
+    else:
+        port = 8000
+        logger.info(f"📌 Using default port: {port}")
+    
     host = os.getenv("PAYVO_HOST", "0.0.0.0")
-    port = int(os.getenv("PAYVO_PORT", os.getenv("PORT", 8000)))
     debug = os.getenv("PAYVO_DEBUG", "false").lower() == "true"
     
-    logger.info(f"📡 Configuration: host={host}, port={port}, debug={debug}")
-    logger.info(f"🔧 Environment variables: PORT={os.getenv('PORT')}, PAYVO_PORT={os.getenv('PAYVO_PORT')}")
+    logger.info(f"📡 Final configuration: host={host}, port={port}, debug={debug}")
+    logger.info(f"🔧 All environment variables: PORT={os.getenv('PORT')}, PAYVO_PORT={os.getenv('PAYVO_PORT')}, PAYVO_HOST={os.getenv('PAYVO_HOST')}")
     
     # Validate port
     if port < 1 or port > 65535:
@@ -66,6 +79,7 @@ def main():
     logger.info("🏪 Enhanced GPS-First MCC Prediction System Active!")
     logger.info("📱 Ready for payment routing requests")
     logger.info(f"🌐 Starting server on {host}:{port}")
+    logger.info(f"🔗 Health check will be available at: http://{host}:{port}/api/v1/health")
     
     # Start the server
     try:
@@ -80,6 +94,8 @@ def main():
         )
     except Exception as e:
         logger.error(f"❌ Server failed to start: {e}")
+        import traceback
+        logger.error(f"❌ Full traceback: {traceback.format_exc()}")
         sys.exit(1)
 
 if __name__ == "__main__":

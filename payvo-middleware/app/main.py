@@ -34,26 +34,37 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Payvo Middleware...")
     
-    # Initialize services
-    await routing_orchestrator.initialize()
-    
-    # Start background tasks
-    await routing_orchestrator.start_background_tasks()
-    
-    logger.info("Payvo Middleware started successfully")
+    try:
+        # Initialize services
+        await routing_orchestrator.initialize()
+        logger.info("✅ Routing orchestrator initialized")
+        
+        # Start background tasks
+        await routing_orchestrator.start_background_tasks()
+        logger.info("✅ Background tasks started")
+        
+        logger.info("Payvo Middleware started successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize Payvo Middleware: {e}")
+        # Don't fail startup - just log the error and continue
+        logger.warning("⚠️ Continuing startup without full initialization")
     
     yield
     
     # Shutdown
     logger.info("Shutting down Payvo Middleware...")
     
-    # Stop background tasks
-    await routing_orchestrator.stop_background_tasks()
-    
-    # Cleanup resources
-    await routing_orchestrator.cleanup()
-    
-    logger.info("Payvo Middleware shutdown complete")
+    try:
+        # Stop background tasks
+        await routing_orchestrator.stop_background_tasks()
+        
+        # Cleanup resources
+        await routing_orchestrator.cleanup()
+        
+        logger.info("Payvo Middleware shutdown complete")
+    except Exception as e:
+        logger.error(f"❌ Error during shutdown: {e}")
+        # Continue with shutdown anyway
 
 
 # Create FastAPI application

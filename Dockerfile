@@ -17,8 +17,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy middleware code
 COPY payvo-middleware/ .
 
-# Make startup script executable
-RUN chmod +x start.py
+# Make startup scripts executable
+RUN chmod +x start.py simple_start.py
 
 # Expose port
 EXPOSE 8000
@@ -27,5 +27,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=5 \
     CMD curl -f http://localhost:8000/api/v1/health || exit 1
 
-# Run the application with robust startup script
-CMD ["python", "start.py"] 
+# Run the application with simple startup for debugging
+CMD ["python", "simple_start.py"] 
