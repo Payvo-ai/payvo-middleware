@@ -129,12 +129,4 @@ curl -X POST http://localhost:8000/api/v1/routing/predict-mcc \
 
 ## 📄 License
 
-This project is proprietary software owned by Payvo-ai.
-
-## 🆘 Support
-
-For support and questions, please contact the development team or create an issue in the repository.
-
----
-
-**Built with ❤️ by the Payvo Team** 
+This project is proprietary software owned by Payvo AI.

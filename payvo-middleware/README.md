@@ -346,16 +346,4 @@ mypy app/
 
 ## 📄 License
 
-This project is proprietary software owned by Payvo-ai.
-
-## 🆘 Support
-
-For technical support:
-- Check the [troubleshooting section](#troubleshooting)
-- Review logs in debug mode
-- Contact the development team
-- Create an issue in the repository
-
----
-
-**Built with ❤️ by the Payvo Team** 
+This project is proprietary software owned by Payvo AI.
