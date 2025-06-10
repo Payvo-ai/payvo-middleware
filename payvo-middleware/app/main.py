@@ -1,249 +1,138 @@
 """
-Payvo Middleware - Advanced MCC-based Card Routing System
-Main FastAPI application entry point
+FastAPI application setup with enhanced lifespan management
 """
 
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse
 import logging
-import time
-import uvicorn
+import asyncio
 from contextlib import asynccontextmanager
-import os
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import settings
 from app.api.routes import router
-from app.services.routing_orchestrator import routing_orchestrator
+from app.core.config import settings
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger(__name__)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Application lifespan manager
-    Handles startup and shutdown events
+    Enhanced lifespan manager with timeout handling and graceful degradation
     """
-    # Startup
-    logger.info("Starting Payvo Middleware...")
+    logger.info("🚀 Starting Payvo Middleware lifespan...")
     
+    # Startup phase with timeout and error handling
     try:
-        # Initialize services
-        await routing_orchestrator.initialize()
-        logger.info("✅ Routing orchestrator initialized")
+        logger.info("📡 Initializing routing orchestrator...")
         
-        # Start background tasks
-        await routing_orchestrator.start_background_tasks()
-        logger.info("✅ Background tasks started")
+        # Import and initialize with timeout
+        async def init_with_timeout():
+            from app.services.routing_orchestrator import routing_orchestrator
+            
+            # Initialize orchestrator with timeout
+            if not routing_orchestrator.is_running:
+                logger.info("🔧 Initializing routing orchestrator...")
+                await routing_orchestrator.initialize()
+                logger.info("✅ Routing orchestrator initialized successfully")
+            else:
+                logger.info("ℹ️ Routing orchestrator already running")
+            
+            # Start background tasks with timeout
+            logger.info("⚙️ Starting background tasks...")
+            await routing_orchestrator.start_background_tasks()
+            logger.info("✅ Background tasks started successfully")
+            
+            return True
         
-        logger.info("Payvo Middleware started successfully")
-    except Exception as e:
-        logger.error(f"❌ Failed to initialize Payvo Middleware: {e}")
-        # Don't fail startup - just log the error and continue
-        logger.warning("⚠️ Continuing startup without full initialization")
+        # Run initialization with timeout
+        try:
+            success = await asyncio.wait_for(init_with_timeout(), timeout=45.0)
+            if success:
+                logger.info("✅ All services initialized successfully")
+        except asyncio.TimeoutError:
+            logger.warning("⚠️ Service initialization timed out - continuing with partial initialization")
+        except Exception as e:
+            logger.warning(f"⚠️ Service initialization failed: {e}")
+            logger.warning("⚠️ Continuing startup in degraded mode...")
     
+    except Exception as e:
+        logger.error(f"❌ Critical startup error: {e}")
+        logger.warning("⚠️ Continuing startup with minimal services...")
+    
+    logger.info("✅ Lifespan startup completed")
+    
+    # Yield control to the application
     yield
     
-    # Shutdown
-    logger.info("Shutting down Payvo Middleware...")
+    # Shutdown phase with timeout and error handling
+    logger.info("🛑 Starting graceful shutdown...")
     
     try:
-        # Stop background tasks
-        await routing_orchestrator.stop_background_tasks()
+        async def shutdown_with_timeout():
+            from app.services.routing_orchestrator import routing_orchestrator
+            
+            # Stop background tasks
+            logger.info("⏹️ Stopping background tasks...")
+            await routing_orchestrator.stop_background_tasks()
+            logger.info("✅ Background tasks stopped")
+            
+            # Cleanup routing orchestrator
+            logger.info("⏹️ Cleaning up routing orchestrator...")
+            await routing_orchestrator.cleanup()
+            logger.info("✅ Routing orchestrator cleanup completed")
+            
+            return True
         
-        # Cleanup resources
-        await routing_orchestrator.cleanup()
-        
-        logger.info("Payvo Middleware shutdown complete")
+        # Run shutdown with timeout
+        try:
+            await asyncio.wait_for(shutdown_with_timeout(), timeout=30.0)
+            logger.info("✅ Graceful shutdown completed")
+        except asyncio.TimeoutError:
+            logger.warning("⚠️ Shutdown timed out - forcing exit")
+        except Exception as e:
+            logger.warning(f"⚠️ Shutdown error: {e} - forcing exit")
+            
     except Exception as e:
-        logger.error(f"❌ Error during shutdown: {e}")
-        # Continue with shutdown anyway
+        logger.error(f"❌ Critical shutdown error: {e}")
+    
+    logger.info("🏁 Lifespan shutdown completed")
 
-
-# Create FastAPI application
+# Create FastAPI application with enhanced configuration
 app = FastAPI(
     title="Payvo Middleware",
-    description="Advanced MCC-based Card Routing System",
-    version="1.0.0",
+    description="Enhanced GPS-First MCC Prediction System for Payment Routing",
+    version="2.0.0",
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
     lifespan=lifespan
 )
 
-# Add security middleware
-# app.add_middleware(
-#     TrustedHostMiddleware,
-#     allowed_hosts=settings.ALLOWED_HOSTS
-# )
-
-# Add CORS middleware
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["*"],  # In production, specify actual origins
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# Request logging middleware
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    """
-    Log all incoming requests with timing information
-    """
-    start_time = time.time()
-    
-    # Log request
-    logger.info(f"Request: {request.method} {request.url}")
-    
-    try:
-        response = await call_next(request)
-        
-        # Calculate processing time
-        process_time = time.time() - start_time
-        
-        # Log response
-        logger.info(
-            f"Response: {response.status_code} - "
-            f"Time: {process_time:.3f}s - "
-            f"Path: {request.url.path}"
-        )
-        
-        # Add timing header
-        response.headers["X-Process-Time"] = str(process_time)
-        
-        return response
-        
-    except Exception as e:
-        process_time = time.time() - start_time
-        logger.error(f"Request failed: {e} - Time: {process_time:.3f}s")
-        raise
-
-
-# Rate limiting middleware (basic implementation)
-request_counts = {}
-
-@app.middleware("http")
-async def rate_limit(request: Request, call_next):
-    """
-    Basic rate limiting middleware
-    """
-    client_ip = request.client.host
-    current_time = time.time()
-    
-    # Clean old entries (older than 1 minute)
-    request_counts[client_ip] = [
-        timestamp for timestamp in request_counts.get(client_ip, [])
-        if current_time - timestamp < 60
-    ]
-    
-    # Check rate limit
-    if len(request_counts.get(client_ip, [])) >= settings.RATE_LIMIT_PER_MINUTE:
-        raise HTTPException(
-            status_code=429,
-            detail="Rate limit exceeded. Please try again later."
-        )
-    
-    # Add current request
-    if client_ip not in request_counts:
-        request_counts[client_ip] = []
-    request_counts[client_ip].append(current_time)
-    
-    response = await call_next(request)
-    return response
-
-
-# Global exception handler
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    """
-    Global exception handler for unhandled errors
-    """
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
-    
-    return JSONResponse(
-        status_code=500,
-        content={
-            "success": False,
-            "error": "Internal server error",
-            "message": "An unexpected error occurred"
-        }
-    )
-
-
-# Include API routes
+# Include API router
 app.include_router(router, prefix="/api/v1")
 
-
-# Root endpoint
 @app.get("/")
 async def root():
-    """
-    Root endpoint with system information
-    """
+    """Root endpoint"""
     return {
-        "service": "Payvo Middleware",
-        "version": "1.0.0",
-        "description": "Advanced MCC-based Card Routing System",
-        "status": "operational",
-        "endpoints": {
-            "health": "/api/v1/health",
-            "docs": "/docs" if settings.DEBUG else "disabled",
-            "metrics": "/api/v1/metrics"
-        }
+        "message": "Payvo Middleware API",
+        "version": "2.0.0",
+        "status": "active",
+        "docs": "/docs" if settings.DEBUG else "disabled"
     }
 
-
-# Additional system endpoints
-@app.get("/ping")
-async def ping():
-    """
-    Simple ping endpoint for load balancer health checks
-    """
-    return {"status": "ok", "timestamp": time.time()}
-
-
-@app.get("/version")
-async def version():
-    """
-    Version information endpoint
-    """
-    return {
-        "version": "1.0.0",
-        "build": "production",
-        "features": [
-            "MCC Prediction Engine",
-            "Card Routing Optimization", 
-            "Token Provisioning",
-            "Learning & Feedback Loop",
-            "Privacy-First Architecture"
-        ]
-    }
-
+@app.get("/health")
+async def simple_health():
+    """Simple health check endpoint for basic monitoring"""
+    return {"status": "healthy", "service": "payvo-middleware"}
 
 if __name__ == "__main__":
-    # Get port from environment variable for cloud deployment
-    port = int(os.getenv("PORT", 8000))
-    host = os.getenv("HOST", "0.0.0.0")
-    
-    print(f"🚀 Starting Payvo Middleware on {host}:{port}")
-    print(f"📡 Enhanced GPS-First MCC Prediction System Active!")
-    print(f"🏪 Indoor mapping capabilities enabled")
-    print(f"📱 Ready for payment routing requests")
-    
-    uvicorn.run(
-        "app.main:app",
-        host=host,
-        port=port,
-        reload=False,
-        access_log=True,
-        log_level="info"
-    ) 
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000) 

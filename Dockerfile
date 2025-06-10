@@ -20,12 +20,12 @@ COPY payvo-middleware/ .
 # Make startup scripts executable
 RUN chmod +x start.py simple_start.py
 
-# Expose port
+# Expose port 8000 for the application
 EXPOSE 8000
 
-# Health check - more robust for Railway
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=5 \
+# Enhanced health check for Railway
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/health || exit 1
 
-# Run the application with simple startup for debugging
-CMD ["python", "simple_start.py"] 
+# Use the robust startup script
+CMD ["python", "start.py"] 
