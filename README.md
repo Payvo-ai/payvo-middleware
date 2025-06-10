@@ -218,28 +218,112 @@ curl -X POST http://localhost:8000/api/v1/routing/predict-mcc \
 
 ## 🔍 Enhanced MCC Prediction System
 
-The enhanced system combines multiple data sources for highly accurate merchant categorization:
+The system now includes **LLM-powered enhancement** for intelligent merchant category code prediction:
 
-### **Prediction Sources**
-1. **Real Business Data** - Google Places & Foursquare APIs
-2. **Historical Patterns** - Area-based transaction learning
-3. **Terminal Analysis** - ID pattern recognition & behavior analysis
-4. **WiFi Fingerprinting** - Brand detection from network SSIDs
-5. **BLE Beacons** - Proximity-based merchant identification
+### 🧠 LLM Enhancement Features
 
-### **Key Improvements**
-- **Higher Accuracy**: 85-95% confidence vs 50-70% baseline
-- **Real-time Data**: Live business verification
-- **Multi-factor Analysis**: Weighted consensus from 5+ sources
-- **Learning System**: Improves over time with transaction data
-- **Fallback Protection**: Graceful degradation when APIs unavailable
+- **Intelligent Merchant Analysis**: Uses OpenAI GPT models to analyze merchant names, business descriptions, and context
+- **Conflict Resolution**: Automatically resolves conflicting predictions from multiple sources using AI reasoning
+- **Contextual Understanding**: Considers transaction patterns, location data, and business characteristics
+- **Confidence Scoring**: Provides detailed confidence analysis with reasoning explanations
+- **Continuous Learning**: Stores LLM analyses for future improvement and pattern recognition
 
-### **Confidence Scoring**
-- **0.9-0.95**: High confidence (exact matches, strong patterns)
-- **0.7-0.89**: Good confidence (multiple source agreement)
-- **0.5-0.69**: Moderate confidence (single source or partial match)
-- **0.3-0.49**: Low confidence (pattern-based inference)
-- **0.2-0.29**: Fallback (default categorization)
+### Prediction Sources
+
+1. **🌍 Real-time Location APIs** - Google Places & Foursquare venue data
+2. **🏪 Terminal ID Analysis** - Pattern recognition and processor identification
+3. **📡 WiFi/BLE Fingerprinting** - Device-based location and business identification
+4. **📊 Historical Patterns** - Area-based transaction analysis and learning
+5. **🤖 LLM Enhancement** - AI-powered reasoning and conflict resolution
+
+### Key Improvements
+
+- **85-95% Confidence** predictions using multi-source consensus
+- **Intelligent Reasoning** for ambiguous or conflicting cases
+- **Real-time Data** integration from multiple business directories
+- **Historical Learning** that improves predictions over time
+- **Contextual Analysis** considering transaction patterns and merchant characteristics
+
+### LLM Configuration
+
+```bash
+# Enable LLM enhancement
+LLM_ENHANCEMENT_ENABLED=true
+LLM_DEFAULT_MODEL=gpt-4o-mini
+LLM_MAX_TOKENS=1000
+LLM_TEMPERATURE=0.3
+```
+
+### Testing Enhanced Predictions
+
+**Comprehensive MCC Prediction:**
+```bash
+curl -X POST "http://localhost:8000/mcc/predict" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "latitude": 40.7589,
+    "longitude": -73.9851,
+    "merchant_name": "Joe'\''s Coffee Shop",
+    "use_llm_enhancement": true,
+    "include_alternatives": true
+  }'
+```
+
+**LLM Merchant Name Analysis:**
+```bash
+curl -X POST "http://localhost:8000/mcc/analyze/merchant-name" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "merchant_name": "Tony'\''s Pizzeria & Italian Restaurant",
+    "additional_info": {"location": "New York", "type": "dining"}
+  }'
+```
+
+**Conflict Resolution:**
+```bash
+curl -X POST "http://localhost:8000/mcc/resolve/conflicts" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "conflicting_predictions": [
+      {"mcc": "5812", "confidence": 0.7, "method": "location"},
+      {"mcc": "5814", "confidence": 0.6, "method": "fingerprint"}
+    ],
+    "context": {"merchant_name": "Quick Eats", "transaction_amount": 12.50}
+  }'
+```
+
+### Expected Response Format
+
+```json
+{
+  "predicted_mcc": "5812",
+  "confidence": 0.92,
+  "method": "llm_enhanced_consensus",
+  "prediction_sources": [
+    {
+      "method": "location_analysis",
+      "mcc": "5812",
+      "confidence": 0.85,
+      "source": "google_places"
+    },
+    {
+      "method": "llm_analysis", 
+      "predicted_mcc": "5812",
+      "confidence": 0.94,
+      "reasoning": "Based on the merchant name 'Joe's Coffee Shop' and location data, this is clearly a coffee shop/cafe establishment, which falls under MCC 5812 for eating places and restaurants.",
+      "enhancement_applied": true
+    }
+  ],
+  "consensus_score": 0.89,
+  "processing_time_ms": 1250,
+  "llm_analysis": {
+    "reasoning": "Detailed AI analysis...",
+    "key_factors": ["merchant_name_indicators", "location_context"],
+    "certainty_level": "high"
+  },
+  "enhancement_applied": true
+}
+```
 
 ## 🤝 Contributing
 
