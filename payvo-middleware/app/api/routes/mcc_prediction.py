@@ -17,7 +17,7 @@ from ...services.terminal_service import TerminalService
 from ...services.fingerprint_service import FingerprintService
 from ...services.historical_service import HistoricalService
 from ...services.llm_service import LLMService
-from ...core.cache import get_redis
+# from ...core.cache import get_redis  # Commented out - module doesn't exist
 from ...core.config import settings
 
 logger = logging.getLogger(__name__)
