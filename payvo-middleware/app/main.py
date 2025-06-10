@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import router as routes_router
+import app.api.routes as routes_module
 from app.api.routes.mcc_prediction import router as mcc_router
 from app.core.config import settings
 
@@ -195,7 +195,7 @@ async def railway_health():
         }
 
 # Include API routers
-app.include_router(routes_router, prefix="/api/v1")
+app.include_router(routes_module.router, prefix="/api/v1")
 app.include_router(mcc_router, prefix="/api/v1")
 
 @app.get("/")
