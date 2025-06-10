@@ -17,7 +17,7 @@ import numpy as np
 from geopy.distance import geodesic
 
 from ..core.config import settings
-from ..core.database import get_supabase_client
+from ..database.supabase_client import get_supabase_client
 
 logger = logging.getLogger(__name__)
 
