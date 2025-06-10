@@ -50,13 +50,24 @@ async def test_minimal_initialization():
         # Only test that we can access the orchestrator, don't initialize
         logger.info(f"✅ Orchestrator accessible - Running: {routing_orchestrator.is_running}")
         
-        # Test database connection availability (don't connect)
-        from app.database.connection_manager import connection_manager
-        logger.info(f"✅ Connection manager accessible")
+        # Test that we can import core services
+        try:
+            from app.services.llm_service import LLMService
+            logger.info("✅ LLM service importable")
+        except Exception as e:
+            logger.warning(f"⚠️ LLM service import issue: {e}")
+        
+        try:
+            from app.core.config import settings
+            logger.info(f"✅ Settings accessible - OpenAI key: {'SET' if settings.OPENAI_API_KEY else 'NOT SET'}")
+        except Exception as e:
+            logger.warning(f"⚠️ Settings access issue: {e}")
         
         return True
     except Exception as e:
         logger.error(f"❌ Minimal initialization test failed: {e}")
+        import traceback
+        logger.error(f"❌ Minimal init traceback: {traceback.format_exc()}")
         return False
 
 def main():
@@ -96,27 +107,44 @@ def main():
     try:
         # Test basic imports with timeout
         logger.info("🔍 Phase 1: Testing basic imports...")
-        startup_success = loop.run_until_complete(
-            asyncio.wait_for(test_app_startup(), timeout=30.0)
-        )
-        
-        if not startup_success:
-            logger.error("❌ Failed basic import tests")
-            sys.exit(1)
+        try:
+            startup_success = loop.run_until_complete(
+                asyncio.wait_for(test_app_startup(), timeout=30.0)
+            )
+            
+            if not startup_success:
+                logger.error("❌ Failed basic import tests")
+                logger.error("❌ This indicates critical import or dependency issues")
+                # Don't exit - continue to see what specific error occurs
+            else:
+                logger.info("✅ Basic imports successful")
+        except Exception as e:
+            logger.error(f"❌ Import test exception: {e}")
+            import traceback
+            logger.error(f"❌ Import traceback: {traceback.format_exc()}")
         
         # Test minimal initialization with timeout
         logger.info("🔍 Phase 2: Testing minimal initialization...")
-        init_success = loop.run_until_complete(
-            asyncio.wait_for(test_minimal_initialization(), timeout=15.0)
-        )
-        
-        if not init_success:
-            logger.warning("⚠️ Minimal initialization had issues, but continuing...")
+        try:
+            init_success = loop.run_until_complete(
+                asyncio.wait_for(test_minimal_initialization(), timeout=15.0)
+            )
+            
+            if not init_success:
+                logger.warning("⚠️ Minimal initialization had issues, but continuing...")
+            else:
+                logger.info("✅ Minimal initialization successful")
+        except Exception as e:
+            logger.error(f"❌ Initialization test exception: {e}")
+            import traceback
+            logger.error(f"❌ Initialization traceback: {traceback.format_exc()}")
         
     except asyncio.TimeoutError:
         logger.error("❌ Startup tests timed out - continuing anyway...")
     except Exception as e:
         logger.error(f"❌ Startup test exception: {e}")
+        import traceback
+        logger.error(f"❌ Startup test traceback: {traceback.format_exc()}")
         logger.warning("⚠️ Continuing startup despite test failures...")
     finally:
         loop.close()
@@ -127,8 +155,17 @@ def main():
     logger.info(f"🌐 Starting server on {host}:{port}")
     logger.info(f"🔗 Health check will be available at: http://{host}:{port}/api/v1/health")
     
+    # Log environment variables for debugging
+    logger.info(f"🔧 Environment debug:")
+    logger.info(f"   PORT={os.getenv('PORT')}")
+    logger.info(f"   PAYVO_PORT={os.getenv('PAYVO_PORT')}")
+    logger.info(f"   PAYVO_HOST={os.getenv('PAYVO_HOST')}")
+    logger.info(f"   OPENAI_API_KEY={'SET' if os.getenv('OPENAI_API_KEY') else 'NOT SET'}")
+    logger.info(f"   SUPABASE_URL={'SET' if os.getenv('SUPABASE_URL') else 'NOT SET'}")
+    
     # Start the server with robust configuration
     try:
+        logger.info("🚀 Attempting to start uvicorn server...")
         uvicorn.run(
             "app.main:app",
             host=host,
@@ -144,6 +181,17 @@ def main():
         logger.error(f"❌ Server failed to start: {e}")
         import traceback
         logger.error(f"❌ Full traceback: {traceback.format_exc()}")
+        
+        # Try to identify the specific issue
+        if "Address already in use" in str(e):
+            logger.error(f"❌ Port {port} is already in use")
+        elif "Permission denied" in str(e):
+            logger.error(f"❌ Permission denied for port {port}")
+        elif "Cannot assign requested address" in str(e):
+            logger.error(f"❌ Cannot bind to address {host}:{port}")
+        else:
+            logger.error(f"❌ Unknown server startup error: {type(e).__name__}")
+        
         sys.exit(1)
 
 if __name__ == "__main__":
