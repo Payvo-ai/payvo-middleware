@@ -74,15 +74,24 @@ class Settings(BaseSettings):
     
     # External APIs (Optional)
     GOOGLE_API_KEY: Optional[str] = os.getenv("GOOGLE_API_KEY")
+    GOOGLE_PLACES_API_KEY: Optional[str] = os.getenv("GOOGLE_PLACES_API_KEY", os.getenv("GOOGLE_API_KEY"))
+    FOURSQUARE_API_KEY: Optional[str] = os.getenv("FOURSQUARE_API_KEY")
     STRIPE_API_KEY: Optional[str] = os.getenv("STRIPE_API_KEY")
+    
+    # Location Service Configuration
+    GOOGLE_PLACES_ENABLED: bool = True
+    FOURSQUARE_ENABLED: bool = True
+    GOOGLE_PLACES_DAILY_LIMIT: int = 1000
+    FOURSQUARE_DAILY_LIMIT: int = 1000
+    LOCATION_CACHE_HOURS: int = 6
+    TERMINAL_CACHE_HOURS: int = 12
+    
+    # Confidence Thresholds
+    MIN_CONFIDENCE_THRESHOLD: float = 0.3
+    HIGH_CONFIDENCE_THRESHOLD: float = 0.8
     
     # Legacy support for old Google API key names
     @property
-    def GOOGLE_PLACES_API_KEY(self) -> Optional[str]:
-        """Legacy support - returns the main Google API key"""
-        return self.GOOGLE_API_KEY
-    
-    @property 
     def GOOGLE_MAPS_API_KEY(self) -> Optional[str]:
         """Legacy support - returns the main Google API key"""
         return self.GOOGLE_API_KEY
