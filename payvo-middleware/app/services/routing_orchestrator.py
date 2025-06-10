@@ -1,6 +1,7 @@
 """
 Advanced Routing Orchestrator for Payvo Middleware
 Handles card selection, routing optimization, and learning algorithms
+Enhanced with comprehensive MCC prediction services
 """
 
 import asyncio
@@ -16,11 +17,17 @@ from app.database.connection_manager import connection_manager
 from app.database.models import TransactionFeedback, MCCPrediction, CardPerformance
 from app.models.schemas import APIResponse
 
+# Import enhanced services
+from .location_service import LocationService
+from .terminal_service import TerminalService
+from .fingerprint_service import FingerprintService
+from .historical_service import HistoricalService
+
 logger = logging.getLogger(__name__)
 
 
 class RoutingOrchestrator:
-    """Main orchestrator for payment routing decisions"""
+    """Main orchestrator for payment routing decisions with enhanced MCC prediction"""
     
     def __init__(self):
         self.mcc_cache = {}
@@ -28,6 +35,12 @@ class RoutingOrchestrator:
         self.terminal_cache = {}
         self.wifi_cache = {}
         self.ble_cache = {}
+        
+        # Enhanced services
+        self.location_service = None
+        self.terminal_service = None
+        self.fingerprint_service = None
+        self.historical_service = None
         
         # Learning parameters
         self.learning_rate = 0.1
@@ -39,10 +52,26 @@ class RoutingOrchestrator:
         self.background_tasks = []
         
     async def initialize(self):
-        """Initialize the routing orchestrator"""
-        logger.info("Initializing Routing Orchestrator...")
+        """Initialize the routing orchestrator and enhanced services"""
+        logger.info("Initializing Routing Orchestrator with enhanced services...")
+        
+        # Initialize enhanced services
+        self.location_service = LocationService()
+        self.terminal_service = TerminalService()
+        self.fingerprint_service = FingerprintService()
+        self.historical_service = HistoricalService()
+        
+        # Initialize all services
+        await asyncio.gather(
+            self.location_service.initialize(),
+            self.terminal_service.initialize(),
+            self.fingerprint_service.initialize(),
+            self.historical_service.initialize(),
+            return_exceptions=True
+        )
+        
         self.is_running = True
-        logger.info("Routing Orchestrator initialized successfully")
+        logger.info("Routing Orchestrator with enhanced services initialized successfully")
         
     async def start_background_tasks(self):
         """Start background maintenance tasks"""
@@ -79,8 +108,8 @@ class RoutingOrchestrator:
             user_id = payment_data.get("user_id", "anonymous")
             amount = Decimal(str(payment_data.get("amount", 0)))
             
-            # Predict MCC for this transaction
-            mcc_prediction = await self._predict_mcc(payment_data, session_id)
+            # Predict MCC for this transaction using enhanced services
+            mcc_prediction = await self._predict_mcc_enhanced(payment_data, session_id)
             
             # Get user preferences
             user_preferences = await connection_manager.get_user_preferences(user_id)
@@ -96,6 +125,20 @@ class RoutingOrchestrator:
             # Store prediction for learning
             await self._store_prediction_data(mcc_prediction, session_id)
             
+            # Store transaction data for historical analysis
+            if self.historical_service:
+                transaction_data = {
+                    'transaction_id': session_id,
+                    'merchant_name': payment_data.get('merchant_name'),
+                    'mcc': mcc_prediction['mcc'],
+                    'amount': float(amount),
+                    'latitude': payment_data.get('location', {}).get('latitude'),
+                    'longitude': payment_data.get('location', {}).get('longitude'),
+                    'terminal_id': payment_data.get('terminal_id'),
+                    'transaction_time': datetime.now().isoformat()
+                }
+                await self.historical_service.store_transaction_data(transaction_data)
+            
             # Prepare response
             response = {
                 "session_id": session_id,
@@ -103,12 +146,14 @@ class RoutingOrchestrator:
                 "predicted_mcc": mcc_prediction["mcc"],
                 "confidence": float(mcc_prediction["confidence"]),
                 "prediction_method": mcc_prediction["method"],
+                "prediction_sources": mcc_prediction.get("sources", []),
                 "routing_reason": card_selection.get("reason", "Optimal rewards"),
                 "estimated_rewards": card_selection.get("estimated_rewards", 0),
+                "analysis_details": mcc_prediction.get("analysis_details", {}),
                 "timestamp": datetime.now().isoformat()
             }
             
-            logger.info(f"Payment routing completed for session {session_id}")
+            logger.info(f"Payment routing completed for session {session_id} with enhanced prediction")
             return response
             
         except Exception as e:
@@ -119,8 +164,229 @@ class RoutingOrchestrator:
                 "timestamp": datetime.now().isoformat()
             }
     
-    async def _predict_mcc(self, payment_data: Dict[str, Any], session_id: str) -> Dict[str, Any]:
-        """Predict MCC code for the transaction using multiple methods with GPS as first priority"""
+    async def _predict_mcc_enhanced(self, payment_data: Dict[str, Any], session_id: str) -> Dict[str, Any]:
+        """Enhanced MCC prediction using all available services with weighted confidence"""
+        
+        terminal_id = payment_data.get("terminal_id")
+        location_data = payment_data.get("location", {})
+        wifi_data = payment_data.get("wifi_networks", [])
+        ble_data = payment_data.get("ble_beacons", [])
+        context_info = payment_data.get("context_info", {})
+        amount = payment_data.get("amount")
+        transaction_time = datetime.now()
+        
+        predictions = []
+        analysis_details = {}
+        
+        # Enhanced Location-based prediction (highest priority)
+        if location_data.get("latitude") and location_data.get("longitude") and self.location_service:
+            try:
+                location_analysis = await self.location_service.analyze_business_district(
+                    location_data["latitude"], 
+                    location_data["longitude"],
+                    radius=location_data.get("accuracy", 200)
+                )
+                if location_analysis.get("predicted"):
+                    location_prediction = {
+                        "mcc": location_analysis["predicted_mcc"],
+                        "confidence": location_analysis["confidence"],
+                        "method": "enhanced_location_analysis",
+                        "weight": 0.35,
+                        "source": "location_service"
+                    }
+                    predictions.append(location_prediction)
+                    analysis_details["location_analysis"] = location_analysis
+                    logger.info(f"Enhanced location prediction: MCC {location_prediction['mcc']} with {location_prediction['confidence']:.2f} confidence")
+            except Exception as e:
+                logger.error(f"Error in enhanced location prediction: {str(e)}")
+        
+        # Historical area-based prediction (high priority)
+        if location_data.get("latitude") and location_data.get("longitude") and self.historical_service:
+            try:
+                historical_analysis = await self.historical_service.analyze_area_patterns(
+                    location_data["latitude"],
+                    location_data["longitude"],
+                    radius_meters=location_data.get("accuracy", 200),
+                    transaction_amount=amount,
+                    transaction_time=transaction_time
+                )
+                if historical_analysis.get("predicted"):
+                    historical_prediction = {
+                        "mcc": historical_analysis["mcc"],
+                        "confidence": historical_analysis["confidence"],
+                        "method": "historical_area_analysis",
+                        "weight": 0.25,
+                        "source": "historical_service"
+                    }
+                    predictions.append(historical_prediction)
+                    analysis_details["historical_analysis"] = historical_analysis
+                    logger.info(f"Historical area prediction: MCC {historical_prediction['mcc']} with {historical_prediction['confidence']:.2f} confidence")
+            except Exception as e:
+                logger.error(f"Error in historical area prediction: {str(e)}")
+        
+        # Enhanced Terminal ID lookup
+        if terminal_id and self.terminal_service:
+            try:
+                terminal_analysis = await self.terminal_service.lookup_terminal(
+                    terminal_id,
+                    transaction_amount=amount,
+                    transaction_time=transaction_time
+                )
+                if terminal_analysis.get("predicted"):
+                    terminal_prediction = {
+                        "mcc": terminal_analysis["mcc"],
+                        "confidence": terminal_analysis["confidence"],
+                        "method": "enhanced_terminal_analysis",
+                        "weight": 0.2,
+                        "source": "terminal_service"
+                    }
+                    predictions.append(terminal_prediction)
+                    analysis_details["terminal_analysis"] = terminal_analysis
+                    logger.info(f"Enhanced terminal prediction: MCC {terminal_prediction['mcc']} with {terminal_prediction['confidence']:.2f} confidence")
+            except Exception as e:
+                logger.error(f"Error in enhanced terminal prediction: {str(e)}")
+        
+        # Enhanced WiFi fingerprinting
+        if wifi_data and self.fingerprint_service:
+            try:
+                wifi_analysis = await self.fingerprint_service.analyze_wifi_fingerprint(
+                    wifi_data,
+                    location_data
+                )
+                if wifi_analysis.get("predicted"):
+                    wifi_prediction = {
+                        "mcc": wifi_analysis["predicted_mcc"],
+                        "confidence": wifi_analysis["confidence"],
+                        "method": "enhanced_wifi_fingerprinting",
+                        "weight": 0.1,
+                        "source": "fingerprint_service"
+                    }
+                    predictions.append(wifi_prediction)
+                    analysis_details["wifi_analysis"] = wifi_analysis
+                    logger.info(f"Enhanced WiFi prediction: MCC {wifi_prediction['mcc']} with {wifi_prediction['confidence']:.2f} confidence")
+            except Exception as e:
+                logger.error(f"Error in enhanced WiFi prediction: {str(e)}")
+        
+        # Enhanced BLE fingerprinting
+        if ble_data and self.fingerprint_service:
+            try:
+                ble_analysis = await self.fingerprint_service.analyze_ble_fingerprint(
+                    ble_data,
+                    location_data
+                )
+                if ble_analysis.get("predicted"):
+                    ble_prediction = {
+                        "mcc": ble_analysis["predicted_mcc"],
+                        "confidence": ble_analysis["confidence"],
+                        "method": "enhanced_ble_fingerprinting",
+                        "weight": 0.1,
+                        "source": "fingerprint_service"
+                    }
+                    predictions.append(ble_prediction)
+                    analysis_details["ble_analysis"] = ble_analysis
+                    logger.info(f"Enhanced BLE prediction: MCC {ble_prediction['mcc']} with {ble_prediction['confidence']:.2f} confidence")
+            except Exception as e:
+                logger.error(f"Error in enhanced BLE prediction: {str(e)}")
+        
+        # Fallback to legacy prediction methods if no enhanced predictions
+        if not predictions:
+            legacy_prediction = await self._predict_mcc_legacy(payment_data, session_id)
+            if legacy_prediction:
+                legacy_prediction["weight"] = 1.0
+                legacy_prediction["source"] = "legacy_methods"
+                predictions.append(legacy_prediction)
+                logger.info("Using legacy prediction methods as fallback")
+        
+        # Use context information for realistic scenarios
+        if context_info.get("expected_mcc") and (not predictions or max([p["confidence"] for p in predictions]) < 0.6):
+            context_prediction = {
+                "mcc": context_info["expected_mcc"],
+                "confidence": 0.85,
+                "method": "contextual_analysis",
+                "weight": 0.9,
+                "source": "context_info"
+            }
+            predictions.append(context_prediction)
+            logger.info(f"Context prediction used: MCC {context_prediction['mcc']} with {context_prediction['confidence']:.2f} confidence")
+        
+        # Enhanced prediction combination
+        final_prediction = self._combine_predictions_enhanced(predictions)
+        
+        # Fallback to default if no prediction
+        if not final_prediction:
+            final_prediction = {
+                "mcc": "5999",  # Miscellaneous retail
+                "confidence": 0.3,
+                "method": "fallback_default",
+                "sources": ["fallback"]
+            }
+            logger.info(f"Using default fallback prediction: MCC {final_prediction['mcc']}")
+        
+        # Add analysis details to the prediction
+        final_prediction["analysis_details"] = analysis_details
+        final_prediction["prediction_count"] = len(predictions)
+        final_prediction["sources"] = [p.get("source", "unknown") for p in predictions]
+        
+        return final_prediction
+    
+    def _combine_predictions_enhanced(self, predictions: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Enhanced prediction combination with weighted confidence and consensus scoring"""
+        
+        if not predictions:
+            return None
+        
+        # Normalize weights
+        total_weight = sum([p.get("weight", 1.0) for p in predictions])
+        for pred in predictions:
+            pred["normalized_weight"] = pred.get("weight", 1.0) / total_weight
+        
+        # Group predictions by MCC
+        mcc_groups = {}
+        for pred in predictions:
+            mcc = pred["mcc"]
+            if mcc not in mcc_groups:
+                mcc_groups[mcc] = []
+            mcc_groups[mcc].append(pred)
+        
+        # Calculate weighted confidence for each MCC
+        mcc_scores = {}
+        for mcc, group in mcc_groups.items():
+            # Weighted average confidence
+            weighted_confidence = sum([p["confidence"] * p["normalized_weight"] for p in group])
+            
+            # Consensus bonus (multiple methods agreeing)
+            consensus_bonus = min(0.1, (len(group) - 1) * 0.05)
+            
+            # Method diversity bonus (different types of analysis)
+            unique_methods = len(set([p["method"] for p in group]))
+            diversity_bonus = min(0.1, (unique_methods - 1) * 0.03)
+            
+            final_confidence = min(0.95, weighted_confidence + consensus_bonus + diversity_bonus)
+            
+            mcc_scores[mcc] = {
+                "confidence": final_confidence,
+                "weight": sum([p["normalized_weight"] for p in group]),
+                "methods": [p["method"] for p in group],
+                "sources": [p.get("source", "unknown") for p in group],
+                "consensus_count": len(group)
+            }
+        
+        # Select best MCC
+        best_mcc = max(mcc_scores.keys(), key=lambda mcc: mcc_scores[mcc]["confidence"])
+        best_score = mcc_scores[best_mcc]
+        
+        return {
+            "mcc": best_mcc,
+            "confidence": best_score["confidence"],
+            "method": "enhanced_weighted_consensus",
+            "primary_methods": best_score["methods"],
+            "sources": best_score["sources"],
+            "consensus_count": best_score["consensus_count"],
+            "all_predictions": {mcc: score for mcc, score in mcc_scores.items()}
+        }
+    
+    async def _predict_mcc_legacy(self, payment_data: Dict[str, Any], session_id: str) -> Dict[str, Any]:
+        """Legacy MCC prediction using multiple methods with GPS as first priority"""
         
         terminal_id = payment_data.get("terminal_id")
         location_data = payment_data.get("location", {})
@@ -983,7 +1249,7 @@ class RoutingOrchestrator:
             
             # Real-time MCC prediction using dynamic context
             payment_context = await self._generate_realistic_payment_context(session)
-            mcc_prediction = await self._predict_mcc(payment_context, session_id)
+            mcc_prediction = await self._predict_mcc_enhanced(payment_context, session_id)
             
             predicted_mcc = mcc_prediction["mcc"]
             merchant_category = self._mcc_to_category_name(predicted_mcc)

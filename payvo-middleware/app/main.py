@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
+from app.api.routes.mcc_prediction import router as mcc_router
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -117,6 +118,9 @@ app.add_middleware(
 
 # Include API router
 app.include_router(router, prefix="/api/v1")
+
+# Include enhanced MCC prediction router
+app.include_router(mcc_router)
 
 @app.get("/")
 async def root():

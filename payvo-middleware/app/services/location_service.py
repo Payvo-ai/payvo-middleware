@@ -1,0 +1,551 @@
+"""
+Enhanced Location Service for MCC Prediction
+Integrates Google Places API and Foursquare API for precise business location analysis
+"""
+
+import asyncio
+import logging
+from typing import Dict, List, Optional, Any, Tuple
+from decimal import Decimal
+import json
+import hashlib
+from datetime import datetime, timedelta
+import os
+
+import googlemaps
+import httpx
+from geopy.distance import geodesic
+from shapely.geometry import Point, Polygon
+import h3
+import numpy as np
+
+from ..core.config import settings
+from ..core.database import get_supabase_client
+
+logger = logging.getLogger(__name__)
+
+class LocationService:
+    """Enhanced location service with real API integrations"""
+    
+    def __init__(self):
+        self.google_maps_client = None
+        self.foursquare_api_key = None
+        self.cache_duration = timedelta(hours=6)  # Cache results for 6 hours
+        self.supabase = None
+        
+    async def initialize(self):
+        """Initialize API clients and database connections"""
+        try:
+            # Initialize Google Maps client
+            google_api_key = os.getenv('GOOGLE_PLACES_API_KEY')
+            if google_api_key:
+                self.google_maps_client = googlemaps.Client(key=google_api_key)
+                logger.info("Google Places API initialized")
+            else:
+                logger.warning("Google Places API key not found")
+            
+            # Initialize Foursquare API
+            self.foursquare_api_key = os.getenv('FOURSQUARE_API_KEY')
+            if self.foursquare_api_key:
+                logger.info("Foursquare API initialized")
+            else:
+                logger.warning("Foursquare API key not found")
+            
+            # Initialize database
+            self.supabase = await get_supabase_client()
+            await self._create_location_tables()
+            
+        except Exception as e:
+            logger.error(f"Error initializing LocationService: {str(e)}")
+    
+    async def _create_location_tables(self):
+        """Create necessary database tables for location data"""
+        try:
+            # Create business locations cache table
+            await self.supabase.table('business_locations').select('*').limit(1).execute()
+        except:
+            # Table doesn't exist, create it
+            logger.info("Creating business_locations table")
+            # In practice, you'd use proper database migrations
+    
+    async def analyze_business_district(self, lat: float, lng: float, radius: int = 500) -> Dict[str, Any]:
+        """
+        Comprehensive business district analysis using multiple data sources
+        
+        Args:
+            lat: Latitude
+            lng: Longitude
+            radius: Search radius in meters (default 500m)
+        
+        Returns:
+            Detailed business district analysis
+        """
+        try:
+            # Check cache first
+            cache_key = self._generate_location_cache_key(lat, lng, radius)
+            cached_result = await self._get_cached_analysis(cache_key)
+            if cached_result:
+                return cached_result
+            
+            # Gather data from multiple sources
+            google_places = await self._get_google_places_data(lat, lng, radius)
+            foursquare_venues = await self._get_foursquare_data(lat, lng, radius)
+            historical_data = await self._get_historical_transaction_data(lat, lng, radius)
+            
+            # Combine and analyze data
+            analysis = await self._combine_location_analyses(
+                google_places, foursquare_venues, historical_data, lat, lng
+            )
+            
+            # Cache the result
+            await self._cache_analysis(cache_key, analysis)
+            
+            return analysis
+            
+        except Exception as e:
+            logger.error(f"Error in business district analysis: {str(e)}")
+            return self._get_fallback_analysis()
+    
+    async def _get_google_places_data(self, lat: float, lng: float, radius: int) -> Dict[str, Any]:
+        """Get business data from Google Places API"""
+        if not self.google_maps_client:
+            return {"businesses": [], "density_score": 0.0}
+        
+        try:
+            # Search for nearby places
+            places_result = self.google_maps_client.places_nearby(
+                location=(lat, lng),
+                radius=radius,
+                type=None  # Get all types
+            )
+            
+            businesses = []
+            business_types = {}
+            total_rating_sum = 0
+            rated_businesses = 0
+            
+            for place in places_result.get('results', []):
+                place_types = place.get('types', [])
+                rating = place.get('rating', 0)
+                
+                # Extract business info
+                business = {
+                    'name': place.get('name', ''),
+                    'types': place_types,
+                    'rating': rating,
+                    'price_level': place.get('price_level', 0),
+                    'place_id': place.get('place_id', ''),
+                    'location': place.get('geometry', {}).get('location', {}),
+                    'mcc_category': self._google_types_to_mcc_category(place_types)
+                }
+                businesses.append(business)
+                
+                # Count business types
+                for business_type in place_types:
+                    if business_type not in ['establishment', 'point_of_interest']:
+                        business_types[business_type] = business_types.get(business_type, 0) + 1
+                
+                # Calculate average rating
+                if rating > 0:
+                    total_rating_sum += rating
+                    rated_businesses += 1
+            
+            avg_rating = total_rating_sum / rated_businesses if rated_businesses > 0 else 0
+            
+            return {
+                'businesses': businesses,
+                'business_count': len(businesses),
+                'business_types': business_types,
+                'density_score': min(len(businesses) / 50.0, 1.0),  # Normalize to 0-1
+                'average_rating': avg_rating,
+                'commercial_indicators': self._analyze_google_commercial_indicators(business_types)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error fetching Google Places data: {str(e)}")
+            return {"businesses": [], "density_score": 0.0}
+    
+    async def _get_foursquare_data(self, lat: float, lng: float, radius: int) -> Dict[str, Any]:
+        """Get venue data from Foursquare API"""
+        if not self.foursquare_api_key:
+            return {"venues": [], "density_score": 0.0}
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                # Foursquare Places API v3
+                url = "https://api.foursquare.com/v3/places/search"
+                headers = {
+                    "Authorization": f"Bearer {self.foursquare_api_key}",
+                    "Accept": "application/json"
+                }
+                params = {
+                    "ll": f"{lat},{lng}",
+                    "radius": radius,
+                    "limit": 50,
+                    "fields": "name,categories,rating,price,location,stats"
+                }
+                
+                response = await client.get(url, headers=headers, params=params)
+                response.raise_for_status()
+                data = response.json()
+                
+                venues = []
+                categories = {}
+                
+                for venue in data.get('results', []):
+                    venue_categories = venue.get('categories', [])
+                    
+                    venue_info = {
+                        'name': venue.get('name', ''),
+                        'categories': [cat.get('name', '') for cat in venue_categories],
+                        'rating': venue.get('rating', 0),
+                        'price': venue.get('price', 0),
+                        'location': venue.get('location', {}),
+                        'stats': venue.get('stats', {}),
+                        'mcc_category': self._foursquare_categories_to_mcc(venue_categories)
+                    }
+                    venues.append(venue_info)
+                    
+                    # Count categories
+                    for cat in venue_categories:
+                        cat_name = cat.get('name', '')
+                        categories[cat_name] = categories.get(cat_name, 0) + 1
+                
+                return {
+                    'venues': venues,
+                    'venue_count': len(venues),
+                    'categories': categories,
+                    'density_score': min(len(venues) / 40.0, 1.0),  # Normalize to 0-1
+                    'commercial_indicators': self._analyze_foursquare_commercial_indicators(categories)
+                }
+                
+        except Exception as e:
+            logger.error(f"Error fetching Foursquare data: {str(e)}")
+            return {"venues": [], "density_score": 0.0}
+    
+    async def _get_historical_transaction_data(self, lat: float, lng: float, radius: int) -> Dict[str, Any]:
+        """Get historical transaction data for the area"""
+        try:
+            # Create a geohash for the area
+            location_hash = self._generate_location_hash(lat, lng, precision=7)  # ~150m precision
+            
+            # Query historical data from our database
+            if self.supabase:
+                result = await self.supabase.table('transaction_history').select(
+                    'mcc, confidence, method, created_at, location_hash'
+                ).eq('location_hash', location_hash).execute()
+                
+                transactions = result.data if result.data else []
+                
+                # Analyze historical patterns
+                mcc_counts = {}
+                confidence_sum = {}
+                total_transactions = len(transactions)
+                
+                for tx in transactions:
+                    mcc = tx.get('mcc', '')
+                    confidence = tx.get('confidence', 0)
+                    
+                    mcc_counts[mcc] = mcc_counts.get(mcc, 0) + 1
+                    confidence_sum[mcc] = confidence_sum.get(mcc, 0) + confidence
+                
+                # Calculate weighted MCCs
+                mcc_patterns = {}
+                for mcc, count in mcc_counts.items():
+                    frequency = count / total_transactions
+                    avg_confidence = confidence_sum[mcc] / count
+                    mcc_patterns[mcc] = {
+                        'frequency': frequency,
+                        'avg_confidence': avg_confidence,
+                        'count': count
+                    }
+                
+                return {
+                    'total_transactions': total_transactions,
+                    'mcc_patterns': mcc_patterns,
+                    'dominant_mcc': max(mcc_counts, key=mcc_counts.get) if mcc_counts else None,
+                    'historical_confidence': sum(confidence_sum.values()) / sum(mcc_counts.values()) if mcc_counts else 0
+                }
+        
+        except Exception as e:
+            logger.error(f"Error fetching historical data: {str(e)}")
+        
+        return {'total_transactions': 0, 'mcc_patterns': {}}
+    
+    async def _combine_location_analyses(self, google_data: Dict, foursquare_data: Dict, 
+                                       historical_data: Dict, lat: float, lng: float) -> Dict[str, Any]:
+        """Combine all location analysis data into a comprehensive result"""
+        
+        # Calculate overall commercial score
+        google_score = google_data.get('density_score', 0) * 0.4
+        foursquare_score = foursquare_data.get('density_score', 0) * 0.4
+        historical_score = min(historical_data.get('total_transactions', 0) / 100.0, 1.0) * 0.2
+        
+        overall_commercial_score = google_score + foursquare_score + historical_score
+        
+        # Determine primary business types
+        all_business_types = []
+        
+        # Add Google business types
+        google_types = google_data.get('business_types', {})
+        for btype, count in google_types.items():
+            all_business_types.extend([btype] * count)
+        
+        # Add Foursquare categories
+        foursquare_cats = foursquare_data.get('categories', {})
+        for cat, count in foursquare_cats.items():
+            all_business_types.extend([cat.lower().replace(' ', '_')] * count)
+        
+        # Find dominant business type
+        if all_business_types:
+            from collections import Counter
+            business_counter = Counter(all_business_types)
+            dominant_type = business_counter.most_common(1)[0][0]
+        else:
+            dominant_type = "unknown"
+        
+        # Predict MCC based on combined data
+        predicted_mcc = await self._predict_mcc_from_combined_data(
+            google_data, foursquare_data, historical_data
+        )
+        
+        return {
+            'commercial_score': min(overall_commercial_score, 1.0),
+            'business_density': self._categorize_density(overall_commercial_score),
+            'primary_business_types': list(set(all_business_types[:5])),  # Top 5 unique types
+            'dominant_business_type': dominant_type,
+            'google_data': google_data,
+            'foursquare_data': foursquare_data,
+            'historical_data': historical_data,
+            'predicted_mcc': predicted_mcc,
+            'location_precision': self._calculate_location_precision(lat, lng),
+            'confidence_factors': {
+                'google_api_available': bool(self.google_maps_client),
+                'foursquare_api_available': bool(self.foursquare_api_key),
+                'historical_data_available': historical_data.get('total_transactions', 0) > 0,
+                'combined_business_count': google_data.get('business_count', 0) + foursquare_data.get('venue_count', 0)
+            }
+        }
+    
+    async def _predict_mcc_from_combined_data(self, google_data: Dict, foursquare_data: Dict, historical_data: Dict) -> Dict[str, Any]:
+        """Predict MCC from combined location data"""
+        
+        # Start with historical data if available
+        historical_mcc = historical_data.get('dominant_mcc')
+        if historical_mcc and historical_data.get('total_transactions', 0) >= 5:
+            return {
+                'mcc': historical_mcc,
+                'confidence': min(0.9, historical_data.get('historical_confidence', 0.5) + 0.2),
+                'source': 'historical_data'
+            }
+        
+        # Analyze business types from APIs
+        business_type_scores = {}
+        
+        # Google Places analysis
+        for business in google_data.get('businesses', []):
+            mcc_category = business.get('mcc_category')
+            if mcc_category:
+                score = business.get('rating', 3.0) / 5.0  # Normalize rating
+                business_type_scores[mcc_category] = business_type_scores.get(mcc_category, 0) + score
+        
+        # Foursquare analysis
+        for venue in foursquare_data.get('venues', []):
+            mcc_category = venue.get('mcc_category')
+            if mcc_category:
+                score = venue.get('rating', 6.0) / 10.0  # Normalize rating
+                business_type_scores[mcc_category] = business_type_scores.get(mcc_category, 0) + score
+        
+        if business_type_scores:
+            best_category = max(business_type_scores, key=business_type_scores.get)
+            total_score = sum(business_type_scores.values())
+            confidence = min(0.85, business_type_scores[best_category] / total_score)
+            
+            return {
+                'mcc': best_category,
+                'confidence': confidence,
+                'source': 'combined_apis'
+            }
+        
+        # Fallback
+        return {
+            'mcc': '5999',
+            'confidence': 0.3,
+            'source': 'fallback'
+        }
+    
+    def _google_types_to_mcc_category(self, types: List[str]) -> Optional[str]:
+        """Convert Google Places types to MCC categories"""
+        type_mapping = {
+            'gas_station': '5541',
+            'grocery_or_supermarket': '5411',
+            'restaurant': '5812',
+            'meal_takeaway': '5814',
+            'food': '5812',
+            'clothing_store': '5651',
+            'electronics_store': '5732',
+            'department_store': '5311',
+            'pharmacy': '5912',
+            'bank': '6011',
+            'atm': '6011',
+            'hospital': '8062',
+            'lodging': '7011',
+            'car_dealer': '5511',
+            'furniture_store': '5712',
+            'hardware_store': '5251',
+            'jewelry_store': '5944',
+            'shoe_store': '5661'
+        }
+        
+        for place_type in types:
+            if place_type in type_mapping:
+                return type_mapping[place_type]
+        
+        # Default retail categories
+        retail_indicators = ['store', 'shop', 'shopping']
+        for place_type in types:
+            if any(indicator in place_type for indicator in retail_indicators):
+                return '5999'  # Miscellaneous retail
+        
+        return None
+    
+    def _foursquare_categories_to_mcc(self, categories: List[Dict]) -> Optional[str]:
+        """Convert Foursquare categories to MCC"""
+        category_mapping = {
+            'gas station': '5541',
+            'grocery store': '5411',
+            'restaurant': '5812',
+            'fast food': '5814',
+            'coffee shop': '5812',
+            'clothing store': '5651',
+            'electronics store': '5732',
+            'department store': '5311',
+            'pharmacy': '5912',
+            'bank': '6011',
+            'hotel': '7011',
+            'car dealership': '5511',
+            'furniture store': '5712',
+            'jewelry store': '5944'
+        }
+        
+        for category in categories:
+            cat_name = category.get('name', '').lower()
+            if cat_name in category_mapping:
+                return category_mapping[cat_name]
+        
+        return '5999'  # Default to miscellaneous retail
+    
+    def _analyze_google_commercial_indicators(self, business_types: Dict[str, int]) -> Dict[str, Any]:
+        """Analyze commercial indicators from Google Places data"""
+        commercial_types = [
+            'store', 'restaurant', 'shopping_mall', 'bank', 'gas_station',
+            'pharmacy', 'hospital', 'lodging', 'car_dealer'
+        ]
+        
+        commercial_count = sum(count for btype, count in business_types.items() 
+                             if any(ct in btype for ct in commercial_types))
+        total_count = sum(business_types.values())
+        
+        return {
+            'commercial_ratio': commercial_count / total_count if total_count > 0 else 0,
+            'commercial_diversity': len([bt for bt in business_types.keys() 
+                                       if any(ct in bt for ct in commercial_types)]),
+            'is_commercial_area': commercial_count > total_count * 0.6
+        }
+    
+    def _analyze_foursquare_commercial_indicators(self, categories: Dict[str, int]) -> Dict[str, Any]:
+        """Analyze commercial indicators from Foursquare data"""
+        commercial_keywords = [
+            'shop', 'store', 'restaurant', 'cafe', 'bank', 'mall',
+            'market', 'boutique', 'salon', 'spa', 'hotel'
+        ]
+        
+        commercial_count = sum(count for cat, count in categories.items()
+                             if any(kw in cat.lower() for kw in commercial_keywords))
+        total_count = sum(categories.values())
+        
+        return {
+            'commercial_ratio': commercial_count / total_count if total_count > 0 else 0,
+            'venue_diversity': len(categories),
+            'is_commercial_area': commercial_count > total_count * 0.7
+        }
+    
+    def _categorize_density(self, score: float) -> str:
+        """Categorize business density based on score"""
+        if score >= 0.8:
+            return "very_high"
+        elif score >= 0.6:
+            return "high"
+        elif score >= 0.4:
+            return "medium"
+        elif score >= 0.2:
+            return "low"
+        else:
+            return "very_low"
+    
+    def _calculate_location_precision(self, lat: float, lng: float) -> Dict[str, Any]:
+        """Calculate location precision metrics"""
+        # This would incorporate GPS accuracy, cell tower triangulation, etc.
+        # For now, return basic precision categories
+        return {
+            'gps_precision': 'high',  # Assume high GPS precision
+            'building_level': True,
+            'street_level': True,
+            'neighborhood_level': True
+        }
+    
+    def _generate_location_cache_key(self, lat: float, lng: float, radius: int) -> str:
+        """Generate cache key for location analysis"""
+        # Round coordinates to reduce cache variations
+        lat_rounded = round(lat, 4)  # ~11m precision
+        lng_rounded = round(lng, 4)
+        return f"location_{lat_rounded}_{lng_rounded}_{radius}"
+    
+    def _generate_location_hash(self, lat: float, lng: float, precision: int = 7) -> str:
+        """Generate location hash using H3 hexagonal indexing"""
+        try:
+            return h3.geo_to_h3(lat, lng, precision)
+        except:
+            # Fallback to simple hash
+            return hashlib.md5(f"{round(lat, 4)}_{round(lng, 4)}".encode()).hexdigest()[:10]
+    
+    async def _get_cached_analysis(self, cache_key: str) -> Optional[Dict[str, Any]]:
+        """Get cached location analysis"""
+        try:
+            if self.supabase:
+                result = await self.supabase.table('location_cache').select('*').eq('cache_key', cache_key).execute()
+                if result.data:
+                    cache_entry = result.data[0]
+                    cached_at = datetime.fromisoformat(cache_entry['created_at'].replace('Z', '+00:00'))
+                    if datetime.now() - cached_at < self.cache_duration:
+                        return json.loads(cache_entry['analysis_data'])
+        except Exception as e:
+            logger.error(f"Error retrieving cached analysis: {str(e)}")
+        return None
+    
+    async def _cache_analysis(self, cache_key: str, analysis: Dict[str, Any]):
+        """Cache location analysis"""
+        try:
+            if self.supabase:
+                await self.supabase.table('location_cache').upsert({
+                    'cache_key': cache_key,
+                    'analysis_data': json.dumps(analysis),
+                    'created_at': datetime.now().isoformat()
+                }).execute()
+        except Exception as e:
+            logger.error(f"Error caching analysis: {str(e)}")
+    
+    def _get_fallback_analysis(self) -> Dict[str, Any]:
+        """Return fallback analysis when APIs fail"""
+        return {
+            'commercial_score': 0.3,
+            'business_density': 'unknown',
+            'primary_business_types': [],
+            'predicted_mcc': {'mcc': '5999', 'confidence': 0.2, 'source': 'fallback'},
+            'confidence_factors': {
+                'google_api_available': False,
+                'foursquare_api_available': False,
+                'historical_data_available': False,
+                'combined_business_count': 0
+            }
+        } 
