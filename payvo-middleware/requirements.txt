@@ -27,13 +27,9 @@ plotly==5.17.0
 websockets==12.0
 email-validator==2.1.0
 gunicorn==21.2.0
-# New dependencies for enhanced MCC prediction
+# Enhanced MCC prediction dependencies
 googlemaps==4.10.0
-foursquare==1.0.5
 geoalchemy2==0.14.2
 shapely==2.0.2
-rtree==1.1.0
 pyproj==3.6.1
-folium==0.15.1
-h3==3.7.6
-hashlib-compat==1.0.1 
+h3==3.7.6 
