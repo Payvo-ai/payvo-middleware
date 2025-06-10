@@ -46,17 +46,17 @@ async def lifespan(app: FastAPI):
         
         # Run initialization with timeout
         try:
-            success = await asyncio.wait_for(init_with_timeout(), timeout=45.0)
+            success = await asyncio.wait_for(init_with_timeout(), timeout=20.0)  # Reduced timeout
             if success:
                 logger.info("✅ All services initialized successfully")
         except asyncio.TimeoutError:
-            logger.warning("⚠️ Service initialization timed out - continuing with partial initialization")
+            logger.warning("⚠️ Service initialization timed out - continuing with degraded services")
         except Exception as e:
             logger.warning(f"⚠️ Service initialization failed: {e}")
             logger.warning("⚠️ Continuing startup in degraded mode...")
     
     except Exception as e:
-        logger.error(f"❌ Critical startup error: {e}")
+        logger.warning(f"⚠️ Startup error: {e}")  # Changed from error to warning
         logger.warning("⚠️ Continuing startup with minimal services...")
     
     logger.info("✅ Lifespan startup completed")
