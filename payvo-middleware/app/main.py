@@ -133,6 +133,16 @@ async def simple_health():
     """Simple health check endpoint for basic monitoring"""
     return {"status": "healthy", "service": "payvo-middleware"}
 
+@app.get("/ping")
+async def ping():
+    """Simple ping endpoint for connection testing"""
+    from datetime import datetime
+    return {
+        "message": "pong",
+        "timestamp": datetime.now().isoformat(),
+        "service": "payvo-middleware"
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000) 
