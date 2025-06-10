@@ -186,10 +186,12 @@ class RoutingOrchestrator:
                     location_data["longitude"],
                     radius=location_data.get("accuracy", 200)
                 )
-                if location_analysis.get("predicted"):
+                # Fix: Check for predicted_mcc instead of predicted
+                predicted_mcc_data = location_analysis.get("predicted_mcc")
+                if predicted_mcc_data and predicted_mcc_data.get("mcc"):
                     location_prediction = {
-                        "mcc": location_analysis["predicted_mcc"],
-                        "confidence": location_analysis["confidence"],
+                        "mcc": predicted_mcc_data["mcc"],
+                        "confidence": predicted_mcc_data.get("confidence", 0.5),
                         "method": "enhanced_location_analysis",
                         "weight": 0.35,
                         "source": "location_service"
@@ -210,7 +212,8 @@ class RoutingOrchestrator:
                     transaction_amount=amount,
                     transaction_time=transaction_time
                 )
-                if historical_analysis.get("predicted"):
+                # Fix: Check for mcc directly instead of predicted
+                if historical_analysis.get("mcc") and historical_analysis.get("confidence", 0) > 0.3:
                     historical_prediction = {
                         "mcc": historical_analysis["mcc"],
                         "confidence": historical_analysis["confidence"],
@@ -232,9 +235,11 @@ class RoutingOrchestrator:
                     transaction_amount=amount,
                     transaction_time=transaction_time
                 )
-                if terminal_analysis.get("predicted"):
+                # Fix: Check for mcc or predicted_mcc directly
+                predicted_mcc = terminal_analysis.get("predicted_mcc") or terminal_analysis.get("mcc")
+                if predicted_mcc and terminal_analysis.get("confidence", 0) > 0.3:
                     terminal_prediction = {
-                        "mcc": terminal_analysis["mcc"],
+                        "mcc": predicted_mcc,
                         "confidence": terminal_analysis["confidence"],
                         "method": "enhanced_terminal_analysis",
                         "weight": 0.2,
@@ -253,9 +258,11 @@ class RoutingOrchestrator:
                     wifi_data,
                     location_data
                 )
-                if wifi_analysis.get("predicted"):
+                # Fix: Check for predicted_mcc directly
+                predicted_mcc = wifi_analysis.get("predicted_mcc") or wifi_analysis.get("mcc")
+                if predicted_mcc and wifi_analysis.get("confidence", 0) > 0.3:
                     wifi_prediction = {
-                        "mcc": wifi_analysis["predicted_mcc"],
+                        "mcc": predicted_mcc,
                         "confidence": wifi_analysis["confidence"],
                         "method": "enhanced_wifi_fingerprinting",
                         "weight": 0.1,
@@ -274,9 +281,11 @@ class RoutingOrchestrator:
                     ble_data,
                     location_data
                 )
-                if ble_analysis.get("predicted"):
+                # Fix: Check for predicted_mcc directly
+                predicted_mcc = ble_analysis.get("predicted_mcc") or ble_analysis.get("mcc")
+                if predicted_mcc and ble_analysis.get("confidence", 0) > 0.3:
                     ble_prediction = {
-                        "mcc": ble_analysis["predicted_mcc"],
+                        "mcc": predicted_mcc,
                         "confidence": ble_analysis["confidence"],
                         "method": "enhanced_ble_fingerprinting",
                         "weight": 0.1,
