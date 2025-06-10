@@ -5,6 +5,7 @@ FastAPI routes for Payvo middleware
 from fastapi import APIRouter, HTTPException, Query, Body
 from typing import Optional
 import logging
+from datetime import datetime
 
 from app.models.schemas import (
     APIResponse, TransactionFeedback, HealthCheck
@@ -187,12 +188,39 @@ async def health_check():
     - System version
     """
     try:
+        # Try to get health status from routing orchestrator
         response = await routing_orchestrator.health_check()
         return response
         
     except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.warning(f"Routing orchestrator health check failed: {e}")
+        
+        # Return a basic health status when orchestrator is unavailable
+        return APIResponse(
+            success=True,
+            data={
+                "status": "degraded",
+                "version": "2.0.0",
+                "timestamp": datetime.now().isoformat(),
+                "components": {
+                    "routing_orchestrator": "unavailable",
+                    "database": "unknown",
+                    "supabase": "unknown"
+                },
+                "cache_stats": {
+                    "mcc_cache_size": 0,
+                    "location_cache_size": 0,
+                    "terminal_cache_size": 0,
+                    "wifi_cache_size": 0,
+                    "ble_cache_size": 0
+                },
+                "system_info": {
+                    "active_sessions": 0,
+                    "background_tasks": 0
+                }
+            },
+            message="System is running in degraded mode"
+        )
 
 
 # Additional utility endpoints
