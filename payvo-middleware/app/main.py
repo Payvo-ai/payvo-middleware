@@ -194,11 +194,9 @@ async def railway_health():
             "timestamp": datetime.now().isoformat()
         }
 
-# Include API router (its health endpoint will be overridden by the above)
+# Include API routers
 app.include_router(router, prefix="/api/v1")
-
-# Include enhanced MCC prediction router
-app.include_router(mcc_router)
+app.include_router(mcc_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
