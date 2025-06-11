@@ -32,18 +32,18 @@ class HistoricalService:
     async def initialize(self):
         """Initialize the historical service with database connectivity"""
         try:
-            # Initialize Supabase client (synchronous call, no await needed)
+            # Initialize Supabase client
             self.supabase = get_supabase_client()
             
             # Test database connectivity if available
             if self.supabase.is_available:
-                # Test all required tables
-                await self.supabase.table('transaction_history').select('*').limit(1).execute()
-                await self.supabase.table('area_patterns').select('*').limit(1).execute()
-                await self.supabase.table('merchant_locations').select('*').limit(1).execute()
+                # Supabase operations are synchronous, no await needed
+                self.supabase.client.table('transaction_history').select('*').limit(1).execute()
+                self.supabase.client.table('area_patterns').select('*').limit(1).execute()
+                self.supabase.client.table('merchant_locations').select('*').limit(1).execute()
                 logger.info("Historical service database connectivity verified")
             else:
-                logger.warning("Historical service: Supabase not available, using in-memory fallback")
+                logger.warning("Historical service: Supabase not available, using fallback")
                 
         except Exception as e:
             logger.warning(f"Historical service database connection failed: {e}")
@@ -125,7 +125,7 @@ class HistoricalService:
             cutoff_date = (datetime.now() - timedelta(days=180)).isoformat()
             
             # Use PostGIS ST_DWithin for spatial query
-            result = await self.supabase.rpc('get_transactions_within_radius', {
+            result = self.supabase.client.rpc('get_transactions_within_radius', {
                 'center_lat': lat,
                 'center_lon': lon,
                 'radius_meters': radius_meters,
@@ -211,7 +211,7 @@ class HistoricalService:
                 return {'analyzed': False}
             
             # Query merchant locations within the area
-            result = await self.supabase.rpc('get_merchants_within_radius', {
+            result = self.supabase.client.rpc('get_merchants_within_radius', {
                 'center_lat': lat,
                 'center_lon': lon,
                 'radius_meters': radius_meters
@@ -289,7 +289,7 @@ class HistoricalService:
             # Query temporal transaction patterns
             cutoff_date = (datetime.now() - timedelta(days=90)).isoformat()
             
-            result = await self.supabase.rpc('get_temporal_patterns_within_radius', {
+            result = self.supabase.client.rpc('get_temporal_patterns_within_radius', {
                 'center_lat': lat,
                 'center_lon': lon,
                 'radius_meters': radius_meters,
@@ -389,7 +389,7 @@ class HistoricalService:
             # Query behavioral patterns
             cutoff_date = (datetime.now() - timedelta(days=60)).isoformat()
             
-            result = await self.supabase.rpc('get_behavioral_patterns_within_radius', {
+            result = self.supabase.client.rpc('get_behavioral_patterns_within_radius', {
                 'center_lat': lat,
                 'center_lon': lon,
                 'radius_meters': radius_meters,
@@ -496,7 +496,7 @@ class HistoricalService:
             for hex_id in surrounding_hexes:
                 hex_center = h3.h3_to_geo(hex_id)
                 
-                result = await self.supabase.rpc('get_hex_transaction_summary', {
+                result = self.supabase.client.rpc('get_hex_transaction_summary', {
                     'hex_id': hex_id,
                     'center_lat': hex_center[0],
                     'center_lon': hex_center[1],
@@ -700,7 +700,7 @@ class HistoricalService:
             if not self.supabase:
                 return None
             
-            result = await self.supabase.table('area_pattern_cache').select('*').eq(
+            result = self.supabase.client.table('area_pattern_cache').select('*').eq(
                 'cache_key', cache_key
             ).order('created_at', desc=True).limit(1).execute()
             
@@ -747,7 +747,7 @@ class HistoricalService:
             if not self.supabase:
                 return
             
-            await self.supabase.table('area_pattern_cache').upsert({
+            self.supabase.client.table('area_pattern_cache').upsert({
                 'cache_key': cache_key,
                 'analysis_data': json.dumps(analysis),
                 'created_at': datetime.now().isoformat()
@@ -800,7 +800,7 @@ class HistoricalService:
                 'created_at': datetime.now().isoformat()
             }
             
-            await self.supabase.table('transaction_history').insert(storage_data).execute()
+            self.supabase.client.table('transaction_history').insert(storage_data).execute()
             
             return {'success': True, 'transaction_id': transaction_data.get('transaction_id')}
             
@@ -815,7 +815,7 @@ class HistoricalService:
                 return {'error': 'Database not available'}
             
             # Get comprehensive area statistics
-            result = await self.supabase.rpc('get_area_comprehensive_stats', {
+            result = self.supabase.client.rpc('get_area_comprehensive_stats', {
                 'center_lat': lat,
                 'center_lon': lon,
                 'radius_meters': radius_meters,

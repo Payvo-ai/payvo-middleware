@@ -42,7 +42,8 @@ class LocationService:
             
             # Test database connectivity if available
             if self.supabase.is_available:
-                await self.supabase.table('business_locations').select('*').limit(1).execute()
+                # Supabase operations are synchronous, no await needed
+                self.supabase.client.table('business_locations').select('*').limit(1).execute()
                 logger.info("Location service database connectivity verified")
             else:
                 logger.warning("Location service: Supabase not available, using in-memory fallback")
@@ -246,8 +247,9 @@ class LocationService:
             location_hash = self._generate_location_hash(lat, lng, precision=7)  # ~150m precision
             
             # Query historical data from our database
-            if self.supabase:
-                result = await self.supabase.table('transaction_history').select(
+            if self.supabase and self.supabase.is_available:
+                # Supabase operations are synchronous
+                result = self.supabase.client.table('transaction_history').select(
                     'mcc, confidence, method, created_at, location_hash'
                 ).eq('location_hash', location_hash).execute()
                 
@@ -521,8 +523,9 @@ class LocationService:
     async def _get_cached_analysis(self, cache_key: str) -> Optional[Dict[str, Any]]:
         """Get cached location analysis"""
         try:
-            if self.supabase:
-                result = await self.supabase.table('location_cache').select('*').eq('cache_key', cache_key).execute()
+            if self.supabase and self.supabase.is_available:
+                # Supabase operations are synchronous
+                result = self.supabase.client.table('location_cache').select('*').eq('cache_key', cache_key).execute()
                 if result.data:
                     cache_entry = result.data[0]
                     cached_at = datetime.fromisoformat(cache_entry['created_at'].replace('Z', '+00:00'))
@@ -535,8 +538,9 @@ class LocationService:
     async def _cache_analysis(self, cache_key: str, analysis: Dict[str, Any]):
         """Cache location analysis"""
         try:
-            if self.supabase:
-                await self.supabase.table('location_cache').upsert({
+            if self.supabase and self.supabase.is_available:
+                # Supabase operations are synchronous
+                self.supabase.client.table('location_cache').upsert({
                     'cache_key': cache_key,
                     'analysis_data': json.dumps(analysis),
                     'created_at': datetime.now().isoformat()

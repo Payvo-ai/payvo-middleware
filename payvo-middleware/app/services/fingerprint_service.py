@@ -38,30 +38,44 @@ class FingerprintService:
     async def initialize(self):
         """Initialize the fingerprint service with database connectivity"""
         try:
-            # Initialize Supabase client (synchronous call, no await needed)
+            # Initialize Supabase client
             self.supabase = get_supabase_client()
             
             # Test database connectivity if available
             if self.supabase.is_available:
-                # Test all required tables
-                await self.supabase.table('wifi_fingerprints').select('*').limit(1).execute()
-                await self.supabase.table('ble_fingerprints').select('*').limit(1).execute()
-                await self.supabase.table('venue_fingerprints').select('*').limit(1).execute()
+                # Supabase operations are synchronous, no await needed
+                self.supabase.client.table('wifi_fingerprints').select('*').limit(1).execute()
+                self.supabase.client.table('ble_fingerprints').select('*').limit(1).execute()
+                self.supabase.client.table('venue_fingerprints').select('*').limit(1).execute()
                 logger.info("Fingerprint service database connectivity verified")
             else:
-                logger.warning("Fingerprint service: Supabase not available, using in-memory fallback")
+                logger.warning("Fingerprint service: Supabase not available, using fallback")
                 
         except Exception as e:
             logger.warning(f"Fingerprint service database connection failed: {e}")
             self.supabase = None
     
+    async def validate_database_connectivity(self):
+        """Validate database connectivity for fingerprint operations"""
+        try:
+            if self.supabase and self.supabase.is_available:
+                # Test all fingerprint tables
+                self.supabase.client.table('wifi_fingerprints').select('*').limit(1).execute()
+                self.supabase.client.table('ble_fingerprints').select('*').limit(1).execute()
+                self.supabase.client.table('venue_fingerprints').select('*').limit(1).execute()
+                logger.info("Fingerprint service database validation successful")
+                return True
+        except Exception as e:
+            logger.error(f"Fingerprint service database validation failed: {e}")
+        return False
+    
     async def _create_fingerprint_tables(self):
         """Create database tables for fingerprinting data"""
         try:
             # Check if tables exist
-            await self.supabase.table('wifi_fingerprints').select('*').limit(1).execute()
-            await self.supabase.table('ble_fingerprints').select('*').limit(1).execute()
-            await self.supabase.table('venue_fingerprints').select('*').limit(1).execute()
+            self.supabase.client.table('wifi_fingerprints').select('*').limit(1).execute()
+            self.supabase.client.table('ble_fingerprints').select('*').limit(1).execute()
+            self.supabase.client.table('venue_fingerprints').select('*').limit(1).execute()
         except:
             logger.info("Creating fingerprint tables")
             # In production, use proper database migrations
@@ -459,7 +473,7 @@ class FingerprintService:
             
             # Query database for similar fingerprints
             table_name = f'{fingerprint_type}_fingerprints'
-            result = await self.supabase.table(table_name).select(
+            result = self.supabase.client.table(table_name).select(
                 'fingerprint_hash, mcc, confidence, venue_name, location_hash'
             ).execute()
             
@@ -654,7 +668,7 @@ class FingerprintService:
             fingerprint_hash = features['fingerprint_hash']
             
             # Query historical data
-            result = await self.supabase.table('wifi_fingerprints').select(
+            result = self.supabase.client.table('wifi_fingerprints').select(
                 'mcc, confidence, created_at, transaction_count'
             ).eq('fingerprint_hash', fingerprint_hash).execute()
             
@@ -696,7 +710,7 @@ class FingerprintService:
             fingerprint_hash = features['fingerprint_hash']
             
             # Query historical data
-            result = await self.supabase.table('ble_fingerprints').select(
+            result = self.supabase.client.table('ble_fingerprints').select(
                 'mcc, confidence, created_at, transaction_count'
             ).eq('fingerprint_hash', fingerprint_hash).execute()
             
@@ -919,7 +933,7 @@ class FingerprintService:
             if not self.supabase or not result.get('predicted', False):
                 return
             
-            await self.supabase.table('wifi_fingerprints').upsert({
+            self.supabase.client.table('wifi_fingerprints').upsert({
                 'fingerprint_hash': features['fingerprint_hash'],
                 'mcc': result['mcc'],
                 'confidence': result['confidence'],
@@ -938,7 +952,7 @@ class FingerprintService:
             if not self.supabase or not result.get('predicted', False):
                 return
             
-            await self.supabase.table('ble_fingerprints').upsert({
+            self.supabase.client.table('ble_fingerprints').upsert({
                 'fingerprint_hash': features['fingerprint_hash'],
                 'mcc': result['mcc'],
                 'confidence': result['confidence'],

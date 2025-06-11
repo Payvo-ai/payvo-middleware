@@ -34,30 +34,44 @@ class TerminalService:
     async def initialize(self):
         """Initialize the terminal service with database connectivity"""
         try:
-            # Initialize Supabase client (synchronous call, no await needed)
+            # Initialize Supabase client
             self.supabase = get_supabase_client()
             
             # Test database connectivity if available
             if self.supabase.is_available:
-                # Test all required tables
-                await self.supabase.table('terminal_registry').select('*').limit(1).execute()
-                await self.supabase.table('terminal_transactions').select('*').limit(1).execute()
-                await self.supabase.table('merchant_profiles').select('*').limit(1).execute()
+                # Supabase operations are synchronous, no await needed
+                self.supabase.client.table('terminal_registry').select('*').limit(1).execute()
+                self.supabase.client.table('terminal_transactions').select('*').limit(1).execute()
+                self.supabase.client.table('merchant_profiles').select('*').limit(1).execute()
                 logger.info("Terminal service database connectivity verified")
             else:
-                logger.warning("Terminal service: Supabase not available, using in-memory fallback")
+                logger.warning("Terminal service: Supabase not available, using fallback")
                 
         except Exception as e:
             logger.warning(f"Terminal service database connection failed: {e}")
             self.supabase = None
     
+    async def validate_database_connectivity(self):
+        """Validate database connectivity for terminal operations"""
+        try:
+            if self.supabase and self.supabase.is_available:
+                # Test key tables
+                self.supabase.client.table('terminal_registry').select('*').limit(1).execute()
+                self.supabase.client.table('terminal_transactions').select('*').limit(1).execute()
+                self.supabase.client.table('merchant_profiles').select('*').limit(1).execute()
+                logger.info("Terminal service database validation successful")
+                return True
+        except Exception as e:
+            logger.error(f"Terminal service database validation failed: {e}")
+        return False
+    
     async def _create_terminal_tables(self):
         """Create database tables for terminal data"""
         try:
             # Check if tables exist
-            await self.supabase.table('terminal_registry').select('*').limit(1).execute()
-            await self.supabase.table('terminal_transactions').select('*').limit(1).execute()
-            await self.supabase.table('merchant_profiles').select('*').limit(1).execute()
+            self.supabase.client.table('terminal_registry').select('*').limit(1).execute()
+            self.supabase.client.table('terminal_transactions').select('*').limit(1).execute()
+            self.supabase.client.table('merchant_profiles').select('*').limit(1).execute()
         except:
             logger.info("Creating terminal tables")
             # In production, use proper database migrations
@@ -260,7 +274,7 @@ class TerminalService:
                 return {'found': False}
             
             # Query terminal registry
-            result = await self.supabase.table('terminal_registry').select(
+            result = self.supabase.client.table('terminal_registry').select(
                 'terminal_id, merchant_name, merchant_category, mcc, processor, '
                 'registration_date, last_active, location_city, location_state, confidence'
             ).eq('terminal_id', terminal_id).execute()
@@ -310,7 +324,7 @@ class TerminalService:
             # Query recent transactions (last 90 days)
             cutoff_date = (datetime.now() - timedelta(days=90)).isoformat()
             
-            result = await self.supabase.table('terminal_transactions').select(
+            result = self.supabase.client.table('terminal_transactions').select(
                 'transaction_amount, transaction_time, predicted_mcc, confidence, '
                 'hour_of_day, day_of_week, has_tip'
             ).eq('terminal_id', terminal_id).gte('transaction_time', cutoff_date).execute()
@@ -685,7 +699,7 @@ class TerminalService:
             if not self.supabase:
                 return None
             
-            result = await self.supabase.table('terminal_cache').select('*').eq(
+            result = self.supabase.client.table('terminal_cache').select('*').eq(
                 'terminal_id', terminal_id
             ).order('created_at', desc=True).limit(1).execute()
             
@@ -730,7 +744,7 @@ class TerminalService:
             if not self.supabase:
                 return
             
-            await self.supabase.table('terminal_cache').upsert({
+            self.supabase.client.table('terminal_cache').upsert({
                 'terminal_id': terminal_id,
                 'lookup_data': json.dumps(result),
                 'created_at': datetime.now().isoformat()
@@ -759,7 +773,7 @@ class TerminalService:
                 'created_at': datetime.now().isoformat()
             }
             
-            await self.supabase.table('terminal_transactions').insert(transaction_data).execute()
+            self.supabase.client.table('terminal_transactions').insert(transaction_data).execute()
             
         except Exception as e:
             logger.error(f"Error storing terminal transaction: {str(e)}")
@@ -801,7 +815,7 @@ class TerminalService:
                 'last_active': datetime.now().isoformat()
             }
             
-            await self.supabase.table('terminal_registry').upsert(registration_data).execute()
+            self.supabase.client.table('terminal_registry').upsert(registration_data).execute()
             
             return {'success': True, 'terminal_id': terminal_id}
             
@@ -815,7 +829,7 @@ class TerminalService:
             if not self.supabase:
                 return
             
-            await self.supabase.table('terminal_registry').update({
+            self.supabase.client.table('terminal_registry').update({
                 'last_active': datetime.now().isoformat()
             }).eq('terminal_id', terminal_id.strip().upper()).execute()
             
@@ -829,12 +843,12 @@ class TerminalService:
                 return {'error': 'Database not available'}
             
             # Get registry data
-            registry_result = await self.supabase.table('terminal_registry').select('*').eq(
+            registry_result = self.supabase.client.table('terminal_registry').select('*').eq(
                 'terminal_id', terminal_id.strip().upper()
             ).execute()
             
             # Get transaction statistics
-            transaction_result = await self.supabase.table('terminal_transactions').select(
+            transaction_result = self.supabase.client.table('terminal_transactions').select(
                 'transaction_amount, transaction_time, predicted_mcc, confidence'
             ).eq('terminal_id', terminal_id.strip().upper()).execute()
             

@@ -119,7 +119,7 @@ class LLMService:
             """
             
             # Execute the SQL using Supabase
-            response = await self.supabase.rpc('exec_sql', {'sql': create_table_sql}).execute()
+            response = self.supabase.client.rpc('exec_sql', {'sql': create_table_sql}).execute()
             
             logger.info("LLM database tables created successfully")
             
@@ -603,7 +603,7 @@ RESPONSE FORMAT (JSON):
                 'created_at': datetime.now().isoformat()
             }
             
-            await self.supabase.table('llm_analyses').insert(analysis_record).execute()
+            self.supabase.client.table('llm_analyses').insert(analysis_record).execute()
             
         except Exception as e:
             logger.error(f"Error storing LLM analysis: {str(e)}")
