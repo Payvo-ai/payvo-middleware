@@ -1,7 +1,7 @@
 """
 Advanced Routing Orchestrator for Payvo Middleware
 Handles card selection, routing optimization, and learning algorithms
-Enhanced with comprehensive MCC prediction services
+Enhanced with core GPS-based MCC prediction
 """
 
 import asyncio
@@ -18,30 +18,21 @@ from app.database.models import TransactionFeedback, MCCPrediction, CardPerforma
 from app.models.schemas import APIResponse
 from app.utils.mcc_categories import get_all_mcc_categories, get_mcc_for_category
 
-# Import enhanced services
+# Import core services only
 from .location_service import LocationService
-from .terminal_service import TerminalService
-from .fingerprint_service import FingerprintService
-from .historical_service import HistoricalService
 
 logger = logging.getLogger(__name__)
 
 
 class RoutingOrchestrator:
-    """Main orchestrator for payment routing decisions with enhanced MCC prediction"""
+    """Main orchestrator for payment routing decisions with core GPS-based MCC prediction"""
     
     def __init__(self):
         self.mcc_cache = {}
         self.location_cache = {}
-        self.terminal_cache = {}
-        self.wifi_cache = {}
-        self.ble_cache = {}
         
-        # Enhanced services
+        # Core services only
         self.location_service = None
-        self.terminal_service = None
-        self.fingerprint_service = None
-        self.historical_service = None
         
         # Learning parameters
         self.learning_rate = 0.1
@@ -53,26 +44,21 @@ class RoutingOrchestrator:
         self.background_tasks = []
         
     async def initialize(self):
-        """Initialize the routing orchestrator and enhanced services"""
-        logger.info("Initializing Routing Orchestrator with enhanced services...")
+        """Initialize the routing orchestrator with core services only"""
+        logger.info("Initializing Routing Orchestrator with core GPS-based services...")
         
-        # Initialize enhanced services
+        # Initialize core location service only
         self.location_service = LocationService()
-        self.terminal_service = TerminalService()
-        self.fingerprint_service = FingerprintService()
-        self.historical_service = HistoricalService()
         
-        # Initialize all services
-        await asyncio.gather(
-            self.location_service.initialize(),
-            self.terminal_service.initialize(),
-            self.fingerprint_service.initialize(),
-            self.historical_service.initialize(),
-            return_exceptions=True
-        )
+        # Initialize location service
+        try:
+            await self.location_service.initialize()
+            logger.info("Core location service initialized successfully")
+        except Exception as e:
+            logger.warning(f"Location service initialization warning: {e}")
         
         self.is_running = True
-        logger.info("Routing Orchestrator with enhanced services initialized successfully")
+        logger.info("Routing Orchestrator with core services initialized successfully")
         
     async def start_background_tasks(self):
         """Start background maintenance tasks"""
@@ -109,8 +95,8 @@ class RoutingOrchestrator:
             user_id = payment_data.get("user_id", "anonymous")
             amount = Decimal(str(payment_data.get("amount", 0)))
             
-            # Predict MCC for this transaction using enhanced services
-            mcc_prediction = await self._predict_mcc_enhanced(payment_data, session_id)
+            # Predict MCC for this transaction using core services
+            mcc_prediction = await self._predict_mcc_core(payment_data, session_id)
             
             # Get user preferences
             user_preferences = await connection_manager.get_user_preferences(user_id)
@@ -126,19 +112,7 @@ class RoutingOrchestrator:
             # Store prediction for learning
             await self._store_prediction_data(mcc_prediction, session_id)
             
-            # Store transaction data for historical analysis
-            if self.historical_service:
-                transaction_data = {
-                    'transaction_id': session_id,
-                    'merchant_name': payment_data.get('merchant_name'),
-                    'mcc': mcc_prediction['mcc'],
-                    'amount': float(amount),
-                    'latitude': payment_data.get('location', {}).get('latitude'),
-                    'longitude': payment_data.get('location', {}).get('longitude'),
-                    'terminal_id': payment_data.get('terminal_id'),
-                    'transaction_time': datetime.now().isoformat()
-                }
-                await self.historical_service.store_transaction_data(transaction_data)
+            # Note: Transaction storage removed since location service doesn't have store_transaction_data method
             
             # Prepare response
             response = {
@@ -154,7 +128,7 @@ class RoutingOrchestrator:
                 "timestamp": datetime.now().isoformat()
             }
             
-            logger.info(f"Payment routing completed for session {session_id} with enhanced prediction")
+            logger.info(f"Payment routing completed for session {session_id} with core prediction")
             return response
             
         except Exception as e:
@@ -165,13 +139,11 @@ class RoutingOrchestrator:
                 "timestamp": datetime.now().isoformat()
             }
     
-    async def _predict_mcc_enhanced(self, payment_data: Dict[str, Any], session_id: str) -> Dict[str, Any]:
-        """Enhanced MCC prediction using all available services with weighted confidence"""
+    async def _predict_mcc_core(self, payment_data: Dict[str, Any], session_id: str) -> Dict[str, Any]:
+        """Core MCC prediction using location-based methods with weighted confidence"""
         
         terminal_id = payment_data.get("terminal_id")
         location_data = payment_data.get("location", {})
-        wifi_data = payment_data.get("wifi_networks", [])
-        ble_data = payment_data.get("ble_beacons", [])
         context_info = payment_data.get("context_info", {})
         amount = payment_data.get("amount")
         transaction_time = datetime.now()
@@ -179,7 +151,7 @@ class RoutingOrchestrator:
         predictions = []
         analysis_details = {}
         
-        # Enhanced Location-based prediction (highest priority)
+        # Core Location-based prediction (highest priority)
         if location_data.get("latitude") and location_data.get("longitude") and self.location_service:
             try:
                 location_analysis = await self.location_service.analyze_business_district(
@@ -193,112 +165,17 @@ class RoutingOrchestrator:
                     location_prediction = {
                         "mcc": predicted_mcc_data["mcc"],
                         "confidence": predicted_mcc_data.get("confidence", 0.5),
-                        "method": "enhanced_location_analysis",
+                        "method": "core_location_analysis",
                         "weight": 0.35,
                         "source": "location_service"
                     }
                     predictions.append(location_prediction)
                     analysis_details["location_analysis"] = location_analysis
-                    logger.info(f"Enhanced location prediction: MCC {location_prediction['mcc']} with {location_prediction['confidence']:.2f} confidence")
+                    logger.info(f"Core location prediction: MCC {location_prediction['mcc']} with {location_prediction['confidence']:.2f} confidence")
             except Exception as e:
-                logger.error(f"Error in enhanced location prediction: {str(e)}")
+                logger.error(f"Error in core location prediction: {str(e)}")
         
-        # Historical area-based prediction (high priority)
-        if location_data.get("latitude") and location_data.get("longitude") and self.historical_service:
-            try:
-                historical_analysis = await self.historical_service.analyze_area_patterns(
-                    location_data["latitude"],
-                    location_data["longitude"],
-                    radius_meters=location_data.get("accuracy", 200),
-                    transaction_amount=amount,
-                    transaction_time=transaction_time
-                )
-                # Fix: Check for mcc directly instead of predicted
-                if historical_analysis.get("mcc") and historical_analysis.get("confidence", 0) > 0.3:
-                    historical_prediction = {
-                        "mcc": historical_analysis["mcc"],
-                        "confidence": historical_analysis["confidence"],
-                        "method": "historical_area_analysis",
-                        "weight": 0.25,
-                        "source": "historical_service"
-                    }
-                    predictions.append(historical_prediction)
-                    analysis_details["historical_analysis"] = historical_analysis
-                    logger.info(f"Historical area prediction: MCC {historical_prediction['mcc']} with {historical_prediction['confidence']:.2f} confidence")
-            except Exception as e:
-                logger.error(f"Error in historical area prediction: {str(e)}")
-        
-        # Enhanced Terminal ID lookup
-        if terminal_id and self.terminal_service:
-            try:
-                terminal_analysis = await self.terminal_service.lookup_terminal(
-                    terminal_id,
-                    transaction_amount=amount,
-                    transaction_time=transaction_time
-                )
-                # Fix: Check for mcc or predicted_mcc directly
-                predicted_mcc = terminal_analysis.get("predicted_mcc") or terminal_analysis.get("mcc")
-                if predicted_mcc and terminal_analysis.get("confidence", 0) > 0.3:
-                    terminal_prediction = {
-                        "mcc": predicted_mcc,
-                        "confidence": terminal_analysis["confidence"],
-                        "method": "enhanced_terminal_analysis",
-                        "weight": 0.2,
-                        "source": "terminal_service"
-                    }
-                    predictions.append(terminal_prediction)
-                    analysis_details["terminal_analysis"] = terminal_analysis
-                    logger.info(f"Enhanced terminal prediction: MCC {terminal_prediction['mcc']} with {terminal_prediction['confidence']:.2f} confidence")
-            except Exception as e:
-                logger.error(f"Error in enhanced terminal prediction: {str(e)}")
-        
-        # Enhanced WiFi fingerprinting
-        if wifi_data and self.fingerprint_service:
-            try:
-                wifi_analysis = await self.fingerprint_service.analyze_wifi_fingerprint(
-                    wifi_data,
-                    location_data
-                )
-                # Fix: Check for predicted_mcc directly
-                predicted_mcc = wifi_analysis.get("predicted_mcc") or wifi_analysis.get("mcc")
-                if predicted_mcc and wifi_analysis.get("confidence", 0) > 0.3:
-                    wifi_prediction = {
-                        "mcc": predicted_mcc,
-                        "confidence": wifi_analysis["confidence"],
-                        "method": "enhanced_wifi_fingerprinting",
-                        "weight": 0.1,
-                        "source": "fingerprint_service"
-                    }
-                    predictions.append(wifi_prediction)
-                    analysis_details["wifi_analysis"] = wifi_analysis
-                    logger.info(f"Enhanced WiFi prediction: MCC {wifi_prediction['mcc']} with {wifi_prediction['confidence']:.2f} confidence")
-            except Exception as e:
-                logger.error(f"Error in enhanced WiFi prediction: {str(e)}")
-        
-        # Enhanced BLE fingerprinting
-        if ble_data and self.fingerprint_service:
-            try:
-                ble_analysis = await self.fingerprint_service.analyze_ble_fingerprint(
-                    ble_data,
-                    location_data
-                )
-                # Fix: Check for predicted_mcc directly
-                predicted_mcc = ble_analysis.get("predicted_mcc") or ble_analysis.get("mcc")
-                if predicted_mcc and ble_analysis.get("confidence", 0) > 0.3:
-                    ble_prediction = {
-                        "mcc": predicted_mcc,
-                        "confidence": ble_analysis["confidence"],
-                        "method": "enhanced_ble_fingerprinting",
-                        "weight": 0.1,
-                        "source": "fingerprint_service"
-                    }
-                    predictions.append(ble_prediction)
-                    analysis_details["ble_analysis"] = ble_analysis
-                    logger.info(f"Enhanced BLE prediction: MCC {ble_prediction['mcc']} with {ble_prediction['confidence']:.2f} confidence")
-            except Exception as e:
-                logger.error(f"Error in enhanced BLE prediction: {str(e)}")
-        
-        # Fallback to legacy prediction methods if no enhanced predictions
+        # Fallback to legacy prediction methods if no core predictions
         if not predictions:
             legacy_prediction = await self._predict_mcc_legacy(payment_data, session_id)
             if legacy_prediction:
@@ -319,8 +196,8 @@ class RoutingOrchestrator:
             predictions.append(context_prediction)
             logger.info(f"Context prediction used: MCC {context_prediction['mcc']} with {context_prediction['confidence']:.2f} confidence")
         
-        # Enhanced prediction combination
-        final_prediction = self._combine_predictions_enhanced(predictions)
+        # Core prediction combination
+        final_prediction = self._combine_predictions_core(predictions)
         
         # Fallback to default if no prediction
         if not final_prediction:
@@ -339,8 +216,8 @@ class RoutingOrchestrator:
         
         return final_prediction
     
-    def _combine_predictions_enhanced(self, predictions: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-        """Enhanced prediction combination with weighted confidence and consensus scoring"""
+    def _combine_predictions_core(self, predictions: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Core prediction combination with weighted confidence and consensus scoring"""
         
         if not predictions:
             return None
@@ -388,7 +265,7 @@ class RoutingOrchestrator:
         return {
             "mcc": best_mcc,
             "confidence": best_score["confidence"],
-            "method": "enhanced_weighted_consensus",
+            "method": "core_weighted_consensus",
             "primary_methods": best_score["methods"],
             "sources": best_score["sources"],
             "consensus_count": best_score["consensus_count"],
@@ -400,8 +277,6 @@ class RoutingOrchestrator:
         
         terminal_id = payment_data.get("terminal_id")
         location_data = payment_data.get("location", {})
-        wifi_data = payment_data.get("wifi_networks", [])
-        ble_data = payment_data.get("ble_beacons", [])
         context_info = payment_data.get("context_info", {})
         
         predictions = []
@@ -413,28 +288,7 @@ class RoutingOrchestrator:
                 predictions.append(location_prediction)
                 logger.info(f"GPS prediction found: MCC {location_prediction['mcc']} with {location_prediction['confidence']:.2f} confidence")
         
-        # Method 2: Terminal ID lookup (only if GPS doesn't provide high confidence)
-        if terminal_id and (not predictions or predictions[0]["confidence"] < 0.8):
-            terminal_prediction = await self._predict_by_terminal(terminal_id)
-            if terminal_prediction:
-                predictions.append(terminal_prediction)
-                logger.info(f"Terminal prediction found: MCC {terminal_prediction['mcc']} with {terminal_prediction['confidence']:.2f} confidence")
-        
-        # Method 3: WiFi fingerprinting (enhanced for indoor mapping)
-        if wifi_data and (not predictions or predictions[0]["confidence"] < 0.7):
-            wifi_prediction = await self._predict_by_wifi(wifi_data, location_data)
-            if wifi_prediction:
-                predictions.append(wifi_prediction)
-                logger.info(f"WiFi prediction found: MCC {wifi_prediction['mcc']} with {wifi_prediction['confidence']:.2f} confidence")
-        
-        # Method 4: BLE fingerprinting (enhanced for indoor mapping)
-        if ble_data and (not predictions or predictions[0]["confidence"] < 0.7):
-            ble_prediction = await self._predict_by_ble(ble_data, location_data)
-            if ble_prediction:
-                predictions.append(ble_prediction)
-                logger.info(f"BLE prediction found: MCC {ble_prediction['mcc']} with {ble_prediction['confidence']:.2f} confidence")
-        
-        # Method 5: Use context information (from realistic scenarios) - only as fallback
+        # Method 2: Use context information (from realistic scenarios) - only as fallback
         if context_info.get("expected_mcc") and not predictions:
             context_prediction = {
                 "mcc": context_info["expected_mcc"],
@@ -457,32 +311,6 @@ class RoutingOrchestrator:
             logger.info(f"Using fallback prediction: MCC {final_prediction['mcc']}")
         
         return final_prediction
-    
-    async def _predict_by_terminal(self, terminal_id: str) -> Optional[Dict[str, Any]]:
-        """Predict MCC based on terminal ID"""
-        try:
-            history = await connection_manager.get_terminal_mcc_history(terminal_id, 10)
-            if history:
-                # Use most common MCC for this terminal
-                mcc_counts = {}
-                for record in history:
-                    mcc = record.get("actual_mcc") or record.get("predicted_mcc")
-                    if mcc:
-                        mcc_counts[mcc] = mcc_counts.get(mcc, 0) + 1
-                
-                if mcc_counts:
-                    most_common_mcc = max(mcc_counts, key=mcc_counts.get)
-                    confidence = min(0.95, mcc_counts[most_common_mcc] / len(history))
-                    
-                    return {
-                        "mcc": most_common_mcc,
-                        "confidence": confidence,
-                        "method": "terminal_lookup"
-                    }
-        except Exception as e:
-            logger.error(f"Error in terminal prediction: {str(e)}")
-        
-        return None
     
     async def _predict_by_location(self, location_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Predict MCC based on GPS coordinates with hierarchical location detection and indoor mapping"""
@@ -1231,7 +1059,7 @@ class RoutingOrchestrator:
                 logger.info(f"Using generated test data for session {session_id}")
             
             # Real-time MCC prediction using the payment context
-            mcc_prediction = await self._predict_mcc_enhanced(payment_context, session_id)
+            mcc_prediction = await self._predict_mcc_core(payment_context, session_id)
             
             predicted_mcc = mcc_prediction["mcc"]
             merchant_category = self._mcc_to_category_name(predicted_mcc)
@@ -1523,203 +1351,6 @@ class RoutingOrchestrator:
         }
         
         return payment_context
-
-    async def _predict_by_wifi(self, wifi_data: List[Dict[str, Any]], location_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Predict MCC based on WiFi fingerprint with enhanced indoor mapping"""
-        try:
-            # Enhanced indoor mapping using WiFi networks
-            lat = location_data.get("latitude")
-            lng = location_data.get("longitude")
-            
-            # Check if we're in a known venue first
-            if lat and lng:
-                venue_info = await self._get_venue_info(lat, lng)
-                if venue_info:
-                    # Indoor venue WiFi analysis
-                    venue_wifi_prediction = await self._analyze_venue_wifi(wifi_data, venue_info)
-                    if venue_wifi_prediction:
-                        venue_wifi_prediction["method"] = "wifi_indoor_mapping"
-                        return venue_wifi_prediction
-            
-            # Store/brand-specific WiFi network detection
-            brand_prediction = await self._detect_brand_from_wifi(wifi_data)
-            if brand_prediction:
-                brand_prediction["method"] = "wifi_brand_detection"
-                return brand_prediction
-            
-            # General WiFi fingerprint analysis
-            wifi_hash = self._hash_wifi_fingerprint(wifi_data)
-            # This would query WiFi fingerprint database
-            # For now, return basic analysis
-            
-            if len(wifi_data) >= 3:  # Multiple networks suggest commercial area
-                return {
-                    "mcc": "5999",  # Miscellaneous retail
-                    "confidence": 0.4,
-                    "method": "wifi_fingerprint"
-                }
-            
-        except Exception as e:
-            logger.error(f"Error in WiFi prediction: {str(e)}")
-        
-        return None
-
-    async def _predict_by_ble(self, ble_data: List[Dict[str, Any]], location_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Predict MCC based on BLE fingerprint with enhanced indoor mapping"""
-        try:
-            # Enhanced indoor mapping using BLE beacons
-            lat = location_data.get("latitude")
-            lng = location_data.get("longitude")
-            
-            # Check if we're in a known venue first
-            if lat and lng:
-                venue_info = await self._get_venue_info(lat, lng)
-                if venue_info:
-                    # Indoor venue BLE analysis
-                    venue_ble_prediction = await self._analyze_venue_ble(ble_data, venue_info)
-                    if venue_ble_prediction:
-                        venue_ble_prediction["method"] = "ble_indoor_mapping"
-                        return venue_ble_prediction
-            
-            # Store/brand-specific BLE beacon detection
-            brand_prediction = await self._detect_brand_from_ble(ble_data)
-            if brand_prediction:
-                brand_prediction["method"] = "ble_brand_detection"
-                return brand_prediction
-            
-            # General BLE fingerprint analysis
-            ble_hash = self._hash_ble_fingerprint(ble_data)
-            # This would query BLE fingerprint database
-            
-        except Exception as e:
-            logger.error(f"Error in BLE prediction: {str(e)}")
-        
-        return None
-
-    async def _analyze_venue_wifi(self, wifi_data: List[Dict[str, Any]], venue_info: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Analyze WiFi networks within a known venue for specific store detection"""
-        try:
-            venue_type = venue_info.get("type")
-            
-            for wifi in wifi_data:
-                ssid = wifi.get("ssid", "").lower()
-                
-                # Store-specific WiFi detection
-                if "starbucks" in ssid:
-                    return {"mcc": "5812", "confidence": 0.9, "store_type": "coffee_shop"}
-                elif "mcdonalds" in ssid or "mcd" in ssid:
-                    return {"mcc": "5814", "confidence": 0.9, "store_type": "fast_food"}
-                elif "apple" in ssid:
-                    return {"mcc": "5732", "confidence": 0.9, "store_type": "electronics"}
-                elif "target" in ssid:
-                    return {"mcc": "5311", "confidence": 0.9, "store_type": "department_store"}
-                elif "walmart" in ssid:
-                    return {"mcc": "5411", "confidence": 0.9, "store_type": "grocery"}
-                elif "bestbuy" in ssid:
-                    return {"mcc": "5732", "confidence": 0.9, "store_type": "electronics"}
-                elif any(brand in ssid for brand in ["guest", "free", "wifi", "customer"]):
-                    # Generic customer WiFi suggests retail
-                    if venue_type == "shopping_mall":
-                        return {"mcc": "5999", "confidence": 0.7, "store_type": "retail"}
-            
-        except Exception as e:
-            logger.error(f"Error analyzing venue WiFi: {str(e)}")
-        
-        return None
-
-    async def _analyze_venue_ble(self, ble_data: List[Dict[str, Any]], venue_info: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Analyze BLE beacons within a known venue for specific store detection"""
-        try:
-            venue_type = venue_info.get("type")
-            
-            for beacon in ble_data:
-                uuid = beacon.get("uuid", "").lower()
-                major = beacon.get("major", 0)
-                minor = beacon.get("minor", 0)
-                
-                # Known retailer BLE UUID patterns (examples)
-                apple_uuid_pattern = "74278bda-b644-4520-8f0c"  # Apple Store
-                starbucks_uuid_pattern = "8deefbb9-f738-4297-8040"  # Starbucks
-                target_uuid_pattern = "f7826da6-4fa2-4e98-8024"  # Target
-                
-                if apple_uuid_pattern in uuid:
-                    return {"mcc": "5732", "confidence": 0.95, "store_type": "electronics", "brand": "apple"}
-                elif starbucks_uuid_pattern in uuid:
-                    return {"mcc": "5812", "confidence": 0.95, "store_type": "coffee_shop", "brand": "starbucks"}
-                elif target_uuid_pattern in uuid:
-                    return {"mcc": "5311", "confidence": 0.95, "store_type": "department_store", "brand": "target"}
-            
-        except Exception as e:
-            logger.error(f"Error analyzing venue BLE: {str(e)}")
-        
-        return None
-
-    async def _detect_brand_from_wifi(self, wifi_data: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-        """Detect specific brands/stores from WiFi network names"""
-        try:
-            for wifi in wifi_data:
-                ssid = wifi.get("ssid", "").lower()
-                
-                # Major retail brands
-                brand_mappings = {
-                    "starbucks": {"mcc": "5812", "confidence": 0.95},
-                    "mcdonalds": {"mcc": "5814", "confidence": 0.95},
-                    "subway": {"mcc": "5814", "confidence": 0.95},
-                    "walmart": {"mcc": "5411", "confidence": 0.95},
-                    "target": {"mcc": "5311", "confidence": 0.95},
-                    "costco": {"mcc": "5411", "confidence": 0.95},
-                    "apple": {"mcc": "5732", "confidence": 0.95},
-                    "bestbuy": {"mcc": "5732", "confidence": 0.95},
-                    "homedepot": {"mcc": "5211", "confidence": 0.95},
-                    "lowes": {"mcc": "5211", "confidence": 0.95},
-                    "cvs": {"mcc": "5912", "confidence": 0.95},
-                    "walgreens": {"mcc": "5912", "confidence": 0.95},
-                    "shell": {"mcc": "5541", "confidence": 0.95},
-                    "exxon": {"mcc": "5541", "confidence": 0.95},
-                    "bp": {"mcc": "5541", "confidence": 0.95}
-                }
-                
-                for brand, prediction in brand_mappings.items():
-                    if brand in ssid:
-                        return {
-                            "mcc": prediction["mcc"],
-                            "confidence": prediction["confidence"],
-                            "brand": brand
-                        }
-            
-        except Exception as e:
-            logger.error(f"Error detecting brand from WiFi: {str(e)}")
-        
-        return None
-
-    async def _detect_brand_from_ble(self, ble_data: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-        """Detect specific brands/stores from BLE beacon UUIDs"""
-        try:
-            # Known brand BLE patterns (these would be real UUID patterns in production)
-            brand_uuid_patterns = {
-                "apple": {"pattern": "74278bda", "mcc": "5732", "confidence": 0.98},
-                "starbucks": {"pattern": "8deefbb9", "mcc": "5812", "confidence": 0.98},
-                "target": {"pattern": "f7826da6", "mcc": "5311", "confidence": 0.98},
-                "walmart": {"pattern": "2f234454", "mcc": "5411", "confidence": 0.98},
-                "bestbuy": {"pattern": "acfd065e", "mcc": "5732", "confidence": 0.98}
-            }
-            
-            for beacon in ble_data:
-                uuid = beacon.get("uuid", "").lower()
-                
-                for brand, info in brand_uuid_patterns.items():
-                    if info["pattern"] in uuid:
-                        return {
-                            "mcc": info["mcc"],
-                            "confidence": info["confidence"],
-                            "brand": brand,
-                            "detection_method": "ble_uuid"
-                        }
-            
-        except Exception as e:
-            logger.error(f"Error detecting brand from BLE: {str(e)}")
-        
-        return None
 
 
 # Global orchestrator instance
