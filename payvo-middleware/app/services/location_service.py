@@ -35,22 +35,35 @@ class LocationService:
         self.supabase = None
         
     async def initialize(self):
-        """Initialize the location service with database connectivity"""
+        """Initialize the location service with API clients"""
         try:
             # Initialize Supabase client (synchronous call, no await needed)
             self.supabase = get_supabase_client()
             
-            # Test database connectivity if available
-            if self.supabase.is_available:
-                # Supabase operations are synchronous, no await needed
-                self.supabase.client.table('business_locations').select('*').limit(1).execute()
-                logger.info("Location service database connectivity verified")
+            # Initialize Google Maps API if key is available
+            google_api_key = getattr(settings, 'GOOGLE_MAPS_API_KEY', None)
+            if google_api_key:
+                self.google_maps_client = googlemaps.Client(key=google_api_key)
+                logger.info("Google Maps client initialized successfully")
             else:
-                logger.warning("Location service: Supabase not available, using in-memory fallback")
+                logger.warning("Google Maps API key not found - Google Places functionality disabled")
+            
+            # Initialize Foursquare API if key is available
+            self.foursquare_api_key = getattr(settings, 'FOURSQUARE_API_KEY', None)
+            if self.foursquare_api_key:
+                logger.info("Foursquare API key found - Foursquare functionality enabled")
+            else:
+                logger.warning("Foursquare API key not found - Foursquare functionality disabled")
+            
+            # Log service initialization status
+            if self.supabase and self.supabase.is_available:
+                logger.info("Location service initialized with Supabase support")
+            else:
+                logger.info("Location service initialized in API-only mode (no database)")
                 
         except Exception as e:
-            logger.warning(f"Location service database connection failed: {e}")
-            self.supabase = None
+            logger.warning(f"Location service initialization warning: {e}")
+            # Continue without database - use API-only mode
     
     async def analyze_business_district(self, lat: float, lng: float, radius: int = 500) -> Dict[str, Any]:
         """
@@ -243,11 +256,16 @@ class LocationService:
     async def _get_historical_transaction_data(self, lat: float, lng: float, radius: int) -> Dict[str, Any]:
         """Get historical transaction data for the area"""
         try:
+            # Skip historical data if Supabase is not available or in API-only mode
+            if not self.supabase or not self.supabase.is_available:
+                logger.debug("No database available for historical transaction data")
+                return {'total_transactions': 0, 'mcc_patterns': {}}
+            
             # Create a geohash for the area
             location_hash = self._generate_location_hash(lat, lng, precision=7)  # ~150m precision
             
-            # Query historical data from our database
-            if self.supabase and self.supabase.is_available:
+            # Try to query historical data from our database
+            try:
                 # Supabase operations are synchronous
                 result = self.supabase.client.table('transaction_history').select(
                     'mcc, confidence, method, created_at, location_hash'
@@ -284,6 +302,11 @@ class LocationService:
                     'dominant_mcc': max(mcc_counts, key=mcc_counts.get) if mcc_counts else None,
                     'historical_confidence': sum(confidence_sum.values()) / sum(mcc_counts.values()) if mcc_counts else 0
                 }
+            
+            except Exception as db_error:
+                # Handle database table not found or other DB errors gracefully
+                logger.debug(f"Historical data not available (table may not exist): {db_error}")
+                return {'total_transactions': 0, 'mcc_patterns': {}}
         
         except Exception as e:
             logger.error(f"Error fetching historical data: {str(e)}")
@@ -524,29 +547,37 @@ class LocationService:
         """Get cached location analysis"""
         try:
             if self.supabase and self.supabase.is_available:
-                # Supabase operations are synchronous
-                result = self.supabase.client.table('location_cache').select('*').eq('cache_key', cache_key).execute()
-                if result.data:
-                    cache_entry = result.data[0]
-                    cached_at = datetime.fromisoformat(cache_entry['created_at'].replace('Z', '+00:00'))
-                    if datetime.now() - cached_at < self.cache_duration:
-                        return json.loads(cache_entry['analysis_data'])
+                try:
+                    # Supabase operations are synchronous
+                    result = self.supabase.client.table('location_cache').select('*').eq('cache_key', cache_key).execute()
+                    if result.data:
+                        cache_entry = result.data[0]
+                        cached_at = datetime.fromisoformat(cache_entry['created_at'].replace('Z', '+00:00'))
+                        if datetime.now() - cached_at < self.cache_duration:
+                            return json.loads(cache_entry['analysis_data'])
+                except Exception as db_error:
+                    # Handle database table not found gracefully
+                    logger.debug(f"Cache table not available: {db_error}")
         except Exception as e:
-            logger.error(f"Error retrieving cached analysis: {str(e)}")
+            logger.debug(f"Error retrieving cached analysis: {str(e)}")
         return None
     
     async def _cache_analysis(self, cache_key: str, analysis: Dict[str, Any]):
         """Cache location analysis"""
         try:
             if self.supabase and self.supabase.is_available:
-                # Supabase operations are synchronous
-                self.supabase.client.table('location_cache').upsert({
-                    'cache_key': cache_key,
-                    'analysis_data': json.dumps(analysis),
-                    'created_at': datetime.now().isoformat()
-                }).execute()
+                try:
+                    # Supabase operations are synchronous
+                    self.supabase.client.table('location_cache').upsert({
+                        'cache_key': cache_key,
+                        'analysis_data': json.dumps(analysis),
+                        'created_at': datetime.now().isoformat()
+                    }).execute()
+                except Exception as db_error:
+                    # Handle database table not found gracefully
+                    logger.debug(f"Cache table not available for writing: {db_error}")
         except Exception as e:
-            logger.error(f"Error caching analysis: {str(e)}")
+            logger.debug(f"Error caching analysis: {str(e)}")
     
     def _get_fallback_analysis(self) -> Dict[str, Any]:
         """Return fallback analysis when APIs fail"""
