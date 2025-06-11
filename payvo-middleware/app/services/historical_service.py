@@ -30,24 +30,24 @@ class HistoricalService:
         self.h3_resolution = 9  # ~50m hexagons for precise area analysis
         
     async def initialize(self):
-        """Initialize the historical service"""
+        """Initialize the historical service with database connectivity"""
         try:
-            self.supabase = await get_supabase_client()
-            await self._create_historical_tables()
-            logger.info("HistoricalService initialized successfully")
+            # Initialize Supabase client (synchronous call, no await needed)
+            self.supabase = get_supabase_client()
+            
+            # Test database connectivity if available
+            if self.supabase.is_available:
+                # Test all required tables
+                await self.supabase.table('transaction_history').select('*').limit(1).execute()
+                await self.supabase.table('area_patterns').select('*').limit(1).execute()
+                await self.supabase.table('merchant_locations').select('*').limit(1).execute()
+                logger.info("Historical service database connectivity verified")
+            else:
+                logger.warning("Historical service: Supabase not available, using in-memory fallback")
+                
         except Exception as e:
-            logger.error(f"Error initializing HistoricalService: {str(e)}")
-    
-    async def _create_historical_tables(self):
-        """Create database tables for historical data"""
-        try:
-            # Check if tables exist
-            await self.supabase.table('transaction_history').select('*').limit(1).execute()
-            await self.supabase.table('area_patterns').select('*').limit(1).execute()
-            await self.supabase.table('merchant_locations').select('*').limit(1).execute()
-        except:
-            logger.info("Creating historical data tables")
-            # In production, use proper database migrations
+            logger.warning(f"Historical service database connection failed: {e}")
+            self.supabase = None
     
     async def analyze_area_patterns(self, latitude: float, longitude: float, 
                                   radius_meters: int = 200,

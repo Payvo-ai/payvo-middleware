@@ -32,14 +32,24 @@ class TerminalService:
         self.cache_duration = timedelta(hours=12)  # Cache terminal data for 12 hours
         
     async def initialize(self):
-        """Initialize the terminal service"""
+        """Initialize the terminal service with database connectivity"""
         try:
-            self.supabase = await get_supabase_client()
-            await self._create_terminal_tables()
-            await self._load_terminal_patterns()
-            logger.info("TerminalService initialized successfully")
+            # Initialize Supabase client (synchronous call, no await needed)
+            self.supabase = get_supabase_client()
+            
+            # Test database connectivity if available
+            if self.supabase.is_available:
+                # Test all required tables
+                await self.supabase.table('terminal_registry').select('*').limit(1).execute()
+                await self.supabase.table('terminal_transactions').select('*').limit(1).execute()
+                await self.supabase.table('merchant_profiles').select('*').limit(1).execute()
+                logger.info("Terminal service database connectivity verified")
+            else:
+                logger.warning("Terminal service: Supabase not available, using in-memory fallback")
+                
         except Exception as e:
-            logger.error(f"Error initializing TerminalService: {str(e)}")
+            logger.warning(f"Terminal service database connection failed: {e}")
+            self.supabase = None
     
     async def _create_terminal_tables(self):
         """Create database tables for terminal data"""

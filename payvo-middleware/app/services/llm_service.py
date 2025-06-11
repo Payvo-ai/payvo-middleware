@@ -36,22 +36,25 @@ class LLMService:
     async def initialize(self):
         """Initialize the LLM service"""
         try:
-            api_key = os.getenv('OPENAI_API_KEY')
+            api_key = settings.openai_api_key
             if not api_key:
-                logger.warning("OpenAI API key not found - LLM service disabled")
+                logger.warning("OpenAI API key not found - LLM service will be disabled")
                 return
             
-            # Initialize OpenAI client
             self.client = AsyncOpenAI(api_key=api_key)
             
             # Test the connection
             await self._test_connection()
             
-            # Initialize database
-            self.supabase = await get_supabase_client()
+            # Initialize database (synchronous call, no await needed)
+            self.supabase = get_supabase_client()
             
             # Create LLM analysis table if it doesn't exist
-            await self._create_llm_tables()
+            if self.supabase.is_available:
+                await self._create_llm_tables()
+                logger.info("LLM service database connectivity verified")
+            else:
+                logger.warning("LLM service: Supabase not available, analysis storage disabled")
             
             logger.info("LLM service initialized successfully")
             

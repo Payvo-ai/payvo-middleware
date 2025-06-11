@@ -36,14 +36,24 @@ class FingerprintService:
         self.confidence_threshold = 0.6
         
     async def initialize(self):
-        """Initialize the fingerprinting service"""
+        """Initialize the fingerprint service with database connectivity"""
         try:
-            self.supabase = await get_supabase_client()
-            await self._load_known_patterns()
-            await self._create_fingerprint_tables()
-            logger.info("FingerprintService initialized successfully")
+            # Initialize Supabase client (synchronous call, no await needed)
+            self.supabase = get_supabase_client()
+            
+            # Test database connectivity if available
+            if self.supabase.is_available:
+                # Test all required tables
+                await self.supabase.table('wifi_fingerprints').select('*').limit(1).execute()
+                await self.supabase.table('ble_fingerprints').select('*').limit(1).execute()
+                await self.supabase.table('venue_fingerprints').select('*').limit(1).execute()
+                logger.info("Fingerprint service database connectivity verified")
+            else:
+                logger.warning("Fingerprint service: Supabase not available, using in-memory fallback")
+                
         except Exception as e:
-            logger.error(f"Error initializing FingerprintService: {str(e)}")
+            logger.warning(f"Fingerprint service database connection failed: {e}")
+            self.supabase = None
     
     async def _create_fingerprint_tables(self):
         """Create database tables for fingerprinting data"""

@@ -35,39 +35,21 @@ class LocationService:
         self.supabase = None
         
     async def initialize(self):
-        """Initialize API clients and database connections"""
+        """Initialize the location service with database connectivity"""
         try:
-            # Initialize Google Maps client
-            google_api_key = os.getenv('GOOGLE_PLACES_API_KEY')
-            if google_api_key:
-                self.google_maps_client = googlemaps.Client(key=google_api_key)
-                logger.info("Google Places API initialized")
+            # Initialize Supabase client (synchronous call, no await needed)
+            self.supabase = get_supabase_client()
+            
+            # Test database connectivity if available
+            if self.supabase.is_available:
+                await self.supabase.table('business_locations').select('*').limit(1).execute()
+                logger.info("Location service database connectivity verified")
             else:
-                logger.warning("Google Places API key not found")
-            
-            # Initialize Foursquare API
-            self.foursquare_api_key = os.getenv('FOURSQUARE_API_KEY')
-            if self.foursquare_api_key:
-                logger.info("Foursquare API initialized")
-            else:
-                logger.warning("Foursquare API key not found")
-            
-            # Initialize database
-            self.supabase = await get_supabase_client()
-            await self._create_location_tables()
-            
+                logger.warning("Location service: Supabase not available, using in-memory fallback")
+                
         except Exception as e:
-            logger.error(f"Error initializing LocationService: {str(e)}")
-    
-    async def _create_location_tables(self):
-        """Create necessary database tables for location data"""
-        try:
-            # Create business locations cache table
-            await self.supabase.table('business_locations').select('*').limit(1).execute()
-        except:
-            # Table doesn't exist, create it
-            logger.info("Creating business_locations table")
-            # In practice, you'd use proper database migrations
+            logger.warning(f"Location service database connection failed: {e}")
+            self.supabase = None
     
     async def analyze_business_district(self, lat: float, lng: float, radius: int = 500) -> Dict[str, Any]:
         """

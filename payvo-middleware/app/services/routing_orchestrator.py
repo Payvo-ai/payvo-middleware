@@ -974,7 +974,7 @@ class RoutingOrchestrator:
                 return category.replace('_', ' ').title()
         
         return f"Unknown Merchant (MCC {mcc})"
-    
+
     async def _store_prediction_data(self, prediction: Dict[str, Any], session_id: str):
         """Store prediction data for learning"""
         try:
@@ -1227,7 +1227,7 @@ class RoutingOrchestrator:
                     logger.info(f"Real-time location: {lat:.6f}, {lng:.6f}")
             else:
                 # Fallback to generated context for testing
-                payment_context = await self._generate_realistic_payment_context(session)
+            payment_context = await self._generate_realistic_payment_context(session)
                 logger.info(f"Using generated test data for session {session_id}")
             
             # Real-time MCC prediction using the payment context
