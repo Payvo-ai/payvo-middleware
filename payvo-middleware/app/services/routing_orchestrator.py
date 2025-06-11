@@ -944,22 +944,20 @@ class RoutingOrchestrator:
                     "timestamp": datetime.now().isoformat(),
                     "components": {
                         "routing_orchestrator": "healthy" if self.is_running else "stopped",
+                        "location_service": "healthy" if self.location_service else "disabled",
                         "database": "healthy",  # Could check actual DB connection
                         "supabase": "healthy"   # Could check actual Supabase connection
                     },
                     "cache_stats": {
                         "mcc_cache_size": len(self.mcc_cache),
-                        "location_cache_size": len(self.location_cache),
-                        "terminal_cache_size": len(self.terminal_cache),
-                        "wifi_cache_size": len(self.wifi_cache),
-                        "ble_cache_size": len(self.ble_cache)
+                        "location_cache_size": len(self.location_cache)
                     },
                     "system_info": {
-                        "active_sessions": 0,  # Could track actual sessions
+                        "active_sessions": len(getattr(self, 'active_sessions', {})),
                         "background_tasks": len(self.background_tasks)
                     }
                 },
-                "message": "System is healthy"
+                "message": "Core system is healthy"
             }
         except Exception as e:
             logger.error(f"Health check failed: {str(e)}")
