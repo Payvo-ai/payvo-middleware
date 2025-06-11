@@ -15,6 +15,9 @@ from app.models.schemas import (
     TransactionFeedback, MCCPrediction, RoutingDecision, 
     ContextData, CardInfo
 )
+from app.database.models import TransactionFeedback, ContextData
+from app.database.connection_manager import connection_manager
+from app.utils.mcc_categories import get_all_mcc_categories, get_mcc_for_category
 
 logger = logging.getLogger(__name__)
 
@@ -396,17 +399,17 @@ class LearningEngine:
     
     def _get_mcc_category(self, mcc: str) -> str:
         """
-        Get category for MCC code
+        Get category for MCC code using centralized utility
         """
-        mcc_categories = {
-            "5812": "restaurants",
-            "5814": "restaurants", 
-            "5411": "grocery",
-            "5541": "gas",
-            "5732": "electronics",
-            "5999": "retail"
-        }
-        return mcc_categories.get(mcc, "other")
+        # Use centralized MCC categories
+        all_categories = get_all_mcc_categories()
+        
+        # Find the category name for this MCC
+        for category, mcc_code in all_categories.items():
+            if mcc_code == mcc:
+                return category.replace('_', ' ').lower()
+        
+        return "other"
     
     async def get_learning_insights(self) -> Dict:
         """

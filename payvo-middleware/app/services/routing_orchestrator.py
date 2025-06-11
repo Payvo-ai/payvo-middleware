@@ -16,6 +16,7 @@ import random
 from app.database.connection_manager import connection_manager
 from app.database.models import TransactionFeedback, MCCPrediction, CardPerformance
 from app.models.schemas import APIResponse
+from app.utils.mcc_categories import get_all_mcc_categories, get_mcc_for_category
 
 # Import enhanced services
 from .location_service import LocationService
@@ -950,84 +951,30 @@ class RoutingOrchestrator:
     
     def _mcc_to_category(self, mcc: str) -> str:
         """Convert MCC to broad category"""
-        mcc_categories = {
-            "5411": "grocery",  # Grocery stores
-            "5541": "gas",      # Service stations
-            "5812": "dining",   # Eating places
-            "5999": "retail",   # Miscellaneous retail
-            # Add more mappings as needed
-        }
-        return mcc_categories.get(mcc, "other")
+        # Simple mapping - could be expanded
+        if mcc in ["5411", "5412"]:
+            return "grocery"
+        elif mcc in ["5541", "5542"]:
+            return "gas"
+        elif mcc in ["5812", "5813", "5814"]:
+            return "dining"
+        elif mcc.startswith("5"):
+            return "retail"
+        else:
+            return "other"
 
     def _mcc_to_category_name(self, mcc: str) -> str:
-        """Convert MCC to descriptive category name"""
-        mcc_categories = {
-            "5411": "Grocery Store",
-            "5412": "Grocery Store", 
-            "5541": "Gas Station",
-            "5542": "Automated Fuel Dispensers",
-            "5812": "Restaurant",
-            "5813": "Drinking Places (Alcoholic Beverages)",
-            "5814": "Fast Food Restaurant",
-            "5815": "Digital Goods Media",
-            "5732": "Electronics Store",
-            "5733": "Music Stores",
-            "5734": "Computer Software Stores",
-            "5735": "Record Stores",
-            "5999": "Miscellaneous Retail",
-            "5311": "Department Store",
-            "5331": "Variety Store",
-            "5399": "Miscellaneous General Merchandise",
-            "5451": "Dairy Products Store",
-            "5462": "Bakery",
-            "5499": "Miscellaneous Food Store",
-            "5511": "Car and Truck Dealers",
-            "5521": "Car and Truck Dealers (Used)",
-            "5531": "Auto and Home Supply Store",
-            "5532": "Automotive Tire Store",
-            "5533": "Automotive Parts and Accessories",
-            "5571": "Motorcycle Dealers",
-            "5599": "Miscellaneous Automotive",
-            "5611": "Men's and Boys' Clothing",
-            "5621": "Women's Ready-to-Wear",
-            "5631": "Women's Accessory Shops",
-            "5641": "Children's and Infants' Wear",
-            "5651": "Family Clothing Store",
-            "5661": "Shoe Store",
-            "5691": "Men's and Women's Clothing",
-            "5699": "Miscellaneous Apparel",
-            "5712": "Furniture, Home Furnishings",
-            "5713": "Floor Covering Store",
-            "5714": "Drapery, Window Covering",
-            "5718": "Fireplace, Fireplace Screens",
-            "5719": "Miscellaneous Home Furnishing",
-            "5722": "Household Appliance Store",
-            "5732": "Electronics Store",
-            "5733": "Music Store",
-            "5811": "Caterer",
-            "5821": "Travel Agency",
-            "5831": "Costume Rental",
-            "5832": "Antique Shop",
-            "5833": "Pawn Shop",
-            "5912": "Drug Store and Pharmacy",
-            "5921": "Package Store (Beer, Wine, Liquor)",
-            "5931": "Used Merchandise Store",
-            "5932": "Antique Shop",
-            "5933": "Pawn Shop",
-            "5940": "Bicycle Shop",
-            "5941": "Sporting Goods Store",
-            "5942": "Book Store",
-            "5943": "Stationery, Office Supply",
-            "5944": "Jewelry Store",
-            "5945": "Hobby, Toy, and Game Shop",
-            "5946": "Camera and Photographic Supply",
-            "5947": "Gift, Card, Novelty Shop",
-            "5948": "Luggage and Leather Goods",
-            "5949": "Sewing, Needlework, Fabric",
-            "5950": "Glassware, Crystal Store"
-        }
-        return mcc_categories.get(mcc, f"Unknown Merchant (MCC {mcc})")
-
+        """Convert MCC to descriptive category name using centralized utility"""
+        # Use centralized MCC categories
+        all_categories = get_all_mcc_categories()
+        
+        # Find the category name for this MCC
+        for category, mcc_code in all_categories.items():
+            if mcc_code == mcc:
+                return category.replace('_', ' ').title()
+        
+        return f"Unknown Merchant (MCC {mcc})"
+    
     async def _store_prediction_data(self, prediction: Dict[str, Any], session_id: str):
         """Store prediction data for learning"""
         try:

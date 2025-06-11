@@ -16,6 +16,7 @@ from openai import AsyncOpenAI
 
 from ..core.config import settings
 from ..database.supabase_client import get_supabase_client
+from app.utils.mcc_categories import get_all_mcc_categories
 
 logger = logging.getLogger(__name__)
 
@@ -29,38 +30,8 @@ class LLMService:
         self.max_tokens = int(os.getenv('OPENAI_MAX_TOKENS', '1000'))
         self.temperature = float(os.getenv('OPENAI_TEMPERATURE', '0.3'))
         
-        # MCC knowledge base
-        self.mcc_categories = {
-            '5812': 'Eating Places, Restaurants',
-            '5814': 'Fast Food Restaurants',
-            '5411': 'Grocery Stores, Supermarkets',
-            '5541': 'Service Stations (Gas Stations)',
-            '5999': 'Miscellaneous Retail Stores',
-            '5311': 'Department Stores',
-            '5651': 'Family Clothing Stores',
-            '5732': 'Electronics Stores',
-            '5912': 'Drug Stores and Pharmacies',
-            '6011': 'Automated Teller Machines (ATMs), Banks',
-            '7011': 'Hotels, Motels, Resorts',
-            '5511': 'Car and Truck Dealers',
-            '5712': 'Furniture, Home Furnishing Stores',
-            '5944': 'Jewelry, Watch, Clock, and Silverware Stores',
-            '5661': 'Shoe Stores',
-            '5251': 'Hardware Stores',
-            '7399': 'Business Services',
-            '5542': 'Automated Fuel Dispensers',
-            '5412': 'Convenience Stores',
-            '7832': 'Motion Picture Theaters',
-            '7991': 'Tourist Attractions and Exhibits',
-            '8062': 'Hospitals',
-            '8011': 'Doctors, Physicians',
-            '8021': 'Dentists, Orthodontists',
-            '5995': 'Pet Shops, Pet Food and Supplies',
-            '5993': 'Cigar Stores and Stands',
-            '5992': 'Florists',
-            '5975': 'Hearing Aids Sales and Service',
-            '5971': 'Art Dealers and Galleries'
-        }
+        # MCC knowledge base - Use centralized utility
+        self.mcc_categories = get_all_mcc_categories()
         
     async def initialize(self):
         """Initialize the LLM service"""

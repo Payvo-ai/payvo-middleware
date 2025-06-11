@@ -6,11 +6,14 @@ Selects optimal card based on MCC prediction and user preferences
 import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from enum import Enum
+from decimal import Decimal
 
 from app.models.schemas import (
     MCCPrediction, CardInfo, OptimalCardSelection, NetworkType
 )
 from app.core.config import settings
+from app.utils.mcc_categories import get_all_mcc_categories, get_mcc_for_category
 
 logger = logging.getLogger(__name__)
 
@@ -243,20 +246,17 @@ class CardRoutingEngine:
     
     def _get_mcc_category(self, mcc: str) -> str:
         """
-        Map MCC to category for preference lookup
+        Map MCC to category for preference lookup using centralized utility
         """
-        mcc_categories = {
-            "5812": "restaurants",
-            "5814": "restaurants", 
-            "5411": "grocery",
-            "5541": "gas",
-            "5732": "retail",
-            "5999": "retail",
-            "5311": "retail",
-            "5211": "retail"
-        }
+        # Use centralized MCC categories
+        all_categories = get_all_mcc_categories()
         
-        return mcc_categories.get(mcc, "retail")
+        # Find the category name for this MCC
+        for category, mcc_code in all_categories.items():
+            if mcc_code == mcc:
+                return category.replace('_', ' ').lower()
+        
+        return "retail"
     
     def _load_mcc_rewards_mapping(self) -> Dict[str, Dict[str, float]]:
         """

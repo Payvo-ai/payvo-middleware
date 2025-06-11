@@ -6,6 +6,7 @@ Manages API keys, service settings, and feature flags
 import os
 from typing import Dict, Any, Optional
 from decimal import Decimal
+from app.utils.mcc_categories import get_all_mcc_categories
 
 
 class EnhancedServicesConfig:
@@ -155,47 +156,8 @@ class EnhancedServicesConfig:
         }
 
 
-# Default MCC mappings for common business types
-DEFAULT_MCC_MAPPINGS = {
-    # Food & Dining
-    "restaurant": "5812",
-    "fast_food": "5814",
-    "bar": "5813",
-    "cafe": "5814",
-    "bakery": "5462",
-    "grocery_store": "5411",
-    
-    # Retail
-    "clothing_store": "5691",
-    "department_store": "5311",
-    "electronics_store": "5732",
-    "bookstore": "5942",
-    "pharmacy": "5912",
-    "gas_station": "5542",
-    
-    # Services
-    "bank": "6011",
-    "atm": "6011",
-    "hospital": "8062",
-    "doctor": "8011",
-    "hotel": "7011",
-    "car_rental": "7512",
-    
-    # Entertainment
-    "movie_theater": "7832",
-    "gym": "7997",
-    "spa": "7230",
-    "amusement_park": "7996",
-    
-    # Transportation
-    "taxi": "4121",
-    "parking": "7523",
-    "subway_station": "4111",
-    "airport": "4582",
-    
-    # Default fallback
-    "unknown": "5999"
-}
+# Default MCC mappings for common business types - Use centralized utility
+DEFAULT_MCC_MAPPINGS = get_all_mcc_categories()
 
 # WiFi SSID patterns for brand detection
 WIFI_BRAND_PATTERNS = {

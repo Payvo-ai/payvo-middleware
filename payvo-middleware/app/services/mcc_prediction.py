@@ -18,6 +18,7 @@ from app.models.schemas import (
 )
 from app.core.config import settings
 from app.services.ai_inference import ai_inference_service
+from app.utils.mcc_categories import get_mcc_for_category
 
 logger = logging.getLogger(__name__)
 
@@ -579,25 +580,8 @@ class MCCPredictionEngine:
         return None
     
     def _category_to_mcc(self, category: str) -> Optional[str]:
-        """Convert category to MCC code"""
-        category_mapping = {
-            "restaurant": "5812",
-            "fast_food": "5814",
-            "coffee": "5814",
-            "grocery": "5411",
-            "gas": "5541",
-            "retail": "5999",
-            "electronics": "5732",
-            "department_store": "5311",
-            "hotel": "7011",
-            "transportation": "4111",
-            "convenience": "5411",
-            "pharmacy": "5912",
-            "clothing": "5691",
-            "automotive": "5511"
-        }
-        
-        return category_mapping.get(category.lower())
+        """Convert category to MCC code using centralized utility"""
+        return get_mcc_for_category(category)
     
     def _get_confidence_level(self, confidence: float) -> str:
         """Convert confidence score to level"""
