@@ -3,7 +3,7 @@ FastAPI routes for Payvo middleware
 """
 
 from fastapi import APIRouter, HTTPException, Query, Body
-from typing import Optional
+from typing import Optional, Dict, List, Any
 import logging
 from datetime import datetime
 
@@ -56,17 +56,52 @@ async def initiate_card_routing(
 
 
 @router.post("/routing/{session_id}/activate", response_model=APIResponse)
-async def activate_payment_token(session_id: str):
+async def activate_payment_token(
+    session_id: str,
+    location: Optional[Dict[str, Any]] = Body(default=None, description="Real-time GPS location data"),
+    terminal_id: Optional[str] = Body(default=None, description="Terminal ID if available"),
+    merchant_name: Optional[str] = Body(default=None, description="Merchant name if known"),
+    wifi_networks: Optional[List[Dict[str, Any]]] = Body(default=None, description="WiFi networks detected"),
+    ble_beacons: Optional[List[Dict[str, Any]]] = Body(default=None, description="BLE beacons detected"),
+    amount: Optional[float] = Body(default=None, description="Transaction amount"),
+    context_info: Optional[Dict[str, Any]] = Body(default=None, description="Additional context information")
+):
     """
-    Activate the payment token for the selected card
+    Activate the payment token for the selected card with real-time location data
     
     This prepares the token for NFC transaction by:
+    - Using real-time location data for enhanced MCC prediction
+    - Analyzing WiFi/BLE fingerprints for indoor positioning
     - Configuring platform-specific payment interfaces
     - Activating secure elements or HCE
     - Making the token available for POS interaction
+    
+    Real-time data significantly improves MCC prediction accuracy.
     """
     try:
-        response = await routing_orchestrator.activate_payment(session_id)
+        # Prepare real payment data if provided
+        payment_data = None
+        if any([location, terminal_id, merchant_name, wifi_networks, ble_beacons, amount, context_info]):
+            payment_data = {
+                "location": location or {},
+                "terminal_id": terminal_id,
+                "merchant_name": merchant_name,
+                "wifi_networks": wifi_networks or [],
+                "ble_beacons": ble_beacons or [],
+                "amount": amount,
+                "context_info": context_info or {}
+            }
+            
+            # Log real-time data usage
+            logger.info(f"Received real-time payment data for session {session_id}")
+            if location and location.get("latitude") and location.get("longitude"):
+                logger.info(f"Real-time location provided: {location['latitude']:.6f}, {location['longitude']:.6f}")
+            if wifi_networks:
+                logger.info(f"WiFi networks detected: {len(wifi_networks)} networks")
+            if ble_beacons:
+                logger.info(f"BLE beacons detected: {len(ble_beacons)} beacons")
+        
+        response = await routing_orchestrator.activate_payment(session_id, payment_data)
         
         if not response.get("success", False):
             raise HTTPException(status_code=400, detail=response.get("error", "Unknown error"))
