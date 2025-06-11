@@ -258,7 +258,6 @@ class LocationService:
         try:
             # Skip historical data if Supabase is not available or in API-only mode
             if not self.supabase or not self.supabase.is_available:
-                logger.debug("No database available for historical transaction data")
                 return {'total_transactions': 0, 'mcc_patterns': {}}
             
             # Create a geohash for the area
@@ -303,10 +302,9 @@ class LocationService:
                     'historical_confidence': sum(confidence_sum.values()) / sum(mcc_counts.values()) if mcc_counts else 0
                 }
             
-            except Exception as db_error:
-                # Handle database table not found or other DB errors gracefully
-                logger.debug(f"Historical data not available (table may not exist): {db_error}")
-                return {'total_transactions': 0, 'mcc_patterns': {}}
+            except Exception:
+                # Silently handle database table not found - this is expected in API-only mode
+                pass
         
         except Exception as e:
             logger.error(f"Error fetching historical data: {str(e)}")
@@ -555,11 +553,12 @@ class LocationService:
                         cached_at = datetime.fromisoformat(cache_entry['created_at'].replace('Z', '+00:00'))
                         if datetime.now() - cached_at < self.cache_duration:
                             return json.loads(cache_entry['analysis_data'])
-                except Exception as db_error:
-                    # Handle database table not found gracefully
-                    logger.debug(f"Cache table not available: {db_error}")
-        except Exception as e:
-            logger.debug(f"Error retrieving cached analysis: {str(e)}")
+                except Exception:
+                    # Silently handle database table not found - this is expected in API-only mode
+                    pass
+        except Exception:
+            # Silently handle caching errors - not critical to core functionality
+            pass
         return None
     
     async def _cache_analysis(self, cache_key: str, analysis: Dict[str, Any]):
@@ -573,11 +572,12 @@ class LocationService:
                         'analysis_data': json.dumps(analysis),
                         'created_at': datetime.now().isoformat()
                     }).execute()
-                except Exception as db_error:
-                    # Handle database table not found gracefully
-                    logger.debug(f"Cache table not available for writing: {db_error}")
-        except Exception as e:
-            logger.debug(f"Error caching analysis: {str(e)}")
+                except Exception:
+                    # Silently handle database table not found - this is expected in API-only mode
+                    pass
+        except Exception:
+            # Silently handle caching errors - not critical to core functionality
+            pass
     
     def _get_fallback_analysis(self) -> Dict[str, Any]:
         """Return fallback analysis when APIs fail"""

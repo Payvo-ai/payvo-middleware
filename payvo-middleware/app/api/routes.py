@@ -314,40 +314,214 @@ async def get_mcc_info(mcc_code: str):
 @router.get("/networks/acceptance")
 async def get_network_acceptance_rates():
     """
-    Get payment network acceptance rates by category
-    """
-    acceptance_data = {
-        "visa": {
-            "overall": 0.95,
-            "restaurants": 0.98,
-            "grocery": 0.99,
-            "gas": 0.97,
-            "retail": 0.96
-        },
-        "mastercard": {
-            "overall": 0.93,
-            "restaurants": 0.96,
-            "grocery": 0.98,
-            "gas": 0.95,
-            "retail": 0.94
-        },
-        "amex": {
-            "overall": 0.75,
-            "restaurants": 0.85,
-            "grocery": 0.70,
-            "gas": 0.60,
-            "retail": 0.80
-        },
-        "discover": {
-            "overall": 0.65,
-            "restaurants": 0.70,
-            "grocery": 0.75,
-            "gas": 0.80,
-            "retail": 0.60
-        }
-    }
+    Get network acceptance rates data
     
-    return APIResponse(
-        success=True,
-        data=acceptance_data
-    ) 
+    Returns comprehensive data about card network acceptance across:
+    - Different merchant categories
+    - Geographic regions
+    - Transaction types
+    """
+    try:
+        # Mock network acceptance data - would be from real analytics
+        acceptance_data = {
+            "success": True,
+            "data": {
+                "networks": {
+                    "visa": {
+                        "overall_acceptance": 99.8,
+                        "by_category": {
+                            "grocery": 99.9,
+                            "gas": 99.8,
+                            "restaurant": 99.9,
+                            "retail": 99.7,
+                            "travel": 99.9
+                        }
+                    },
+                    "mastercard": {
+                        "overall_acceptance": 99.7,
+                        "by_category": {
+                            "grocery": 99.8,
+                            "gas": 99.7,
+                            "restaurant": 99.8,
+                            "retail": 99.6,
+                            "travel": 99.8
+                        }
+                    },
+                    "amex": {
+                        "overall_acceptance": 87.2,
+                        "by_category": {
+                            "grocery": 92.1,
+                            "gas": 83.4,
+                            "restaurant": 91.8,
+                            "retail": 85.7,
+                            "travel": 98.2
+                        }
+                    },
+                    "discover": {
+                        "overall_acceptance": 82.5,
+                        "by_category": {
+                            "grocery": 89.3,
+                            "gas": 78.2,
+                            "restaurant": 85.1,
+                            "retail": 80.4,
+                            "travel": 79.8
+                        }
+                    }
+                },
+                "last_updated": datetime.now().isoformat()
+            },
+            "message": "Network acceptance rates retrieved successfully"
+        }
+        
+        return acceptance_data
+        
+    except Exception as e:
+        logger.error(f"Failed to get network acceptance rates: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/test/gps-payment", response_model=APIResponse)
+async def test_payment_with_gps(
+    user_id: str = Body(..., description="User identifier"),
+    latitude: float = Body(..., description="GPS latitude coordinate"),
+    longitude: float = Body(..., description="GPS longitude coordinate"),
+    platform: str = Body(default="ios", description="Platform (ios/android/web)"),
+    wallet_type: str = Body(default="apple_pay", description="Wallet type (apple_pay/google_pay/samsung_pay)"),
+    amount: Optional[float] = Body(default=50.0, description="Transaction amount"),
+    merchant_name: Optional[str] = Body(default=None, description="Known merchant name"),
+    accuracy: Optional[float] = Body(default=None, description="GPS accuracy in meters"),
+    altitude: Optional[float] = Body(default=None, description="GPS altitude"),
+    speed: Optional[float] = Body(default=None, description="GPS speed"),
+    heading: Optional[float] = Body(default=None, description="GPS heading/bearing")
+):
+    """
+    Test endpoint for payment routing with real GPS coordinates
+    
+    This endpoint allows testing the payment system with actual GPS coordinates
+    instead of using the hardcoded Union Square location. It provides a complete
+    payment flow simulation using real location data.
+    
+    Steps:
+    1. Initiates routing session with user data
+    2. Activates payment with real GPS coordinates
+    3. Returns MCC prediction and card selection based on actual location
+    
+    Use this endpoint to test how the system behaves at different real-world locations.
+    """
+    try:
+        logger.info(f"Testing payment with GPS coordinates: {latitude:.6f}, {longitude:.6f}")
+        
+        # Step 1: Initiate routing session
+        logger.info("Step 1: Initiating routing session...")
+        initiate_response = await routing_orchestrator.initiate_routing(
+            user_id=user_id,
+            platform=platform,
+            wallet_type=wallet_type,
+            transaction_amount=amount
+        )
+        
+        logger.info(f"Initiate response: {initiate_response}")
+        
+        if not initiate_response.get("success", False):
+            logger.error(f"Failed to initiate routing: {initiate_response}")
+            raise HTTPException(status_code=400, detail=initiate_response.get("error", "Failed to initiate routing"))
+        
+        # Extract session_id from the response
+        session_id = None
+        if "data" in initiate_response and "session_id" in initiate_response["data"]:
+            session_id = initiate_response["data"]["session_id"]
+        elif "session_id" in initiate_response:
+            session_id = initiate_response["session_id"]
+        
+        if not session_id:
+            logger.error(f"No session_id found in initiate response: {initiate_response}")
+            raise HTTPException(status_code=500, detail="Failed to get session_id from initiate response")
+        
+        logger.info(f"Created test session {session_id} for GPS payment test")
+        
+        # Step 2: Prepare real GPS location data
+        logger.info("Step 2: Preparing GPS location data...")
+        location_data = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "source": "gps",
+            "timestamp": datetime.now().isoformat(),
+            "accuracy": accuracy,
+            "altitude": altitude,
+            "speed": speed,
+            "heading": heading
+        }
+        
+        # Remove None values
+        location_data = {k: v for k, v in location_data.items() if v is not None}
+        logger.info(f"Location data prepared: {location_data}")
+        
+        # Step 3: Activate payment with real GPS data
+        logger.info("Step 3: Preparing payment data...")
+        payment_data = {
+            "location": location_data,
+            "merchant_name": merchant_name,
+            "amount": amount,
+            "wifi_networks": [],  # Could be populated with mock WiFi data
+            "ble_beacons": [],    # Could be populated with mock BLE data
+            "context_info": {
+                "test_mode": True,
+                "gps_test": True,
+                "coordinates": f"{latitude:.6f},{longitude:.6f}"
+            }
+        }
+        logger.info(f"Payment data prepared: {payment_data}")
+        
+        logger.info("Step 4: Activating payment...")
+        activate_response = await routing_orchestrator.activate_payment(session_id, payment_data)
+        logger.info(f"Activate response received: {activate_response}")
+        
+        if not activate_response.get("success", False):
+            logger.error(f"Payment activation failed: {activate_response}")
+            raise HTTPException(status_code=400, detail=activate_response.get("error", "Failed to activate payment"))
+        
+        # Step 4: Prepare comprehensive response
+        logger.info("Step 5: Preparing final response...")
+        response_data = {
+            "test_type": "gps_payment_simulation",
+            "session_id": session_id,
+            "location_tested": {
+                "latitude": latitude,
+                "longitude": longitude,
+                "accuracy": accuracy
+            },
+            "mcc_prediction": {
+                "predicted_mcc": activate_response.get("predicted_mcc", "unknown"),
+                "confidence": activate_response.get("confidence", 0.0),
+                "method": activate_response.get("prediction_method", "unknown"),
+                "analysis_details": activate_response.get("analysis_details", {})
+            },
+            "card_selection": activate_response.get("recommended_card", {}),
+            "data_sources": {
+                "location_source": "real_gps",
+                "fallback_used": False,
+                "real_time_data": True
+            },
+            "platform_config": activate_response.get("data", {}).get("platform_config", {}),
+            "expires_at": activate_response.get("expires_at", ""),
+            "message": f"GPS payment test completed successfully at coordinates {latitude:.6f}, {longitude:.6f}"
+        }
+        
+        logger.info(f"GPS payment test completed - MCC: {activate_response.get('predicted_mcc', 'unknown')}, Confidence: {activate_response.get('confidence', 0.0):.2f}")
+        
+        return {
+            "success": True,
+            "data": response_data,
+            "error": None,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"GPS payment test failed: {e}")
+        logger.error(f"Exception type: {type(e)}")
+        logger.error(f"Exception args: {e.args}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e)) 

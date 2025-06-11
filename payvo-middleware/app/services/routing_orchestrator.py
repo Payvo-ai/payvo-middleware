@@ -1051,55 +1051,79 @@ class RoutingOrchestrator:
                     lat = payment_context["location"]["latitude"]
                     lng = payment_context["location"]["longitude"]
                     logger.info(f"Real-time location: {lat:.6f}, {lng:.6f}")
+                    
+                    # Store real-time location in session for context generation
+                    session["real_time_location"] = payment_context["location"]
+                
+                # Log other context data
+                if payment_context["wifi_networks"]:
+                    logger.info(f"WiFi networks detected: {len(payment_context['wifi_networks'])} networks")
+                if payment_context["ble_beacons"]:
+                    logger.info(f"BLE beacons detected: {len(payment_context['ble_beacons'])} beacons")
+                if payment_context["merchant_name"]:
+                    logger.info(f"Merchant name provided: {payment_context['merchant_name']}")
+                
             else:
-                # Fallback to generated context for testing
+                # Generate realistic context for testing when no real data is provided
                 payment_context = await self._generate_realistic_payment_context(session)
-                logger.info(f"Using generated test data for session {session_id}")
+                logger.info(f"Generated test payment context for session {session_id}")
             
-            # Real-time MCC prediction using the payment context
+            # Perform MCC prediction with the payment context
             mcc_prediction = await self._predict_mcc_core(payment_context, session_id)
+            logger.info(f"MCC prediction for session {session_id}: {mcc_prediction['mcc']} with {mcc_prediction['confidence']:.2f} confidence")
             
-            predicted_mcc = mcc_prediction["mcc"]
-            merchant_category = self._mcc_to_category_name(predicted_mcc)
-            prediction_method = mcc_prediction["method"]
-            confidence = mcc_prediction["confidence"]
+            # Get user preferences for card selection
+            user_preferences = await connection_manager.get_user_preferences(session["user_id"])
             
-            # Update session with real prediction data
+            # Select optimal card based on prediction
+            amount = Decimal(str(payment_context.get("amount", session.get("transaction_amount", 0))))
+            card_selection = await self._select_optimal_card(
+                mcc_prediction, 
+                amount, 
+                user_preferences,
+                payment_context
+            )
+            
+            # Update session with activation details
             session.update({
                 "status": "activated",
-                "predicted_mcc": predicted_mcc,
-                "merchant_category": merchant_category,
-                "prediction_method": prediction_method,
-                "prediction_confidence": confidence,
-                "payment_context": payment_context,  # Store the context used
-                "activated_at": datetime.now().isoformat(),
-                "updated_at": datetime.now().isoformat()
+                "payment_context": payment_context,
+                "mcc_prediction": mcc_prediction,
+                "selected_card": card_selection,
+                "activated_at": datetime.now(),
+                "expires_at": datetime.now() + timedelta(minutes=5)
             })
-            
-            logger.info(f"Payment activated for session {session_id} - Predicted MCC: {predicted_mcc} ({merchant_category}) via {prediction_method} with {confidence:.2f} confidence")
             
             return {
                 "success": True,
+                "session_id": session_id,
+                "status": "activated",
+                "message": "Payment token activated successfully",
+                "predicted_mcc": mcc_prediction["mcc"],
+                "confidence": float(mcc_prediction["confidence"]),
+                "prediction_method": mcc_prediction["method"],
+                "recommended_card": card_selection,
+                "location_source": payment_context.get("location", {}).get("source", "unknown"),
+                "real_time_data_used": payment_context.get("real_time_data", False),
+                "expires_at": session["expires_at"].isoformat(),
+                "analysis_details": mcc_prediction.get("analysis_details", {}),
                 "data": {
                     "session_id": session_id,
-                    "status": "activated",
-                    "predicted_mcc": predicted_mcc,
-                    "merchant_category": merchant_category,
-                    "prediction_method": prediction_method,
-                    "confidence": round(confidence, 2),
-                    "location_used": payment_context.get("location"),
-                    "data_source": "real_time" if payment_data else "simulation",
-                    "processing_time_ms": 125,
-                },
-                "message": "Payment activated successfully"
+                    "token_status": "active",
+                    "platform_config": {
+                        "platform": session.get("platform", "unknown"),
+                        "wallet_type": session.get("wallet_type", "unknown"),
+                        "payment_method": card_selection.get("card_type", "unknown")
+                    }
+                }
             }
             
         except Exception as e:
-            logger.error(f"Failed to activate payment for session {session_id}: {str(e)}")
+            logger.error(f"Error activating payment for session {session_id}: {str(e)}")
             return {
                 "success": False,
-                "error": str(e),
-                "message": "Failed to activate payment"
+                "error": "Activation failed",
+                "message": str(e)
             }
 
     async def complete_transaction(self, session_id: str, feedback: Any = None) -> Dict[str, Any]:
@@ -1299,14 +1323,30 @@ class RoutingOrchestrator:
         session_hash = int(hashlib.md5(session["session_id"].encode()).hexdigest()[:8], 16)
         selected_scenario = merchant_scenarios[session_hash % len(merchant_scenarios)]
         
-        # Use a FIXED location for testing consistency (downtown San Francisco)
-        # In production, this would come from real GPS data from the mobile app
-        location_data = {
-            "latitude": 37.7895,  # Fixed: Union Square, San Francisco
-            "longitude": -122.4089,  # Fixed: Known business district
-            "area": "San Francisco Downtown",
-            "accuracy": 10  # High accuracy GPS
-        }
+        # Check if session has real-time location data from phone
+        real_location = session.get("real_time_location")
+        if real_location and real_location.get("latitude") and real_location.get("longitude"):
+            # Use actual GPS coordinates from phone
+            location_data = {
+                "latitude": real_location["latitude"],
+                "longitude": real_location["longitude"],
+                "area": real_location.get("area", "Real Location"),
+                "accuracy": real_location.get("accuracy", 10),
+                "source": "real_gps",
+                "timestamp": real_location.get("timestamp", datetime.now().isoformat())
+            }
+            logger.info(f"Using real GPS location: {location_data['latitude']:.6f}, {location_data['longitude']:.6f}")
+        else:
+            # Fallback to FIXED location for testing consistency (downtown San Francisco)
+            # This is only used when no real GPS data is available from the mobile app
+            location_data = {
+                "latitude": 37.7895,  # Fixed: Union Square, San Francisco
+                "longitude": -122.4089,  # Fixed: Known business district
+                "area": "San Francisco Downtown",
+                "accuracy": 10,  # High accuracy GPS
+                "source": "test_fallback"
+            }
+            logger.warning("No real GPS data provided - using test fallback location (Union Square)")
         
         # Generate WiFi networks that might be present at this merchant type
         wifi_networks = []
@@ -1344,7 +1384,8 @@ class RoutingOrchestrator:
                 "time_of_day": current_hour,
                 "day_of_week": day_of_week,
                 "expected_mcc": selected_scenario["mcc"],  # This simulates what we'd actually detect
-                "simulation_mode": True  # Flag to indicate this is simulated data
+                "simulation_mode": not bool(real_location),  # False if real GPS data is used
+                "location_source": location_data.get("source", "unknown")
             }
         }
         
