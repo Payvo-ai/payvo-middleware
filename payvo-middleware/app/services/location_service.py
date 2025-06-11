@@ -110,9 +110,12 @@ class LocationService:
     async def _get_google_places_data(self, lat: float, lng: float, radius: int) -> Dict[str, Any]:
         """Get business data from Google Places API"""
         if not self.google_maps_client:
+            logger.warning("Google Maps client not initialized - no Google Places data available")
             return {"businesses": [], "density_score": 0.0}
         
         try:
+            logger.info(f"Searching Google Places at ({lat}, {lng}) within {radius}m radius")
+            
             # Search for nearby places
             places_result = self.google_maps_client.places_nearby(
                 location=(lat, lng),
@@ -125,21 +128,29 @@ class LocationService:
             total_rating_sum = 0
             rated_businesses = 0
             
+            logger.info(f"Google Places API returned {len(places_result.get('results', []))} places")
+            
             for place in places_result.get('results', []):
                 place_types = place.get('types', [])
                 rating = place.get('rating', 0)
+                place_name = place.get('name', 'Unknown')
+                
+                # Get MCC category for this place
+                mcc_category = self._google_types_to_mcc_category(place_types)
                 
                 # Extract business info
                 business = {
-                    'name': place.get('name', ''),
+                    'name': place_name,
                     'types': place_types,
                     'rating': rating,
                     'price_level': place.get('price_level', 0),
                     'place_id': place.get('place_id', ''),
                     'location': place.get('geometry', {}).get('location', {}),
-                    'mcc_category': self._google_types_to_mcc_category(place_types)
+                    'mcc_category': mcc_category
                 }
                 businesses.append(business)
+                
+                logger.debug(f"Google Places: {place_name} | Types: {place_types} | MCC: {mcc_category}")
                 
                 # Count business types
                 for business_type in place_types:
@@ -153,7 +164,11 @@ class LocationService:
             
             avg_rating = total_rating_sum / rated_businesses if rated_businesses > 0 else 0
             
-            return {
+            # Count how many businesses have specific MCC categories
+            specific_mcc_count = sum(1 for b in businesses if b.get('mcc_category') and b.get('mcc_category') != '5999')
+            logger.info(f"Google Places: {len(businesses)} total businesses, {specific_mcc_count} with specific MCC mappings")
+            
+            result = {
                 'businesses': businesses,
                 'business_count': len(businesses),
                 'business_types': business_types,
@@ -162,6 +177,8 @@ class LocationService:
                 'commercial_indicators': self._analyze_google_commercial_indicators(business_types)
             }
             
+            return result
+            
         except Exception as e:
             logger.error(f"Error fetching Google Places data: {str(e)}")
             return {"businesses": [], "density_score": 0.0}
@@ -169,9 +186,12 @@ class LocationService:
     async def _get_foursquare_data(self, lat: float, lng: float, radius: int) -> Dict[str, Any]:
         """Get venue data from Foursquare API"""
         if not self.foursquare_api_key:
+            logger.warning("Foursquare API key not found - no Foursquare data available")
             return {"venues": [], "density_score": 0.0}
         
         try:
+            logger.info(f"Searching Foursquare venues at ({lat}, {lng}) within {radius}m radius")
+            
             async with httpx.AsyncClient() as client:
                 # Foursquare Places API v3
                 url = "https://api.foursquare.com/v3/places/search"
@@ -193,24 +213,37 @@ class LocationService:
                 venues = []
                 categories = {}
                 
+                logger.info(f"Foursquare API returned {len(data.get('results', []))} venues")
+                
                 for venue in data.get('results', []):
                     venue_categories = venue.get('categories', [])
+                    venue_name = venue.get('name', 'Unknown')
+                    
+                    # Get MCC category for this venue
+                    mcc_category = self._foursquare_categories_to_mcc(venue_categories)
                     
                     venue_info = {
-                        'name': venue.get('name', ''),
+                        'name': venue_name,
                         'categories': [cat.get('name', '') for cat in venue_categories],
                         'rating': venue.get('rating', 0),
                         'price': venue.get('price', 0),
                         'location': venue.get('location', {}),
                         'stats': venue.get('stats', {}),
-                        'mcc_category': self._foursquare_categories_to_mcc(venue_categories)
+                        'mcc_category': mcc_category
                     }
                     venues.append(venue_info)
+                    
+                    category_names = [cat.get('name', '') for cat in venue_categories]
+                    logger.debug(f"Foursquare: {venue_name} | Categories: {category_names} | MCC: {mcc_category}")
                     
                     # Count categories
                     for cat in venue_categories:
                         cat_name = cat.get('name', '')
                         categories[cat_name] = categories.get(cat_name, 0) + 1
+                
+                # Count how many venues have specific MCC categories
+                specific_mcc_count = sum(1 for v in venues if v.get('mcc_category') and v.get('mcc_category') != '5999')
+                logger.info(f"Foursquare: {len(venues)} total venues, {specific_mcc_count} with specific MCC mappings")
                 
                 return {
                     'venues': venues,
@@ -341,38 +374,70 @@ class LocationService:
             }
         
         # Analyze business types from APIs
-        business_type_scores = {}
+        mcc_scores = {}
+        total_businesses = 0
         
         # Google Places analysis
         for business in google_data.get('businesses', []):
-            mcc_category = business.get('mcc_category')
-            if mcc_category:
-                score = business.get('rating', 3.0) / 5.0  # Normalize rating
-                business_type_scores[mcc_category] = business_type_scores.get(mcc_category, 0) + score
+            mcc_code = business.get('mcc_category')
+            if mcc_code and mcc_code != "5999":  # Only count specific MCC matches
+                weight = business.get('rating', 3.0) / 5.0  # Normalize rating
+                mcc_scores[mcc_code] = mcc_scores.get(mcc_code, 0) + weight
+                total_businesses += 1
+                logger.debug(f"Google Places business: {business.get('name', 'Unknown')} -> MCC {mcc_code} (weight: {weight:.2f})")
         
         # Foursquare analysis
         for venue in foursquare_data.get('venues', []):
-            mcc_category = venue.get('mcc_category')
-            if mcc_category:
-                score = venue.get('rating', 6.0) / 10.0  # Normalize rating
-                business_type_scores[mcc_category] = business_type_scores.get(mcc_category, 0) + score
+            mcc_code = venue.get('mcc_category')
+            if mcc_code and mcc_code != "5999":  # Only count specific MCC matches
+                weight = venue.get('rating', 6.0) / 10.0  # Normalize rating
+                mcc_scores[mcc_code] = mcc_scores.get(mcc_code, 0) + weight
+                total_businesses += 1
+                logger.debug(f"Foursquare venue: {venue.get('name', 'Unknown')} -> MCC {mcc_code} (weight: {weight:.2f})")
         
-        if business_type_scores:
-            best_category = max(business_type_scores, key=business_type_scores.get)
-            total_score = sum(business_type_scores.values())
-            confidence = min(0.85, business_type_scores[best_category] / total_score)
+        logger.info(f"Combined MCC analysis: {len(mcc_scores)} unique MCCs from {total_businesses} businesses")
+        logger.info(f"MCC scores: {mcc_scores}")
+        
+        if mcc_scores:
+            # Find the MCC with highest score
+            best_mcc = max(mcc_scores, key=mcc_scores.get)
+            best_score = mcc_scores[best_mcc]
+            total_score = sum(mcc_scores.values())
+            
+            # Calculate confidence based on consensus and data quality
+            base_confidence = best_score / total_score if total_score > 0 else 0
+            business_count_bonus = min(0.2, total_businesses * 0.05)  # Bonus for more data
+            consensus_bonus = min(0.1, (len(mcc_scores) - 1) * 0.02)  # Bonus for multiple sources
+            
+            final_confidence = min(0.9, base_confidence + business_count_bonus + consensus_bonus)
+            
+            logger.info(f"Best MCC prediction: {best_mcc} with confidence {final_confidence:.2f}")
             
             return {
-                'mcc': best_category,
-                'confidence': confidence,
-                'source': 'combined_apis'
+                'mcc': best_mcc,
+                'confidence': final_confidence,
+                'source': 'combined_apis',
+                'details': {
+                    'mcc_scores': mcc_scores,
+                    'total_businesses': total_businesses,
+                    'google_count': google_data.get('business_count', 0),
+                    'foursquare_count': foursquare_data.get('venue_count', 0)
+                }
             }
+        
+        # Log why we're falling back
+        logger.warning(f"No specific MCC predictions found. Google businesses: {google_data.get('business_count', 0)}, Foursquare venues: {foursquare_data.get('venue_count', 0)}")
         
         # Fallback
         return {
             'mcc': '5999',
             'confidence': 0.3,
-            'source': 'fallback'
+            'source': 'fallback',
+            'details': {
+                'reason': 'no_specific_predictions',
+                'google_count': google_data.get('business_count', 0),
+                'foursquare_count': foursquare_data.get('venue_count', 0)
+            }
         }
     
     def _google_types_to_mcc_category(self, types: List[str]) -> Optional[str]:
