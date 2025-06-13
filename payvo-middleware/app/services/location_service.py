@@ -130,6 +130,41 @@ class LocationService:
                 place_types = place.get('types', [])
                 rating = place.get('rating', 0)
                 place_name = place.get('name', 'Unknown')
+                place_id = place.get('place_id', '')
+                
+                # Get detailed place information including geometry
+                try:
+                    place_details = self.google_maps_client.place(place_id, fields=['geometry', 'viewport', 'name', 'types'])
+                    geometry = place_details.get('result', {}).get('geometry', {})
+                    viewport = geometry.get('viewport', {})
+                    
+                    # Calculate store dimensions if viewport is available
+                    store_dimensions = None
+                    if viewport:
+                        ne = viewport.get('northeast', {})
+                        sw = viewport.get('southwest', {})
+                        if ne and sw:
+                            # Calculate width and length in meters
+                            width = geodesic(
+                                (ne['lat'], ne['lng']),
+                                (ne['lat'], sw['lng'])
+                            ).meters
+                            length = geodesic(
+                                (ne['lat'], ne['lng']),
+                                (sw['lat'], ne['lng'])
+                            ).meters
+                            store_dimensions = {
+                                'width_meters': round(width, 2),
+                                'length_meters': round(length, 2),
+                                'area_sqm': round(width * length, 2),
+                                'bounds': {
+                                    'northeast': ne,
+                                    'southwest': sw
+                                }
+                            }
+                except Exception as e:
+                    logger.warning(f"Could not fetch detailed geometry for place {place_name}: {str(e)}")
+                    store_dimensions = None
                 
                 # Get MCC category for this place
                 mcc_category = self._google_types_to_mcc_category(place_types)
@@ -140,9 +175,10 @@ class LocationService:
                     'types': place_types,
                     'rating': rating,
                     'price_level': place.get('price_level', 0),
-                    'place_id': place.get('place_id', ''),
+                    'place_id': place_id,
                     'location': place.get('geometry', {}).get('location', {}),
-                    'mcc_category': mcc_category
+                    'mcc_category': mcc_category,
+                    'store_dimensions': store_dimensions
                 }
                 businesses.append(business)
                 
@@ -189,20 +225,20 @@ class LocationService:
             logger.info(f"Searching Foursquare venues at ({lat}, {lng}) within {radius}m radius")
             
             async with httpx.AsyncClient() as client:
-                # Foursquare Places API v3
-                url = "https://api.foursquare.com/v3/places/search"
-                headers = {
+                # Foursquare Places API
+                foursquare_headers = {
+                    "Accept": "application/json",
                     "Authorization": f"fsq3_{self.foursquare_api_key}",  # Add fsq3_ prefix
-                    "Accept": "application/json"
                 }
+                url = "https://api.foursquare.com/v3/places/search"
                 params = {
                     "ll": f"{lat},{lng}",
                     "radius": radius,
                     "limit": 50,
-                    "fields": "name,categories,rating,price,location,stats"
+                    "fields": "name,categories,rating,price,location,stats,geocodes,bounds"
                 }
                 
-                response = await client.get(url, headers=headers, params=params)
+                response = await client.get(url, headers=foursquare_headers, params=params)
                 response.raise_for_status()
                 data = response.json()
                 
@@ -215,6 +251,32 @@ class LocationService:
                     venue_categories = venue.get('categories', [])
                     venue_name = venue.get('name', 'Unknown')
                     
+                    # Get venue boundaries and dimensions
+                    store_dimensions = None
+                    bounds = venue.get('bounds', {})
+                    if bounds:
+                        ne = bounds.get('ne', {})
+                        sw = bounds.get('sw', {})
+                        if ne and sw:
+                            # Calculate width and length in meters
+                            width = geodesic(
+                                (ne['lat'], ne['lng']),
+                                (ne['lat'], sw['lng'])
+                            ).meters
+                            length = geodesic(
+                                (ne['lat'], ne['lng']),
+                                (sw['lat'], ne['lng'])
+                            ).meters
+                            store_dimensions = {
+                                'width_meters': round(width, 2),
+                                'length_meters': round(length, 2),
+                                'area_sqm': round(width * length, 2),
+                                'bounds': {
+                                    'northeast': ne,
+                                    'southwest': sw
+                                }
+                            }
+                    
                     # Get MCC category for this venue
                     mcc_category = self._foursquare_categories_to_mcc(venue_categories)
                     
@@ -225,7 +287,8 @@ class LocationService:
                         'price': venue.get('price', 0),
                         'location': venue.get('location', {}),
                         'stats': venue.get('stats', {}),
-                        'mcc_category': mcc_category
+                        'mcc_category': mcc_category,
+                        'store_dimensions': store_dimensions
                     }
                     venues.append(venue_info)
                     
@@ -382,6 +445,11 @@ class LocationService:
         mcc_scores = {}
         total_businesses = 0
         
+        # Collect nearby stores information
+        nearby_stores = []
+        detected_merchant = None
+        highest_confidence = 0
+        
         # Google Places analysis
         for business in google_data.get('businesses', []):
             mcc_code = business.get('mcc_category')
@@ -390,6 +458,23 @@ class LocationService:
                 mcc_scores[mcc_code] = mcc_scores.get(mcc_code, 0) + weight
                 total_businesses += 1
                 logger.debug(f"Google Places business: {business.get('name', 'Unknown')} -> MCC {mcc_code} (weight: {weight:.2f})")
+            
+            # Add to nearby stores
+            nearby_stores.append({
+                'name': business.get('name', 'Unknown'),
+                'types': business.get('types', []),
+                'rating': business.get('rating', 0),
+                'source': 'google_places'
+            })
+            
+            # Update detected merchant if this has higher confidence
+            if weight > highest_confidence:
+                highest_confidence = weight
+                detected_merchant = {
+                    'name': business.get('name', 'Unknown'),
+                    'types': business.get('types', []),
+                    'confidence': weight
+                }
         
         # Foursquare analysis
         for venue in foursquare_data.get('venues', []):
@@ -399,6 +484,23 @@ class LocationService:
                 mcc_scores[mcc_code] = mcc_scores.get(mcc_code, 0) + weight
                 total_businesses += 1
                 logger.debug(f"Foursquare venue: {venue.get('name', 'Unknown')} -> MCC {mcc_code} (weight: {weight:.2f})")
+            
+            # Add to nearby stores
+            nearby_stores.append({
+                'name': venue.get('name', 'Unknown'),
+                'types': venue.get('categories', []),
+                'rating': venue.get('rating', 0),
+                'source': 'foursquare'
+            })
+            
+            # Update detected merchant if this has higher confidence
+            if weight > highest_confidence:
+                highest_confidence = weight
+                detected_merchant = {
+                    'name': venue.get('name', 'Unknown'),
+                    'types': venue.get('categories', []),
+                    'confidence': weight
+                }
         
         logger.info(f"Combined MCC analysis: {len(mcc_scores)} unique MCCs from {total_businesses} businesses")
         logger.info(f"MCC scores: {mcc_scores}")
@@ -426,7 +528,9 @@ class LocationService:
                     'mcc_scores': mcc_scores,
                     'total_businesses': total_businesses,
                     'google_count': google_data.get('business_count', 0),
-                    'foursquare_count': foursquare_data.get('venue_count', 0)
+                    'foursquare_count': foursquare_data.get('venue_count', 0),
+                    'nearby_stores': nearby_stores,
+                    'detected_merchant': detected_merchant
                 }
             }
         
@@ -441,7 +545,9 @@ class LocationService:
             'details': {
                 'reason': 'no_specific_predictions',
                 'google_count': google_data.get('business_count', 0),
-                'foursquare_count': foursquare_data.get('venue_count', 0)
+                'foursquare_count': foursquare_data.get('venue_count', 0),
+                'nearby_stores': nearby_stores,
+                'detected_merchant': detected_merchant
             }
         }
     
