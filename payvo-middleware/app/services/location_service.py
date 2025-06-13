@@ -252,9 +252,9 @@ class LocationService:
                 url = "https://api.foursquare.com/v3/places/search"
                 params = {
                     "ll": f"{lat},{lng}",
-                    "radius": radius,
+                    "radius": int(radius),  # Ensure radius is integer
                     "limit": 50,
-                    "fields": "name,categories,rating,price,location,stats"  # Remove invalid fields
+                    "fields": "name,categories,rating,price,location,stats"
                 }
                 
                 response = await client.get(url, headers=headers, params=params)
