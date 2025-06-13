@@ -91,7 +91,7 @@ class LocationService:
             
             # Combine and analyze data
             analysis = await self._combine_location_analyses(
-                google_places, foursquare_venues, historical_data, lat, lng
+                google_places, foursquare_venues, historical_data, lat, lng, radius
             )
             
             # Cache the result
@@ -254,7 +254,7 @@ class LocationService:
                     "ll": f"{lat},{lng}",
                     "radius": radius,
                     "limit": 50,
-                    "fields": "name,categories,rating,price,location,stats,geocodes,bounds"
+                    "fields": "name,categories,rating,price,location,stats"  # Remove invalid fields
                 }
                 
                 response = await client.get(url, headers=headers, params=params)
@@ -406,7 +406,7 @@ class LocationService:
         return {'total_transactions': 0, 'mcc_patterns': {}}
     
     async def _combine_location_analyses(self, google_data: Dict, foursquare_data: Dict, 
-                                       historical_data: Dict, lat: float, lng: float) -> Dict[str, Any]:
+                                       historical_data: Dict, lat: float, lng: float, radius: int) -> Dict[str, Any]:
         """Combine all location analysis data into a comprehensive result"""
         
         # Calculate overall commercial score
@@ -439,7 +439,7 @@ class LocationService:
         
         # Predict MCC based on combined data
         predicted_mcc = await self._predict_mcc_from_combined_data(
-            google_data, foursquare_data, historical_data
+            google_data, foursquare_data, historical_data, radius
         )
         
         return {
@@ -460,7 +460,7 @@ class LocationService:
             }
         }
     
-    async def _predict_mcc_from_combined_data(self, google_data: Dict, foursquare_data: Dict, historical_data: Dict) -> Dict[str, Any]:
+    async def _predict_mcc_from_combined_data(self, google_data: Dict, foursquare_data: Dict, historical_data: Dict, radius: int) -> Dict[str, Any]:
         """Predict MCC from combined location data with enhanced confidence scoring"""
         
         # Start with historical data if available and reliable
@@ -672,22 +672,84 @@ class LocationService:
             if len(close_businesses) >= 2:
                 proximity_bonus = 0.1
             
-            # Calculate final confidence
-            final_confidence = base_confidence + consensus_bonus + data_quality_bonus + exact_match_bonus + proximity_bonus
+            # NEW: Business type specificity bonus
+            specificity_bonus = 0.0
+            if best_mcc in ['5712', '5812', '5541', '5411', '5732']:  # Highly specific MCCs
+                specificity_bonus = 0.15
+            elif best_mcc != '5999':  # Any specific MCC (not miscellaneous)
+                specificity_bonus = 0.1
             
-            # Apply stricter thresholds
-            if final_confidence < 0.6:
-                final_confidence = max(0.3, final_confidence * 0.8)  # Reduce low confidence scores
-            elif final_confidence >= 0.8:
-                final_confidence = min(0.95, final_confidence * 1.1)  # Boost high confidence scores
+            # NEW: Location accuracy bonus (small search radius = more precise)
+            location_accuracy_bonus = 0.0
+            if radius < 30:  # Very precise location
+                location_accuracy_bonus = 0.15
+            elif radius < 50:  # Good location precision
+                location_accuracy_bonus = 0.1
+            
+            # NEW: Rating quality bonus (high-rated businesses are more reliable)
+            rating_quality_bonus = 0.0
+            high_rated_stores = [s for s in nearby_stores if s.get('rating', 0) >= 4.0]
+            if len(high_rated_stores) >= 2:
+                rating_quality_bonus = 0.1
+            
+            # NEW: Very close merchant detection (likely inside the store)
+            very_close_merchant_bonus = 0.0
+            very_close_businesses = [s for s in nearby_stores if s.get('distance', 100) < 10]  # Within 10m
+            if very_close_businesses:
+                # Check if the closest business matches our predicted MCC
+                closest_business = min(very_close_businesses, key=lambda x: x.get('distance', 100))
+                closest_distance = closest_business.get('distance', 100)
+                
+                # Find the MCC for the closest business
+                closest_mcc = None
+                for business in google_data.get('businesses', []):
+                    if business.get('name') == closest_business.get('name'):
+                        closest_mcc = business.get('mcc_category')
+                        break
+                
+                if not closest_mcc:
+                    for venue in foursquare_data.get('venues', []):
+                        if venue.get('name') == closest_business.get('name'):
+                            closest_mcc = venue.get('mcc_category')
+                            break
+                
+                # If the closest business matches our prediction, huge confidence boost
+                if closest_mcc == best_mcc:
+                    if closest_distance < 5:  # Within 5m - likely inside
+                        very_close_merchant_bonus = 0.3
+                        logger.info(f"User is within {closest_distance:.1f}m of {closest_business.get('name')} - likely inside store")
+                    elif closest_distance < 10:  # Within 10m - very close
+                        very_close_merchant_bonus = 0.2
+                        logger.info(f"User is within {closest_distance:.1f}m of {closest_business.get('name')} - very close")
+            
+            # Calculate final confidence with improved algorithm
+            raw_confidence = (base_confidence + consensus_bonus + data_quality_bonus + 
+                            exact_match_bonus + proximity_bonus + specificity_bonus + 
+                            location_accuracy_bonus + rating_quality_bonus + very_close_merchant_bonus)
+            
+            # Apply more aggressive confidence boosting for high-quality predictions
+            if raw_confidence >= 0.7:
+                # Strong prediction - boost significantly
+                final_confidence = min(0.95, raw_confidence * 1.25)
+            elif raw_confidence >= 0.5:
+                # Good prediction - moderate boost
+                final_confidence = min(0.90, raw_confidence * 1.15)
+            elif raw_confidence >= 0.3:
+                # Weak prediction - small boost
+                final_confidence = min(0.75, raw_confidence * 1.05)
+            else:
+                # Very weak prediction - reduce confidence
+                final_confidence = max(0.2, raw_confidence * 0.9)
             
             logger.info(f"Enhanced MCC prediction: {best_mcc} with confidence {final_confidence:.2f}")
             logger.info(f"Confidence breakdown - Base: {base_confidence:.2f}, Consensus: {consensus_bonus:.2f}, "
                        f"Data Quality: {data_quality_bonus:.2f}, Exact Match: {exact_match_bonus:.2f}, "
-                       f"Proximity: {proximity_bonus:.2f}")
+                       f"Proximity: {proximity_bonus:.2f}, Specificity: {specificity_bonus:.2f}, "
+                       f"Location Accuracy: {location_accuracy_bonus:.2f}, Rating Quality: {rating_quality_bonus:.2f}, "
+                       f"Very Close Merchant: {very_close_merchant_bonus:.2f}, Raw: {raw_confidence:.2f}")
             
-            # Only return high-confidence predictions
-            if final_confidence >= 0.9:
+            # Return high-confidence predictions (lowered threshold to 0.85 for better usability)
+            if final_confidence >= 0.85:
                 return {
                     'mcc': best_mcc,
                     'confidence': final_confidence,
@@ -706,7 +768,12 @@ class LocationService:
                             'consensus_bonus': consensus_bonus,
                             'data_quality_bonus': data_quality_bonus,
                             'exact_match_bonus': exact_match_bonus,
-                            'proximity_bonus': proximity_bonus
+                            'proximity_bonus': proximity_bonus,
+                            'specificity_bonus': specificity_bonus,
+                            'location_accuracy_bonus': location_accuracy_bonus,
+                            'rating_quality_bonus': rating_quality_bonus,
+                            'very_close_merchant_bonus': very_close_merchant_bonus,
+                            'raw_confidence': raw_confidence
                         }
                     }
                 }
@@ -730,7 +797,12 @@ class LocationService:
                             'consensus_bonus': consensus_bonus,
                             'data_quality_bonus': data_quality_bonus,
                             'exact_match_bonus': exact_match_bonus,
-                            'proximity_bonus': proximity_bonus
+                            'proximity_bonus': proximity_bonus,
+                            'specificity_bonus': specificity_bonus,
+                            'location_accuracy_bonus': location_accuracy_bonus,
+                            'rating_quality_bonus': rating_quality_bonus,
+                            'very_close_merchant_bonus': very_close_merchant_bonus,
+                            'raw_confidence': raw_confidence
                         },
                         'reason_for_low_confidence': 'Insufficient consensus or data quality'
                     }
