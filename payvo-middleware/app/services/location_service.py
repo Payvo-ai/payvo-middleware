@@ -192,7 +192,7 @@ class LocationService:
                 # Foursquare Places API v3
                 url = "https://api.foursquare.com/v3/places/search"
                 headers = {
-                    "Authorization": self.foursquare_api_key,  # Direct API key, no Bearer prefix
+                    "Authorization": f"fsq3_{self.foursquare_api_key}",  # Add fsq3_ prefix
                     "Accept": "application/json"
                 }
                 params = {
