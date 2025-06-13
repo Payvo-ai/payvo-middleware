@@ -233,9 +233,9 @@ class LocationService:
             
             async with httpx.AsyncClient() as client:
                 # Foursquare Places API
-                foursquare_headers = {
-                    "Accept": "application/json",
-                    "Authorization": f"fsq3_{self.foursquare_api_key}",  # Add fsq3_ prefix
+                headers = {
+                    'Accept': 'application/json',
+                    'Authorization': settings.foursquare_api_key  # Remove fsq3_ prefix
                 }
                 url = "https://api.foursquare.com/v3/places/search"
                 params = {
@@ -245,7 +245,7 @@ class LocationService:
                     "fields": "name,categories,rating,price,location,stats,geocodes,bounds"
                 }
                 
-                response = await client.get(url, headers=foursquare_headers, params=params)
+                response = await client.get(url, headers=headers, params=params)
                 response.raise_for_status()
                 data = response.json()
                 
@@ -460,8 +460,9 @@ class LocationService:
         # Google Places analysis
         for business in google_data.get('businesses', []):
             mcc_code = business.get('mcc_category')
+            weight = business.get('rating', 3.0) / 5.0  # Normalize rating - initialize weight here
+            
             if mcc_code and mcc_code != "5999":  # Only count specific MCC matches
-                weight = business.get('rating', 3.0) / 5.0  # Normalize rating
                 mcc_scores[mcc_code] = mcc_scores.get(mcc_code, 0) + weight
                 total_businesses += 1
                 logger.debug(f"Google Places business: {business.get('name', 'Unknown')} -> MCC {mcc_code} (weight: {weight:.2f})")
@@ -486,8 +487,9 @@ class LocationService:
         # Foursquare analysis
         for venue in foursquare_data.get('venues', []):
             mcc_code = venue.get('mcc_category')
+            weight = venue.get('rating', 6.0) / 10.0  # Normalize rating - initialize weight here
+            
             if mcc_code and mcc_code != "5999":  # Only count specific MCC matches
-                weight = venue.get('rating', 6.0) / 10.0  # Normalize rating
                 mcc_scores[mcc_code] = mcc_scores.get(mcc_code, 0) + weight
                 total_businesses += 1
                 logger.debug(f"Foursquare venue: {venue.get('name', 'Unknown')} -> MCC {mcc_code} (weight: {weight:.2f})")
