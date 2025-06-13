@@ -131,6 +131,15 @@ class LocationService:
                 rating = place.get('rating', 0)
                 place_name = place.get('name', 'Unknown')
                 place_id = place.get('place_id', '')
+                place_location = place.get('geometry', {}).get('location', {})
+                
+                # Calculate distance from user location
+                distance = 0
+                if place_location.get('lat') and place_location.get('lng'):
+                    distance = geodesic(
+                        (lat, lng),
+                        (place_location['lat'], place_location['lng'])
+                    ).meters
                 
                 # Get detailed place information including geometry
                 try:
@@ -176,14 +185,17 @@ class LocationService:
                 # Get MCC category for this place
                 mcc_category = self._google_types_to_mcc_category(place_types)
                 
-                # Extract business info
+                # Extract business info with distance
                 business = {
                     'name': place_name,
                     'types': place_types,
                     'rating': rating,
                     'price_level': place.get('price_level', 0),
                     'place_id': place_id,
-                    'location': place.get('geometry', {}).get('location', {}),
+                    'location': {
+                        **place_location,
+                        'distance': round(distance, 2)
+                    },
                     'mcc_category': mcc_category,
                     'store_dimensions': store_dimensions
                 }
@@ -235,7 +247,7 @@ class LocationService:
                 # Foursquare Places API
                 headers = {
                     'Accept': 'application/json',
-                    'Authorization': settings.foursquare_api_key  # Remove fsq3_ prefix
+                    'Authorization': settings.FOURSQUARE_API_KEY  # Remove fsq3_ prefix
                 }
                 url = "https://api.foursquare.com/v3/places/search"
                 params = {
@@ -257,6 +269,15 @@ class LocationService:
                 for venue in data.get('results', []):
                     venue_categories = venue.get('categories', [])
                     venue_name = venue.get('name', 'Unknown')
+                    venue_location = venue.get('location', {})
+                    
+                    # Calculate distance from user location
+                    distance = 0
+                    if venue_location.get('latitude') and venue_location.get('longitude'):
+                        distance = geodesic(
+                            (lat, lng),
+                            (venue_location['latitude'], venue_location['longitude'])
+                        ).meters
                     
                     # Get venue boundaries and dimensions
                     store_dimensions = None
@@ -292,7 +313,10 @@ class LocationService:
                         'categories': [cat.get('name', '') for cat in venue_categories],
                         'rating': venue.get('rating', 0),
                         'price': venue.get('price', 0),
-                        'location': venue.get('location', {}),
+                        'location': {
+                            **venue_location,
+                            'distance': round(distance, 2)
+                        },
                         'stats': venue.get('stats', {}),
                         'mcc_category': mcc_category,
                         'store_dimensions': store_dimensions
@@ -437,126 +461,302 @@ class LocationService:
         }
     
     async def _predict_mcc_from_combined_data(self, google_data: Dict, foursquare_data: Dict, historical_data: Dict) -> Dict[str, Any]:
-        """Predict MCC from combined location data"""
+        """Predict MCC from combined location data with enhanced confidence scoring"""
         
-        # Start with historical data if available
+        # Start with historical data if available and reliable
         historical_mcc = historical_data.get('dominant_mcc')
-        if historical_mcc and historical_data.get('total_transactions', 0) >= 5:
-            return {
-                'mcc': historical_mcc,
-                'confidence': min(0.9, historical_data.get('historical_confidence', 0.5) + 0.2),
-                'source': 'historical_data'
-            }
+        if historical_mcc and historical_data.get('total_transactions', 0) >= 10:  # Increased threshold
+            historical_confidence = historical_data.get('historical_confidence', 0.5)
+            if historical_confidence >= 0.8:  # Only use high-confidence historical data
+                return {
+                    'mcc': historical_mcc,
+                    'confidence': min(0.95, historical_confidence + 0.15),  # Boost historical confidence
+                    'source': 'historical_data'
+                }
         
-        # Analyze business types from APIs
+        # Enhanced business analysis with multiple confidence factors
         mcc_scores = {}
+        mcc_consensus = {}  # Track how many sources agree on each MCC
         total_businesses = 0
         
-        # Collect nearby stores information
+        # Collect nearby stores information with enhanced data
         nearby_stores = []
         detected_merchant = None
         highest_confidence = 0
+        exact_name_matches = []
         
-        # Google Places analysis
+        # Google Places analysis with enhanced weighting
         for business in google_data.get('businesses', []):
             mcc_code = business.get('mcc_category')
-            weight = business.get('rating', 3.0) / 5.0  # Normalize rating - initialize weight here
+            if not mcc_code or mcc_code == "5999":
+                continue
+                
+            # Enhanced weight calculation
+            rating = business.get('rating', 3.0)
+            rating_weight = min(rating / 5.0, 1.0)  # Normalize to 0-1
             
-            if mcc_code and mcc_code != "5999":  # Only count specific MCC matches
-                mcc_scores[mcc_code] = mcc_scores.get(mcc_code, 0) + weight
-                total_businesses += 1
-                logger.debug(f"Google Places business: {business.get('name', 'Unknown')} -> MCC {mcc_code} (weight: {weight:.2f})")
+            # Proximity weight (closer = higher confidence)
+            location = business.get('location', {})
+            distance = location.get('distance', 50)  # Default 50m if not available
+            proximity_weight = max(0.1, 1.0 - (distance / 100.0))  # Higher weight for closer businesses
             
-            # Add to nearby stores
-            nearby_stores.append({
+            # Store dimensions weight (larger stores = more reliable)
+            store_dims = business.get('store_dimensions', {})
+            size_weight = 1.0
+            if store_dims and store_dims.get('area_sqm'):
+                area = store_dims.get('area_sqm', 0)
+                size_weight = min(1.5, 1.0 + (area / 1000.0))  # Bonus for larger stores
+            
+            # Business name analysis for exact matches
+            business_name = business.get('name', '').lower()
+            name_confidence_boost = 0.0
+            
+            # Check for specific business indicators
+            if any(keyword in business_name for keyword in ['furniture', 'home', 'depot', 'store']):
+                if mcc_code == '5712':  # Furniture stores
+                    name_confidence_boost = 0.3
+            elif any(keyword in business_name for keyword in ['restaurant', 'cafe', 'bistro', 'grill']):
+                if mcc_code == '5812':  # Restaurants
+                    name_confidence_boost = 0.3
+            elif any(keyword in business_name for keyword in ['gas', 'fuel', 'petrol', 'shell', 'exxon']):
+                if mcc_code == '5541':  # Gas stations
+                    name_confidence_boost = 0.3
+            
+            # Combined weight
+            combined_weight = (rating_weight * 0.3 + proximity_weight * 0.4 + size_weight * 0.3) + name_confidence_boost
+            
+            mcc_scores[mcc_code] = mcc_scores.get(mcc_code, 0) + combined_weight
+            mcc_consensus[mcc_code] = mcc_consensus.get(mcc_code, 0) + 1
+            total_businesses += 1
+            
+            logger.debug(f"Google Places: {business.get('name', 'Unknown')} -> MCC {mcc_code} "
+                        f"(rating: {rating_weight:.2f}, proximity: {proximity_weight:.2f}, "
+                        f"size: {size_weight:.2f}, name_boost: {name_confidence_boost:.2f}, "
+                        f"total_weight: {combined_weight:.2f})")
+            
+            # Add to nearby stores with enhanced info
+            store_info = {
                 'name': business.get('name', 'Unknown'),
                 'types': business.get('types', []),
-                'rating': business.get('rating', 0),
-                'source': 'google_places'
-            })
+                'rating': rating,
+                'distance': distance,
+                'source': 'google_places',
+                'store_dimensions': store_dims
+            }
+            nearby_stores.append(store_info)
             
-            # Update detected merchant if this has higher confidence
-            if weight > highest_confidence:
-                highest_confidence = weight
+            # Update detected merchant with better scoring
+            merchant_confidence = combined_weight
+            if merchant_confidence > highest_confidence:
+                highest_confidence = merchant_confidence
                 detected_merchant = {
                     'name': business.get('name', 'Unknown'),
                     'types': business.get('types', []),
-                    'confidence': weight
+                    'confidence': merchant_confidence,
+                    'store_dimensions': store_dims
                 }
+                
+                # Check for exact name match
+                if name_confidence_boost > 0:
+                    exact_name_matches.append({
+                        'name': business.get('name', 'Unknown'),
+                        'mcc': mcc_code,
+                        'confidence': merchant_confidence
+                    })
         
-        # Foursquare analysis
+        # Foursquare analysis with enhanced weighting
         for venue in foursquare_data.get('venues', []):
             mcc_code = venue.get('mcc_category')
-            weight = venue.get('rating', 6.0) / 10.0  # Normalize rating - initialize weight here
+            if not mcc_code or mcc_code == "5999":
+                continue
+                
+            # Enhanced weight calculation for Foursquare
+            rating = venue.get('rating', 6.0)
+            rating_weight = min(rating / 10.0, 1.0)  # Normalize Foursquare 0-10 scale
             
-            if mcc_code and mcc_code != "5999":  # Only count specific MCC matches
-                mcc_scores[mcc_code] = mcc_scores.get(mcc_code, 0) + weight
-                total_businesses += 1
-                logger.debug(f"Foursquare venue: {venue.get('name', 'Unknown')} -> MCC {mcc_code} (weight: {weight:.2f})")
+            # Proximity weight
+            location = venue.get('location', {})
+            distance = location.get('distance', 50)
+            proximity_weight = max(0.1, 1.0 - (distance / 100.0))
+            
+            # Store dimensions weight
+            store_dims = venue.get('store_dimensions', {})
+            size_weight = 1.0
+            if store_dims and store_dims.get('area_sqm'):
+                area = store_dims.get('area_sqm', 0)
+                size_weight = min(1.5, 1.0 + (area / 1000.0))
+            
+            # Business name analysis
+            venue_name = venue.get('name', '').lower()
+            name_confidence_boost = 0.0
+            
+            # Check for specific business indicators
+            if any(keyword in venue_name for keyword in ['furniture', 'home', 'depot', 'store']):
+                if mcc_code == '5712':
+                    name_confidence_boost = 0.3
+            elif any(keyword in venue_name for keyword in ['restaurant', 'cafe', 'bistro', 'grill']):
+                if mcc_code == '5812':
+                    name_confidence_boost = 0.3
+            
+            # Combined weight
+            combined_weight = (rating_weight * 0.3 + proximity_weight * 0.4 + size_weight * 0.3) + name_confidence_boost
+            
+            mcc_scores[mcc_code] = mcc_scores.get(mcc_code, 0) + combined_weight
+            mcc_consensus[mcc_code] = mcc_consensus.get(mcc_code, 0) + 1
+            total_businesses += 1
+            
+            logger.debug(f"Foursquare: {venue.get('name', 'Unknown')} -> MCC {mcc_code} "
+                        f"(rating: {rating_weight:.2f}, proximity: {proximity_weight:.2f}, "
+                        f"size: {size_weight:.2f}, name_boost: {name_confidence_boost:.2f}, "
+                        f"total_weight: {combined_weight:.2f})")
             
             # Add to nearby stores
-            nearby_stores.append({
+            store_info = {
                 'name': venue.get('name', 'Unknown'),
                 'types': venue.get('categories', []),
-                'rating': venue.get('rating', 0),
-                'source': 'foursquare'
-            })
+                'rating': rating,
+                'distance': distance,
+                'source': 'foursquare',
+                'store_dimensions': store_dims
+            }
+            nearby_stores.append(store_info)
             
-            # Update detected merchant if this has higher confidence
-            if weight > highest_confidence:
-                highest_confidence = weight
+            # Update detected merchant
+            merchant_confidence = combined_weight
+            if merchant_confidence > highest_confidence:
+                highest_confidence = merchant_confidence
                 detected_merchant = {
                     'name': venue.get('name', 'Unknown'),
                     'types': venue.get('categories', []),
-                    'confidence': weight
+                    'confidence': merchant_confidence,
+                    'store_dimensions': store_dims
                 }
+                
+                if name_confidence_boost > 0:
+                    exact_name_matches.append({
+                        'name': venue.get('name', 'Unknown'),
+                        'mcc': mcc_code,
+                        'confidence': merchant_confidence
+                    })
         
-        logger.info(f"Combined MCC analysis: {len(mcc_scores)} unique MCCs from {total_businesses} businesses")
+        logger.info(f"Enhanced MCC analysis: {len(mcc_scores)} unique MCCs from {total_businesses} businesses")
         logger.info(f"MCC scores: {mcc_scores}")
+        logger.info(f"MCC consensus: {mcc_consensus}")
         
         if mcc_scores:
             # Find the MCC with highest score
             best_mcc = max(mcc_scores, key=mcc_scores.get)
             best_score = mcc_scores[best_mcc]
             total_score = sum(mcc_scores.values())
+            consensus_count = mcc_consensus.get(best_mcc, 1)
             
-            # Calculate confidence based on consensus and data quality
+            # Enhanced confidence calculation
             base_confidence = best_score / total_score if total_score > 0 else 0
-            business_count_bonus = min(0.2, total_businesses * 0.05)  # Bonus for more data
-            consensus_bonus = min(0.1, (len(mcc_scores) - 1) * 0.02)  # Bonus for multiple sources
             
-            final_confidence = min(0.9, base_confidence + business_count_bonus + consensus_bonus)
+            # Consensus bonus (multiple sources agreeing)
+            consensus_bonus = min(0.25, (consensus_count - 1) * 0.1)
             
-            logger.info(f"Best MCC prediction: {best_mcc} with confidence {final_confidence:.2f}")
+            # Data quality bonus (more businesses = higher confidence)
+            data_quality_bonus = min(0.15, total_businesses * 0.03)
             
-            return {
-                'mcc': best_mcc,
-                'confidence': final_confidence,
-                'source': 'combined_apis',
-                'details': {
-                    'mcc_scores': mcc_scores,
-                    'total_businesses': total_businesses,
-                    'google_count': google_data.get('business_count', 0),
-                    'foursquare_count': foursquare_data.get('venue_count', 0),
-                    'nearby_stores': nearby_stores,
-                    'detected_merchant': detected_merchant
+            # Exact match bonus (business name matches MCC category)
+            exact_match_bonus = 0.0
+            if exact_name_matches:
+                matching_mcc = [m for m in exact_name_matches if m['mcc'] == best_mcc]
+                if matching_mcc:
+                    exact_match_bonus = 0.2
+            
+            # Proximity bonus (very close businesses)
+            proximity_bonus = 0.0
+            close_businesses = [s for s in nearby_stores if s.get('distance', 100) < 20]  # Within 20m
+            if len(close_businesses) >= 2:
+                proximity_bonus = 0.1
+            
+            # Calculate final confidence
+            final_confidence = base_confidence + consensus_bonus + data_quality_bonus + exact_match_bonus + proximity_bonus
+            
+            # Apply stricter thresholds
+            if final_confidence < 0.6:
+                final_confidence = max(0.3, final_confidence * 0.8)  # Reduce low confidence scores
+            elif final_confidence >= 0.8:
+                final_confidence = min(0.95, final_confidence * 1.1)  # Boost high confidence scores
+            
+            logger.info(f"Enhanced MCC prediction: {best_mcc} with confidence {final_confidence:.2f}")
+            logger.info(f"Confidence breakdown - Base: {base_confidence:.2f}, Consensus: {consensus_bonus:.2f}, "
+                       f"Data Quality: {data_quality_bonus:.2f}, Exact Match: {exact_match_bonus:.2f}, "
+                       f"Proximity: {proximity_bonus:.2f}")
+            
+            # Only return high-confidence predictions
+            if final_confidence >= 0.9:
+                return {
+                    'mcc': best_mcc,
+                    'confidence': final_confidence,
+                    'source': 'enhanced_combined_apis',
+                    'details': {
+                        'mcc_scores': mcc_scores,
+                        'consensus_counts': mcc_consensus,
+                        'total_businesses': total_businesses,
+                        'google_count': google_data.get('business_count', 0),
+                        'foursquare_count': foursquare_data.get('venue_count', 0),
+                        'nearby_stores': nearby_stores,
+                        'detected_merchant': detected_merchant,
+                        'exact_matches': exact_name_matches,
+                        'confidence_factors': {
+                            'base_confidence': base_confidence,
+                            'consensus_bonus': consensus_bonus,
+                            'data_quality_bonus': data_quality_bonus,
+                            'exact_match_bonus': exact_match_bonus,
+                            'proximity_bonus': proximity_bonus
+                        }
+                    }
                 }
-            }
+            else:
+                # Return with lower confidence but detailed reasoning
+                return {
+                    'mcc': best_mcc,
+                    'confidence': final_confidence,
+                    'source': 'enhanced_combined_apis_low_confidence',
+                    'details': {
+                        'mcc_scores': mcc_scores,
+                        'consensus_counts': mcc_consensus,
+                        'total_businesses': total_businesses,
+                        'google_count': google_data.get('business_count', 0),
+                        'foursquare_count': foursquare_data.get('venue_count', 0),
+                        'nearby_stores': nearby_stores,
+                        'detected_merchant': detected_merchant,
+                        'exact_matches': exact_name_matches,
+                        'confidence_factors': {
+                            'base_confidence': base_confidence,
+                            'consensus_bonus': consensus_bonus,
+                            'data_quality_bonus': data_quality_bonus,
+                            'exact_match_bonus': exact_match_bonus,
+                            'proximity_bonus': proximity_bonus
+                        },
+                        'reason_for_low_confidence': 'Insufficient consensus or data quality'
+                    }
+                }
         
         # Log why we're falling back
-        logger.warning(f"No specific MCC predictions found. Google businesses: {google_data.get('business_count', 0)}, Foursquare venues: {foursquare_data.get('venue_count', 0)}")
+        logger.warning(f"No specific MCC predictions found. Google businesses: {google_data.get('business_count', 0)}, "
+                      f"Foursquare venues: {foursquare_data.get('venue_count', 0)}")
         
-        # Fallback
+        # Enhanced fallback with better reasoning
         return {
             'mcc': '5999',
-            'confidence': 0.3,
-            'source': 'fallback',
+            'confidence': 0.2,  # Lower fallback confidence
+            'source': 'fallback_insufficient_data',
             'details': {
-                'reason': 'no_specific_predictions',
+                'reason': 'no_specific_predictions_or_low_confidence',
                 'google_count': google_data.get('business_count', 0),
                 'foursquare_count': foursquare_data.get('venue_count', 0),
                 'nearby_stores': nearby_stores,
-                'detected_merchant': detected_merchant
+                'detected_merchant': detected_merchant,
+                'requirements_for_high_confidence': {
+                    'min_businesses': 3,
+                    'min_consensus': 2,
+                    'proximity_threshold': '20m',
+                    'confidence_threshold': 0.9
+                }
             }
         }
     
