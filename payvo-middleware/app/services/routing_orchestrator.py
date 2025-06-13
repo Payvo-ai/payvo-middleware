@@ -1078,9 +1078,29 @@ class RoutingOrchestrator:
             
             # Select optimal card based on prediction
             try:
-                amount = Decimal(str(payment_context.get("amount", session.get("transaction_amount", 0))))
+                # Get amount from payment context or session, with proper fallback
+                raw_amount = payment_context.get("amount") or session.get("transaction_amount") or 0
+                
+                # Handle different types of amount values
+                if isinstance(raw_amount, (int, float)):
+                    amount = Decimal(str(raw_amount))
+                elif isinstance(raw_amount, str):
+                    # Clean the string and convert
+                    cleaned_amount = raw_amount.strip().replace('$', '').replace(',', '')
+                    amount = Decimal(cleaned_amount) if cleaned_amount else Decimal('0')
+                else:
+                    amount = Decimal('0')
+                    
+                # Ensure amount is positive
+                if amount < 0:
+                    amount = Decimal('0')
+                    
+                logger.info(f"Converted amount to Decimal: {amount} (from {raw_amount})")
+                
             except (TypeError, ValueError, decimal.InvalidOperation) as e:
-                logger.error(f"Error converting amount to Decimal: {e}")
+                logger.error(f"Error converting amount to Decimal: {e.__class__.__name__}: {e}")
+                logger.error(f"Raw amount value: {payment_context.get('amount')} (type: {type(payment_context.get('amount'))})")
+                logger.error(f"Session amount value: {session.get('transaction_amount')} (type: {type(session.get('transaction_amount'))})")
                 amount = Decimal('0')
             
             card_selection = await self._select_optimal_card(
