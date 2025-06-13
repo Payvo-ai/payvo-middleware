@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import uuid
 import random
+import decimal
 
 from app.database.connection_manager import connection_manager
 from app.database.models import TransactionFeedback, MCCPrediction, CardPerformance
@@ -1076,7 +1077,12 @@ class RoutingOrchestrator:
             user_preferences = await connection_manager.get_user_preferences(session["user_id"])
             
             # Select optimal card based on prediction
-            amount = Decimal(str(payment_context.get("amount", session.get("transaction_amount", 0))))
+            try:
+                amount = Decimal(str(payment_context.get("amount", session.get("transaction_amount", 0))))
+            except (TypeError, ValueError, decimal.InvalidOperation) as e:
+                logger.error(f"Error converting amount to Decimal: {e}")
+                amount = Decimal('0')
+            
             card_selection = await self._select_optimal_card(
                 mcc_prediction, 
                 amount, 
