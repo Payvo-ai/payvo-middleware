@@ -134,7 +134,14 @@ class LocationService:
                 
                 # Get detailed place information including geometry
                 try:
-                    place_details = self.google_maps_client.place(place_id, fields=['geometry', 'viewport', 'name', 'types'])
+                    place_details = self.google_maps_client.place(place_id, fields=[
+                        'geometry',
+                        'geometry/viewport',
+                        'geometry/viewport/northeast',
+                        'geometry/viewport/southwest',
+                        'name',
+                        'type'
+                    ])
                     geometry = place_details.get('result', {}).get('geometry', {})
                     viewport = geometry.get('viewport', {})
                     
