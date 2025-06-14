@@ -108,6 +108,10 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     role VARCHAR(100),
     manager_id UUID REFERENCES user_profiles(id),
     
+    -- Password Management
+    password_change_required BOOLEAN DEFAULT false,
+    password_changed_at TIMESTAMP WITH TIME ZONE,
+    
     -- App Preferences
     preferences JSONB DEFAULT '{
         "notifications": {

@@ -65,6 +65,7 @@ BEGIN
         role = 'Admin',
         is_active = true,
         is_verified = true,
+        password_change_required = true, -- Force password change on first login
         preferences = jsonb_build_object(
             'notifications', jsonb_build_object(
                 'email', true,
