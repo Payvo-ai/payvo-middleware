@@ -22,7 +22,7 @@ const PasswordChangeScreen: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const { changePassword, user } = useAuth();
+  const { changePassword, user, refreshAuthState } = useAuth();
 
   const validatePassword = (password: string): boolean => {
     if (password.length < 8) {
@@ -92,6 +92,11 @@ const PasswordChangeScreen: React.FC = () => {
 
       setSuccessMessage('Your password has been changed successfully!');
 
+      // Refresh auth state to update password_change_required status
+      setTimeout(async () => {
+        await refreshAuthState();
+      }, 2000);
+
     } catch (error) {
       console.error('Password change error:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Failed to change password. Please try again.');
@@ -108,9 +113,14 @@ const PasswordChangeScreen: React.FC = () => {
     >
       <Card style={styles.card}>
         <Card.Content>
-          <Text style={styles.title}>Change Password</Text>
+          <Text style={styles.title}>
+            {user?.password_change_required ? 'Password Change Required' : 'Change Password'}
+          </Text>
           <Text style={styles.subtitle}>
-            Update your password for {user?.email}
+            {user?.password_change_required 
+              ? 'You must change your temporary password before continuing to use the app.'
+              : `Update your password for ${user?.email}`
+            }
           </Text>
 
           <View style={styles.form}>

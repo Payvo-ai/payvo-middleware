@@ -22,6 +22,7 @@ import TransactionScreen from './src/screens/TransactionScreen';
 import AnalyticsScreen from './src/screens/AnalyticsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SignInScreen from './src/screens/SignInScreen';
+import PasswordChangeScreen from './src/screens/PasswordChangeScreen';
 
 // Custom theme with Payvo primary blue
 const PayvoTheme = {
@@ -128,7 +129,7 @@ const AuthStack: React.FC = () => {
 
 // App Navigator (handles authentication flow)
 const AppNavigator: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -136,6 +137,20 @@ const AppNavigator: React.FC = () => {
 
   if (!isAuthenticated) {
     return <AuthStack />;
+  }
+
+  // Check if user needs to change password
+  if (user?.password_change_required) {
+    return (
+      <Stack.Navigator
+        id={undefined}
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen name="PasswordChange" component={PasswordChangeScreen} />
+      </Stack.Navigator>
+    );
   }
 
   return <MainAppTabs />;

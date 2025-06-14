@@ -6,6 +6,7 @@ export interface AuthUser {
   username?: string;
   full_name?: string;
   isAuthenticated: boolean;
+  password_change_required?: boolean;
 }
 
 export interface SignInCredentials {
@@ -33,6 +34,8 @@ export interface UserProfile {
   role: string | null;
   preferences: any;
   is_active: boolean;
+  password_change_required: boolean;
+  password_changed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -88,6 +91,7 @@ class AuthService {
         username: profile?.username || undefined,
         full_name: profile?.full_name || undefined,
         isAuthenticated: true,
+        password_change_required: profile?.password_change_required || false,
       };
 
       console.log('✅ Sign in successful for:', user.email);
@@ -162,6 +166,20 @@ class AuthService {
       if (error) {
         console.error('❌ Change password error:', error);
         throw new Error(error.message);
+      }
+
+      // Clear password change requirement and update timestamp
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .update({ 
+          password_change_required: false,
+          password_changed_at: new Date().toISOString()
+        })
+        .eq('id', currentUser.id);
+
+      if (profileError) {
+        console.warn('⚠️ Failed to update password change status:', profileError);
+        // Don't throw error here as password was successfully changed
       }
 
       console.log('✅ Password changed successfully');
@@ -239,6 +257,7 @@ class AuthService {
         username: profile?.username || undefined,
         full_name: profile?.full_name || undefined,
         isAuthenticated: true,
+        password_change_required: profile?.password_change_required || false,
       };
 
       return user;
@@ -394,6 +413,7 @@ class AuthService {
           username: profile?.username || undefined,
           full_name: profile?.full_name || undefined,
           isAuthenticated: true,
+          password_change_required: profile?.password_change_required || false,
         };
         callback(user);
       } else {
