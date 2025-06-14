@@ -4,14 +4,12 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Alert,
 } from 'react-native';
 import {
   TextInput,
   Button,
   Card,
-  Title,
-  Paragraph,
+  Snackbar,
 } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -19,8 +17,10 @@ const PasswordChangeScreen: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const { changePassword, user } = useAuth();
 
@@ -46,7 +46,7 @@ const PasswordChangeScreen: React.FC = () => {
 
   const handleChangePassword = async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       setErrors({});
 
       // Validate inputs
@@ -90,32 +90,28 @@ const PasswordChangeScreen: React.FC = () => {
       setNewPassword('');
       setConfirmPassword('');
 
-      Alert.alert(
-        'Success',
-        'Your password has been changed successfully!',
-        [{ text: 'OK' }]
-      );
+      setSuccessMessage('Your password has been changed successfully!');
 
     } catch (error) {
       console.error('Password change error:', error);
-      Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'Failed to change password. Please try again.',
-        [{ text: 'OK' }]
-      );
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to change password. Please try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContainer}
+      showsVerticalScrollIndicator={false}
+    >
       <Card style={styles.card}>
         <Card.Content>
-          <Title style={styles.title}>Change Password</Title>
-          <Paragraph style={styles.subtitle}>
+          <Text style={styles.title}>Change Password</Text>
+          <Text style={styles.subtitle}>
             Update your password for {user?.email}
-          </Paragraph>
+          </Text>
 
           <View style={styles.form}>
             <View style={styles.inputSection}>
@@ -123,12 +119,11 @@ const PasswordChangeScreen: React.FC = () => {
               <TextInput
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
-                style={styles.textInput}
-                mode="outlined"
                 secureTextEntry
-                placeholder="Enter your current password"
+                mode="outlined"
+                style={styles.textInput}
+                disabled={isLoading}
                 error={!!errors.currentPassword}
-                disabled={loading}
               />
               {errors.currentPassword && (
                 <Text style={styles.errorText}>{errors.currentPassword}</Text>
@@ -140,12 +135,11 @@ const PasswordChangeScreen: React.FC = () => {
               <TextInput
                 value={newPassword}
                 onChangeText={setNewPassword}
-                style={styles.textInput}
-                mode="outlined"
                 secureTextEntry
-                placeholder="Enter your new password"
+                mode="outlined"
+                style={styles.textInput}
+                disabled={isLoading}
                 error={!!errors.newPassword}
-                disabled={loading}
               />
               {errors.newPassword && (
                 <Text style={styles.errorText}>{errors.newPassword}</Text>
@@ -157,12 +151,11 @@ const PasswordChangeScreen: React.FC = () => {
               <TextInput
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                style={styles.textInput}
-                mode="outlined"
                 secureTextEntry
-                placeholder="Confirm your new password"
+                mode="outlined"
+                style={styles.textInput}
+                disabled={isLoading}
                 error={!!errors.confirmPassword}
-                disabled={loading}
               />
               {errors.confirmPassword && (
                 <Text style={styles.errorText}>{errors.confirmPassword}</Text>
@@ -172,10 +165,10 @@ const PasswordChangeScreen: React.FC = () => {
             <Button
               mode="contained"
               onPress={handleChangePassword}
-              loading={loading}
-              disabled={loading || !currentPassword || !newPassword || !confirmPassword}
               style={styles.changeButton}
-              labelStyle={styles.changeButtonText}>
+              disabled={isLoading}
+              loading={isLoading}
+            >
               Change Password
             </Button>
           </View>
@@ -184,16 +177,33 @@ const PasswordChangeScreen: React.FC = () => {
 
       <Card style={styles.infoCard}>
         <Card.Content>
-          <Title style={styles.infoTitle}>Password Requirements</Title>
+          <Text style={styles.infoTitle}>Password Requirements</Text>
           <View style={styles.requirementsList}>
             <Text style={styles.requirement}>• At least 8 characters long</Text>
-            <Text style={styles.requirement}>• Contains at least one lowercase letter</Text>
-            <Text style={styles.requirement}>• Contains at least one uppercase letter</Text>
+            <Text style={styles.requirement}>• Contains uppercase and lowercase letters</Text>
             <Text style={styles.requirement}>• Contains at least one number</Text>
-            <Text style={styles.requirement}>• Different from your current password</Text>
+            <Text style={styles.requirement}>• Contains at least one special character</Text>
           </View>
         </Card.Content>
       </Card>
+
+      <Snackbar
+        visible={!!successMessage}
+        onDismiss={() => setSuccessMessage('')}
+        duration={4000}
+        style={styles.successSnackbar}
+      >
+        {successMessage}
+      </Snackbar>
+
+      <Snackbar
+        visible={!!errorMessage}
+        onDismiss={() => setErrorMessage('')}
+        duration={4000}
+        style={styles.errorSnackbar}
+      >
+        {errorMessage}
+      </Snackbar>
     </ScrollView>
   );
 };
@@ -201,90 +211,100 @@ const PasswordChangeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
-    padding: 16,
+    backgroundColor: '#2742d5',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    padding: 24,
+    paddingTop: 60,
   },
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    marginBottom: 16,
-    shadowColor: '#afafaf',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
+    borderRadius: 24,
+    marginBottom: 24,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+    paddingVertical: 8,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: 8,
+    color: '#ffffff',
+    marginBottom: 12,
     fontFamily: 'Inter',
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748b',
-    marginBottom: 24,
+    color: '#e2e8f0',
+    marginBottom: 32,
     fontFamily: 'Inter',
+    fontWeight: '400',
+    lineHeight: 24,
   },
   form: {
-    gap: 20,
+    gap: 24,
   },
   inputSection: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: '#374151',
-    marginBottom: 8,
+    marginBottom: 12,
     fontFamily: 'Inter',
   },
   textInput: {
     backgroundColor: '#ffffff',
   },
   errorText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#ef4444',
-    marginTop: 4,
+    marginTop: 8,
     fontFamily: 'Inter',
+    fontWeight: '500',
   },
   changeButton: {
     backgroundColor: '#2742d5',
-    borderRadius: 12,
-    paddingVertical: 4,
-    marginTop: 8,
-  },
-  changeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-    fontFamily: 'Inter',
+    borderRadius: 16,
+    paddingVertical: 6,
+    marginTop: 16,
   },
   infoCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    shadowColor: '#afafaf',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
+    borderRadius: 24,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+    paddingVertical: 8,
   },
   infoTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#1e293b',
-    marginBottom: 16,
+    marginBottom: 20,
     fontFamily: 'Inter',
   },
   requirementsList: {
-    gap: 8,
+    gap: 12,
   },
   requirement: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#64748b',
-    lineHeight: 20,
+    lineHeight: 22,
     fontFamily: 'Inter',
+    fontWeight: '400',
+  },
+  successSnackbar: {
+    backgroundColor: '#10b981',
+  },
+  errorSnackbar: {
+    backgroundColor: '#ef4444',
   },
 });
 
