@@ -155,19 +155,14 @@ class RoutingOrchestrator:
         # Core Location-based prediction (highest priority)
         if location_data.get("latitude") and location_data.get("longitude") and self.location_service:
             try:
-                # Apply minimum radius for consistency (50m minimum)
-                raw_radius = location_data.get("accuracy", 200)
-                effective_radius = max(raw_radius, 50)
+                logger.info(f"Real-time location: {location_data['latitude']:.6f}, {location_data['longitude']:.6f}")
                 
-                if effective_radius != raw_radius:
-                    logger.info(f"Applied minimum search radius for consistency: {raw_radius}m → {effective_radius}m")
+                # Use the new adaptive radius system (starts at 1m, expands as needed)
+                logger.info(f"Starting adaptive location analysis at ({location_data['latitude']:.6f}, {location_data['longitude']:.6f})")
                 
-                logger.info(f"Starting core location analysis at ({location_data['latitude']:.6f}, {location_data['longitude']:.6f}) with {effective_radius}m radius")
-                
-                location_analysis = await self.location_service.analyze_business_district(
+                location_analysis = await self.location_service._search_with_adaptive_radius(
                     location_data["latitude"], 
-                    location_data["longitude"],
-                    radius=effective_radius
+                    location_data["longitude"]
                 )
                 # Fix: Check for predicted_mcc instead of predicted
                 predicted_mcc_data = location_analysis.get("predicted_mcc")
@@ -175,7 +170,7 @@ class RoutingOrchestrator:
                     location_prediction = {
                         "mcc": predicted_mcc_data["mcc"],
                         "confidence": predicted_mcc_data.get("confidence", 0.5),
-                        "method": "core_location_analysis",
+                        "method": "adaptive_location_analysis",
                         "weight": 0.35,
                         "source": "location_service"
                     }
@@ -1066,8 +1061,26 @@ class RoutingOrchestrator:
                     lng = payment_context["location"]["longitude"]
                     logger.info(f"Real-time location: {lat:.6f}, {lng:.6f}")
                     
-                    # Store real-time location in session for context generation
-                    session["real_time_location"] = payment_context["location"]
+                    # Use the new adaptive radius system (starts at 1m, expands as needed)
+                    logger.info(f"Starting adaptive location analysis at ({lat:.6f}, {lng:.6f})")
+                    
+                    location_analysis = await self.location_service._search_with_adaptive_radius(
+                        lat, 
+                        lng
+                    )
+                    # Fix: Check for predicted_mcc instead of predicted
+                    predicted_mcc_data = location_analysis.get("predicted_mcc")
+                    if predicted_mcc_data and predicted_mcc_data.get("mcc"):
+                        location_prediction = {
+                            "mcc": predicted_mcc_data["mcc"],
+                            "confidence": predicted_mcc_data.get("confidence", 0.5),
+                            "method": "adaptive_location_analysis",
+                            "weight": 0.35,
+                            "source": "location_service"
+                        }
+                        logger.info(f"Core location prediction: MCC {location_prediction['mcc']} with {location_prediction['confidence']:.2f} confidence")
+                    else:
+                        logger.warning(f"Core location analysis completed but no MCC prediction found")
                 
                 # Log other context data
                 if payment_context["wifi_networks"]:
