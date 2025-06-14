@@ -1,46 +1,17 @@
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 import uuid
 import asyncio
-from sqlalchemy.orm import Session
-from sqlalchemy import Column, String, Float, Integer, DateTime, Boolean, Text, JSON
-from sqlalchemy.ext.declarative import declarative_base
+import logging
 
 from app.database import get_db
 from app.services.location_service import LocationService
-from app.models.base import Base
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/background-location", tags=["Background Location"])
-
-# Database Models
-class BackgroundLocationSession(Base):
-    __tablename__ = "background_location_sessions"
-    
-    session_id = Column(String, primary_key=True, index=True)
-    user_id = Column(String, nullable=False, index=True)
-    start_time = Column(DateTime, nullable=False)
-    last_update = Column(DateTime, nullable=False)
-    is_active = Column(Boolean, default=True)
-    expires_at = Column(DateTime, nullable=False)
-    location_count = Column(Integer, default=0)
-    metadata = Column(JSON, default={})
-
-class BackgroundLocationPrediction(Base):
-    __tablename__ = "background_location_predictions"
-    
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    session_id = Column(String, nullable=False, index=True)
-    user_id = Column(String, nullable=False, index=True)
-    latitude = Column(Float, nullable=False)
-    longitude = Column(Float, nullable=False)
-    accuracy = Column(Float, nullable=False)
-    predicted_mcc = Column(String, nullable=True)
-    confidence = Column(Float, nullable=True)
-    prediction_method = Column(String, nullable=True)
-    timestamp = Column(DateTime, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
 
 # Request/Response Models
 class LocationData(BaseModel):
@@ -99,7 +70,7 @@ location_service = LocationService()
 @router.post("/start", response_model=BackgroundTrackingResponse)
 async def start_background_tracking(
     request: StartBackgroundTrackingRequest,
-    db: Session = Depends(get_db)
+    db = Depends(get_db)
 ):
     """
     Start background location tracking session
@@ -111,79 +82,100 @@ async def start_background_tracking(
         # Calculate expiration time
         expires_at = datetime.utcnow() + timedelta(minutes=request.session_duration_minutes)
         
-        # Create session record
-        session = BackgroundLocationSession(
-            session_id=session_id,
-            user_id=request.user_id,
-            start_time=datetime.utcnow(),
-            last_update=datetime.utcnow(),
-            is_active=True,
-            expires_at=expires_at,
-            location_count=0,
-            metadata={
+        # Create session record using Supabase
+        if not db.is_available:
+            raise HTTPException(status_code=503, detail="Database service unavailable")
+        
+        session_data = {
+            "session_id": session_id,
+            "user_id": request.user_id,
+            "start_time": datetime.utcnow().isoformat(),
+            "last_update": datetime.utcnow().isoformat(),
+            "is_active": True,
+            "expires_at": expires_at.isoformat(),
+            "location_count": 0,
+            "metadata": {
                 "update_interval_seconds": request.update_interval_seconds,
                 "min_distance_filter_meters": request.min_distance_filter_meters,
                 "session_duration_minutes": request.session_duration_minutes
             }
-        )
+        }
         
-        db.add(session)
-        db.commit()
-        db.refresh(session)
+        # Store session in Supabase
+        result = db.supabase_client.client.table("background_location_sessions").insert(session_data).execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Failed to create tracking session")
         
         return BackgroundTrackingResponse(
             session_id=session_id,
             user_id=request.user_id,
-            start_time=session.start_time,
-            expires_at=session.expires_at,
+            start_time=datetime.utcnow(),
+            expires_at=expires_at,
             status="active",
             message="Background location tracking started successfully"
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
-        db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to start background tracking: {str(e)}")
 
 @router.post("/update")
 async def update_background_location(
     update: BackgroundLocationUpdate,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db = Depends(get_db)
 ):
     """
     Update background location with MCC prediction
     """
     try:
-        # Verify session exists and is active
-        session = db.query(BackgroundLocationSession).filter(
-            BackgroundLocationSession.session_id == update.session_id,
-            BackgroundLocationSession.is_active == True,
-            BackgroundLocationSession.expires_at > datetime.utcnow()
-        ).first()
+        if not db.is_available:
+            raise HTTPException(status_code=503, detail="Database service unavailable")
         
-        if not session:
+        # Verify session exists and is active
+        session_result = db.supabase_client.client.table("background_location_sessions")\
+            .select("*")\
+            .eq("session_id", update.session_id)\
+            .eq("is_active", True)\
+            .gte("expires_at", datetime.utcnow().isoformat())\
+            .execute()
+        
+        if not session_result.data:
             raise HTTPException(status_code=404, detail="Session not found or expired")
         
-        # Create location prediction record
-        prediction = BackgroundLocationPrediction(
-            session_id=update.session_id,
-            user_id=update.user_id,
-            latitude=update.location.latitude,
-            longitude=update.location.longitude,
-            accuracy=update.location.accuracy,
-            predicted_mcc=update.mcc_prediction.mcc if update.mcc_prediction else None,
-            confidence=update.mcc_prediction.confidence if update.mcc_prediction else None,
-            prediction_method=update.mcc_prediction.method if update.mcc_prediction else None,
-            timestamp=datetime.fromtimestamp(update.timestamp / 1000)  # Convert from milliseconds
-        )
+        session = session_result.data[0]
         
-        db.add(prediction)
+        # Create location prediction record
+        prediction_data = {
+            "id": str(uuid.uuid4()),
+            "session_id": update.session_id,
+            "user_id": update.user_id,
+            "latitude": update.location.latitude,
+            "longitude": update.location.longitude,
+            "accuracy": update.location.accuracy,
+            "predicted_mcc": update.mcc_prediction.mcc if update.mcc_prediction else None,
+            "confidence": update.mcc_prediction.confidence if update.mcc_prediction else None,
+            "prediction_method": update.mcc_prediction.method if update.mcc_prediction else None,
+            "timestamp": datetime.fromtimestamp(update.timestamp / 1000).isoformat(),
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        # Insert prediction record
+        db.supabase_client.client.table("background_location_predictions").insert(prediction_data).execute()
         
         # Update session
-        session.last_update = datetime.utcnow()
-        session.location_count += 1
+        updated_session_data = {
+            "last_update": datetime.utcnow().isoformat(),
+            "location_count": session["location_count"] + 1,
+            "updated_at": datetime.utcnow().isoformat()
+        }
         
-        db.commit()
+        db.supabase_client.client.table("background_location_sessions")\
+            .update(updated_session_data)\
+            .eq("session_id", update.session_id)\
+            .execute()
         
         # Schedule background processing if needed
         background_tasks.add_task(process_location_analytics, update.session_id, update.location)
@@ -192,57 +184,55 @@ async def update_background_location(
             "status": "success",
             "message": "Location updated successfully",
             "session_id": update.session_id,
-            "location_count": session.location_count
+            "location_count": session["location_count"] + 1
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to update location: {str(e)}")
 
 @router.get("/session/{session_id}/status", response_model=LocationSessionStatus)
 async def get_session_status(
     session_id: str,
-    db: Session = Depends(get_db)
+    db = Depends(get_db)
 ):
     """
-    Get background location session status
+    Get background location tracking session status
     """
     try:
-        # Get session
-        session = db.query(BackgroundLocationSession).filter(
-            BackgroundLocationSession.session_id == session_id
-        ).first()
+        if not db.is_available:
+            raise HTTPException(status_code=503, detail="Database service unavailable")
         
-        if not session:
+        # Get session data
+        session_result = db.supabase_client.client.table("background_location_sessions")\
+            .select("*")\
+            .eq("session_id", session_id)\
+            .execute()
+        
+        if not session_result.data:
             raise HTTPException(status_code=404, detail="Session not found")
         
-        # Get recent locations (last 10)
-        recent_predictions = db.query(BackgroundLocationPrediction).filter(
-            BackgroundLocationPrediction.session_id == session_id
-        ).order_by(BackgroundLocationPrediction.timestamp.desc()).limit(10).all()
+        session = session_result.data[0]
         
-        recent_locations = []
-        for pred in recent_predictions:
-            recent_locations.append({
-                "latitude": pred.latitude,
-                "longitude": pred.longitude,
-                "accuracy": pred.accuracy,
-                "mcc": pred.predicted_mcc,
-                "confidence": pred.confidence,
-                "method": pred.prediction_method,
-                "timestamp": pred.timestamp.isoformat()
-            })
+        # Get recent locations
+        locations_result = db.supabase_client.client.table("background_location_predictions")\
+            .select("latitude, longitude, predicted_mcc, confidence, timestamp")\
+            .eq("session_id", session_id)\
+            .order("timestamp", desc=True)\
+            .limit(10)\
+            .execute()
+        
+        recent_locations = locations_result.data if locations_result.data else []
         
         return LocationSessionStatus(
-            session_id=session.session_id,
-            user_id=session.user_id,
-            is_active=session.is_active and session.expires_at > datetime.utcnow(),
-            start_time=session.start_time,
-            last_update=session.last_update,
-            expires_at=session.expires_at,
-            location_count=session.location_count,
+            session_id=session["session_id"],
+            user_id=session["user_id"],
+            is_active=session["is_active"],
+            start_time=datetime.fromisoformat(session["start_time"]),
+            last_update=datetime.fromisoformat(session["last_update"]),
+            expires_at=datetime.fromisoformat(session["expires_at"]),
+            location_count=session["location_count"],
             recent_locations=recent_locations
         )
         
@@ -254,104 +244,71 @@ async def get_session_status(
 @router.get("/session/{session_id}/optimal-mcc", response_model=OptimalMCCResponse)
 async def get_optimal_mcc(
     session_id: str,
-    current_lat: float = Field(..., ge=-90, le=90),
-    current_lng: float = Field(..., ge=-180, le=180),
-    radius_meters: int = Field(default=100, ge=10, le=1000),
-    db: Session = Depends(get_db)
+    current_lat: float = Query(..., ge=-90, le=90, description="Current latitude"),
+    current_lng: float = Query(..., ge=-180, le=180, description="Current longitude"),
+    radius_meters: int = Query(default=100, ge=10, le=1000, description="Search radius in meters"),
+    db = Depends(get_db)
 ):
     """
-    Get optimal MCC prediction based on session history and current location
+    Get optimal MCC prediction based on session location history
     """
     try:
-        # Verify session exists
-        session = db.query(BackgroundLocationSession).filter(
-            BackgroundLocationSession.session_id == session_id
-        ).first()
+        if not db.is_available:
+            raise HTTPException(status_code=503, detail="Database service unavailable")
         
-        if not session:
-            raise HTTPException(status_code=404, detail="Session not found")
+        # Get session data
+        session_result = db.supabase_client.client.table("background_location_sessions")\
+            .select("*")\
+            .eq("session_id", session_id)\
+            .eq("is_active", True)\
+            .execute()
         
-        # Get recent predictions within radius and time window (last 10 minutes)
-        time_threshold = datetime.utcnow() - timedelta(minutes=10)
+        if not session_result.data:
+            raise HTTPException(status_code=404, detail="Active session not found")
         
-        # Calculate distance using Haversine formula in SQL
-        # This is a simplified version - for production, consider using PostGIS
-        predictions = db.query(BackgroundLocationPrediction).filter(
-            BackgroundLocationPrediction.session_id == session_id,
-            BackgroundLocationPrediction.timestamp >= time_threshold,
-            BackgroundLocationPrediction.predicted_mcc.isnot(None)
-        ).all()
+        session = session_result.data[0]
         
-        if not predictions:
-            raise HTTPException(status_code=404, detail="No recent predictions found")
+        # Get recent predictions within radius
+        predictions_result = db.supabase_client.client.table("background_location_predictions")\
+            .select("*")\
+            .eq("session_id", session_id)\
+            .not_.is_("predicted_mcc", "null")\
+            .order("timestamp", desc=True)\
+            .limit(50)\
+            .execute()
         
-        # Filter by distance and calculate weighted scores
-        relevant_predictions = []
-        for pred in predictions:
+        if not predictions_result.data:
+            raise HTTPException(status_code=404, detail="No predictions found for session")
+        
+        # Filter predictions by distance and find the best one
+        best_prediction = None
+        best_confidence = 0
+        
+        for pred in predictions_result.data:
             distance = calculate_distance(
                 current_lat, current_lng,
-                pred.latitude, pred.longitude
+                pred["latitude"], pred["longitude"]
             )
             
-            if distance <= radius_meters:
-                # Calculate weights based on distance, time, and confidence
-                time_weight = max(0.1, 1 - (datetime.utcnow() - pred.timestamp).total_seconds() / 600)  # 10 minutes
-                distance_weight = max(0.1, 1 - distance / radius_meters)
-                confidence_weight = pred.confidence or 0.5
-                
-                total_weight = time_weight * distance_weight * confidence_weight
-                
-                relevant_predictions.append({
-                    'mcc': pred.predicted_mcc,
-                    'weight': total_weight,
-                    'confidence': pred.confidence,
-                    'method': pred.prediction_method,
-                    'timestamp': pred.timestamp
-                })
+            if distance <= radius_meters and pred["confidence"] > best_confidence:
+                best_prediction = pred
+                best_confidence = pred["confidence"]
         
-        if not relevant_predictions:
-            raise HTTPException(status_code=404, detail="No relevant predictions found within radius")
+        if not best_prediction:
+            raise HTTPException(status_code=404, detail="No suitable predictions found within radius")
         
-        # Calculate weighted consensus
-        mcc_scores = {}
-        for pred in relevant_predictions:
-            mcc = pred['mcc']
-            if mcc not in mcc_scores:
-                mcc_scores[mcc] = {'total_weight': 0, 'count': 0, 'max_confidence': 0}
-            
-            mcc_scores[mcc]['total_weight'] += pred['weight']
-            mcc_scores[mcc]['count'] += 1
-            mcc_scores[mcc]['max_confidence'] = max(mcc_scores[mcc]['max_confidence'], pred['confidence'])
+        # Calculate session age and last prediction time
+        session_start = datetime.fromisoformat(session["start_time"])
+        last_prediction_time = datetime.fromisoformat(best_prediction["timestamp"])
         
-        # Find best MCC
-        best_mcc = None
-        best_score = 0
-        
-        for mcc, data in mcc_scores.items():
-            # Boost score for consensus (multiple predictions)
-            consensus_boost = min(2.0, 1 + (data['count'] - 1) * 0.2)
-            final_score = data['total_weight'] * consensus_boost
-            
-            if final_score > best_score:
-                best_score = final_score
-                best_mcc = mcc
-        
-        if not best_mcc:
-            raise HTTPException(status_code=404, detail="Could not determine optimal MCC")
-        
-        # Calculate final confidence
-        final_confidence = min(0.95, best_score / len(relevant_predictions))
-        
-        # Get session age and last prediction time
-        session_age_minutes = int((datetime.utcnow() - session.start_time).total_seconds() / 60)
-        last_prediction = max(relevant_predictions, key=lambda x: x['timestamp'])
-        last_prediction_minutes_ago = int((datetime.utcnow() - last_prediction['timestamp']).total_seconds() / 60)
+        session_age_minutes = int((datetime.utcnow() - session_start).total_seconds() / 60)
+        last_prediction_minutes_ago = int((datetime.utcnow() - last_prediction_time).total_seconds() / 60)
         
         return OptimalMCCResponse(
-            mcc=best_mcc,
-            confidence=final_confidence,
-            method="background_session_consensus",
-            location_count=len(relevant_predictions),
+            mcc=best_prediction["predicted_mcc"],
+            confidence=best_prediction["confidence"],
+            method=best_prediction["prediction_method"],
+            location_count=session["location_count"],
             session_age_minutes=session_age_minutes,
             last_prediction_minutes_ago=last_prediction_minutes_ago
         )
@@ -364,112 +321,124 @@ async def get_optimal_mcc(
 @router.post("/session/{session_id}/extend")
 async def extend_session(
     session_id: str,
-    additional_minutes: int = Field(default=30, ge=5, le=240),  # 5 minutes to 4 hours
-    db: Session = Depends(get_db)
+    additional_minutes: int = Query(default=30, ge=5, le=240, description="Additional minutes to extend session"),
+    db = Depends(get_db)
 ):
     """
-    Extend background location session
+    Extend background location tracking session
     """
     try:
-        session = db.query(BackgroundLocationSession).filter(
-            BackgroundLocationSession.session_id == session_id,
-            BackgroundLocationSession.is_active == True
-        ).first()
+        if not db.is_available:
+            raise HTTPException(status_code=503, detail="Database service unavailable")
         
-        if not session:
-            raise HTTPException(status_code=404, detail="Session not found or inactive")
+        # Get current session
+        session_result = db.supabase_client.client.table("background_location_sessions")\
+            .select("*")\
+            .eq("session_id", session_id)\
+            .eq("is_active", True)\
+            .execute()
         
-        # Extend expiration time
-        session.expires_at = session.expires_at + timedelta(minutes=additional_minutes)
-        db.commit()
+        if not session_result.data:
+            raise HTTPException(status_code=404, detail="Active session not found")
+        
+        session = session_result.data[0]
+        current_expires_at = datetime.fromisoformat(session["expires_at"])
+        new_expires_at = current_expires_at + timedelta(minutes=additional_minutes)
+        
+        # Update session expiration
+        update_data = {
+            "expires_at": new_expires_at.isoformat(),
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        
+        db.supabase_client.client.table("background_location_sessions")\
+            .update(update_data)\
+            .eq("session_id", session_id)\
+            .execute()
         
         return {
             "status": "success",
             "message": f"Session extended by {additional_minutes} minutes",
             "session_id": session_id,
-            "new_expires_at": session.expires_at.isoformat()
+            "new_expires_at": new_expires_at.isoformat()
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to extend session: {str(e)}")
 
 @router.delete("/session/{session_id}")
 async def stop_background_tracking(
     session_id: str,
-    db: Session = Depends(get_db)
+    db = Depends(get_db)
 ):
     """
     Stop background location tracking session
     """
     try:
-        session = db.query(BackgroundLocationSession).filter(
-            BackgroundLocationSession.session_id == session_id
-        ).first()
+        if not db.is_available:
+            raise HTTPException(status_code=503, detail="Database service unavailable")
         
-        if not session:
+        # Update session to inactive
+        update_data = {
+            "is_active": False,
+            "ended_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        
+        result = db.supabase_client.client.table("background_location_sessions")\
+            .update(update_data)\
+            .eq("session_id", session_id)\
+            .execute()
+        
+        if not result.data:
             raise HTTPException(status_code=404, detail="Session not found")
-        
-        # Mark session as inactive
-        session.is_active = False
-        db.commit()
         
         return {
             "status": "success",
-            "message": "Background tracking stopped",
-            "session_id": session_id,
-            "final_location_count": session.location_count
+            "message": "Background location tracking stopped",
+            "session_id": session_id
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to stop tracking: {str(e)}")
 
 @router.get("/sessions/user/{user_id}")
 async def get_user_sessions(
     user_id: str,
-    active_only: bool = False,
-    limit: int = Field(default=10, ge=1, le=100),
-    db: Session = Depends(get_db)
+    active_only: bool = Query(default=False, description="Filter to active sessions only"),
+    limit: int = Query(default=10, ge=1, le=100, description="Maximum number of sessions to return"),
+    db = Depends(get_db)
 ):
     """
-    Get background location sessions for a user
+    Get user's background location tracking sessions
     """
     try:
-        query = db.query(BackgroundLocationSession).filter(
-            BackgroundLocationSession.user_id == user_id
-        )
+        if not db.is_available:
+            raise HTTPException(status_code=503, detail="Database service unavailable")
+        
+        # Build query
+        query = db.supabase_client.client.table("background_location_sessions")\
+            .select("*")\
+            .eq("user_id", user_id)
         
         if active_only:
-            query = query.filter(
-                BackgroundLocationSession.is_active == True,
-                BackgroundLocationSession.expires_at > datetime.utcnow()
-            )
+            query = query.eq("is_active", True).gte("expires_at", datetime.utcnow().isoformat())
         
-        sessions = query.order_by(
-            BackgroundLocationSession.start_time.desc()
-        ).limit(limit).all()
+        result = query.order("start_time", desc=True).limit(limit).execute()
         
         return {
+            "status": "success",
             "user_id": user_id,
-            "sessions": [
-                {
-                    "session_id": s.session_id,
-                    "start_time": s.start_time.isoformat(),
-                    "last_update": s.last_update.isoformat(),
-                    "expires_at": s.expires_at.isoformat(),
-                    "is_active": s.is_active and s.expires_at > datetime.utcnow(),
-                    "location_count": s.location_count,
-                    "metadata": s.metadata
-                }
-                for s in sessions
-            ]
+            "sessions": result.data if result.data else [],
+            "total_count": len(result.data) if result.data else 0
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get user sessions: {str(e)}")
 
@@ -479,38 +448,35 @@ async def process_location_analytics(session_id: str, location: LocationData):
     Process location analytics in the background
     """
     try:
-        # This could include:
-        # - Pattern recognition
-        # - Frequent location detection
-        # - Route optimization
-        # - Anomaly detection
+        # This would typically involve:
+        # 1. Analyzing location patterns
+        # 2. Updating location-based caches
+        # 3. Triggering ML model updates
+        # 4. Generating insights
         
-        print(f"Processing analytics for session {session_id} at {location.latitude}, {location.longitude}")
-        
-        # Placeholder for advanced analytics
-        await asyncio.sleep(0.1)  # Simulate processing
+        # For now, just log the processing
+        logger.info(f"Processing location analytics for session {session_id}")
         
     except Exception as e:
-        print(f"Analytics processing failed: {e}")
+        logger.error(f"Error processing location analytics: {str(e)}")
 
 def calculate_distance(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """
     Calculate distance between two points using Haversine formula
     Returns distance in meters
     """
-    import math
+    from math import radians, cos, sin, asin, sqrt
     
-    R = 6371000  # Earth's radius in meters
+    # Convert decimal degrees to radians
+    lat1, lng1, lat2, lng2 = map(radians, [lat1, lng1, lat2, lng2])
     
-    lat1_rad = math.radians(lat1)
-    lat2_rad = math.radians(lat2)
-    delta_lat = math.radians(lat2 - lat1)
-    delta_lng = math.radians(lng2 - lng1)
+    # Haversine formula
+    dlng = lng2 - lng1
+    dlat = lat2 - lat1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlng/2)**2
+    c = 2 * asin(sqrt(a))
     
-    a = (math.sin(delta_lat / 2) ** 2 +
-         math.cos(lat1_rad) * math.cos(lat2_rad) *
-         math.sin(delta_lng / 2) ** 2)
+    # Radius of earth in meters
+    r = 6371000
     
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    
-    return R * c 
+    return c * r 

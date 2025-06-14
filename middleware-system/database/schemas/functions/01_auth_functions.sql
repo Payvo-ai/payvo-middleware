@@ -3,6 +3,7 @@
 -- =====================================================
 
 -- Function to create user profile after auth.users insert
+-- Note: Username is optional - email is used as the primary user identifier
 CREATE OR REPLACE FUNCTION create_user_profile()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -14,7 +15,13 @@ BEGIN
         updated_at
     ) VALUES (
         NEW.id,
-        COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
+        -- Username is optional - only set if explicitly provided in metadata
+        CASE 
+            WHEN NEW.raw_user_meta_data->>'username' IS NOT NULL 
+                AND NEW.raw_user_meta_data->>'username' != '' 
+            THEN NEW.raw_user_meta_data->>'username'
+            ELSE NULL
+        END,
         COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
         NOW(),
         NOW()

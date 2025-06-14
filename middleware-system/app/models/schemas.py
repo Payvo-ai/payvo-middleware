@@ -72,7 +72,7 @@ class PreTapContext(BaseModel):
 
 
 class MCCPrediction(BaseModel):
-    mcc: str = Field(..., regex=r'^\d{4}$')
+    mcc: str = Field(..., pattern=r'^\d{4}$')
     confidence: float = Field(..., ge=0.0, le=1.0)
     method: MCCDetectionMethod
     confidence_level: ConfidenceLevel
@@ -92,7 +92,7 @@ class MCCPrediction(BaseModel):
 class CardInfo(BaseModel):
     card_id: str
     network: NetworkType
-    last_four: str = Field(..., regex=r'^\d{4}$')
+    last_four: str = Field(..., pattern=r'^\d{4}$')
     card_type: str  # credit, debit, prepaid
     issuer: Optional[str] = None
     rewards_multiplier: Dict[str, float] = {}  # MCC -> multiplier

@@ -5,13 +5,20 @@ Core configuration settings for Payvo middleware
 import os
 import logging
 from typing import Optional, List
-from pydantic import BaseSettings, validator, Field
+from pydantic import validator, Field, ConfigDict
+from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
 # Load environment variables before creating settings
 load_dotenv()
 
 class Settings(BaseSettings):
+    model_config = ConfigDict(
+        case_sensitive=True,
+        env_file=".env",
+        extra="allow"  # Allow extra fields from environment variables
+    )
+    
     # API Configuration
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "Payvo MCC Routing Middleware"
@@ -124,10 +131,6 @@ class Settings(BaseSettings):
         if isinstance(allowed_hosts_str, str):
             return [host.strip().strip('"').strip("'") for host in allowed_hosts_str.split(",")]
         return ["localhost", "127.0.0.1", "10.0.0.207"]
-    
-    class Config:
-        case_sensitive = True
-        env_file = ".env"
 
 
 settings = Settings() 
