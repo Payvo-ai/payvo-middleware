@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   ScrollView,
@@ -16,52 +16,99 @@ import { useNotification } from '../components/NotificationProvider';
 const HomeScreen: React.FC = () => {
   const [health, setHealth] = useState<HealthCheckResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
   const { showNotification } = useNotification();
 
-  const fetchHealthData = useCallback(async () => {
+  const loadHealthData = React.useCallback(async () => {
+    try {
+      setConnectionStatus('checking');
+      const healthData = await PayvoAPI.getHealthCheck();
+
+      if (healthData) {
+        setHealth(healthData);
+        setConnectionStatus('connected');
+      } else {
+        // Create a mock health response for error state
+        setHealth({
+          status: 'error',
+          version: 'unknown',
+          timestamp: new Date().toISOString(),
+          components: {
+            database: 'down',
+            routing_orchestrator: 'down',
+            supabase: 'down',
+          },
+          cache_stats: {
+            mcc_cache_size: 0,
+            location_cache_size: 0,
+            terminal_cache_size: 0,
+            wifi_cache_size: 0,
+            ble_cache_size: 0,
+          },
+          system_info: {
+            active_sessions: 0,
+            background_tasks: 0,
+          },
+        });
+        setConnectionStatus('disconnected');
+      }
+    } catch (error) {
+      console.error('Health check failed:', error);
+      // Create a mock health response for error state
+      setHealth({
+        status: 'error',
+        version: 'unknown',
+        timestamp: new Date().toISOString(),
+        components: {
+          database: 'down',
+          routing_orchestrator: 'down',
+          supabase: 'down',
+        },
+        cache_stats: {
+          mcc_cache_size: 0,
+          location_cache_size: 0,
+          terminal_cache_size: 0,
+          wifi_cache_size: 0,
+          ble_cache_size: 0,
+        },
+        system_info: {
+          active_sessions: 0,
+          background_tasks: 0,
+        },
+      });
+      setConnectionStatus('disconnected');
+    }
+  }, []);
+
+  const testConnection = async () => {
     try {
       setLoading(true);
-      const healthData = await PayvoAPI.healthCheck();
-      setHealth(healthData);
+      // Test connection by calling health check
+      await PayvoAPI.getHealthCheck();
       setConnectionStatus('connected');
+      showNotification('✅ Connection successful!', 'success', 2000);
     } catch (error) {
-      console.error('Failed to fetch health data:', error);
       setConnectionStatus('disconnected');
-      showNotification(
-        'Unable to connect to Payvo Middleware. Please check if the service is running on localhost:8000.',
-        'error',
-        4000
-      );
+      showNotification('❌ Connection failed', 'error', 3000);
     } finally {
       setLoading(false);
     }
-  }, [showNotification]);
-
-  const testConnection = async () => {
-    setLoading(true);
-    const isConnected = await PayvoAPI.testConnection();
-    setConnectionStatus(isConnected ? 'connected' : 'disconnected');
-    setLoading(false);
-
-    showNotification(
-      isConnected ? 'Successfully connected to Payvo Middleware!' : 'Connection failed. Please check your middleware service.',
-      isConnected ? 'success' : 'error',
-      3000
-    );
   };
 
   useEffect(() => {
-    fetchHealthData();
-  }, [fetchHealthData]);
+    loadHealthData();
+  }, [loadHealthData]);
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
+  const getStatusColor = (status: string | { status: string }) => {
+    const statusValue = typeof status === 'object' ? status.status : status;
+    switch (statusValue?.toLowerCase()) {
       case 'healthy':
       case 'connected':
+      case 'up':
         return '#4CAF50';
       case 'unhealthy':
       case 'disconnected':
+      case 'down':
         return '#F44336';
       default:
         return '#FF9800';

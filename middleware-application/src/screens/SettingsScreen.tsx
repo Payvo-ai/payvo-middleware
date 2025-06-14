@@ -14,6 +14,7 @@ import {
 } from 'react-native-paper';
 import {PayvoAPI} from '../services/PayvoAPI';
 import { useNotification } from '../components/NotificationProvider';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Separate components to avoid nested component warnings
 const NotificationSwitch: React.FC<{value: boolean; onValueChange: (value: boolean) => void}> = ({value, onValueChange}) => (
@@ -34,6 +35,7 @@ const AutoRefreshSwitch: React.FC<{value: boolean; onValueChange: (value: boolea
 
 const SettingsScreen: React.FC = () => {
   const [apiUrl, setApiUrl] = useState('https://payvo-middleware-production.up.railway.app');
+  const [apiKey, setApiKey] = useState('');
   const [enableNotifications, setEnableNotifications] = useState(true);
   const [enableDebugMode, setEnableDebugMode] = useState(false);
   const [enableMockData, setEnableMockData] = useState(true);
@@ -41,54 +43,42 @@ const SettingsScreen: React.FC = () => {
   const [refreshInterval, setRefreshInterval] = useState('30');
   const { showNotification } = useNotification();
 
-  const handleSaveSettings = () => {
-    // Update API base URL
-    PayvoAPI.updateBaseURL(apiUrl);
+  const handleSaveSettings = async () => {
+    try {
+      await AsyncStorage.setItem('apiUrl', apiUrl);
+      await AsyncStorage.setItem('apiKey', apiKey);
 
-    showNotification(
-      'Your configuration has been updated successfully.',
-      'success',
-      3000
-    );
+      showNotification('Settings saved successfully! Please restart the app for changes to take effect.', 'success');
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      showNotification('Failed to save settings', 'error');
+    }
   };
 
-  const handleResetSettings = () => {
-    setApiUrl('https://payvo-middleware-production.up.railway.app');
-    setEnableNotifications(true);
-    setEnableDebugMode(false);
-    setEnableMockData(true);
-    setAutoRefresh(true);
-    setRefreshInterval('30');
-    PayvoAPI.updateBaseURL('https://payvo-middleware-production.up.railway.app');
+  const handleResetSettings = async () => {
+    try {
+      await AsyncStorage.removeItem('apiUrl');
+      await AsyncStorage.removeItem('apiKey');
 
-    showNotification(
-      'All settings have been reset to default values.',
-      'info',
-      3000
-    );
+      setApiUrl('http://localhost:8000');
+      setApiKey('');
+
+      showNotification('Settings reset to defaults! Please restart the app for changes to take effect.', 'success');
+    } catch (error) {
+      console.error('Failed to reset settings:', error);
+      showNotification('Failed to reset settings', 'error');
+    }
   };
 
   const handleTestConnection = async () => {
     try {
-      showNotification('Checking API connectivity...', 'info', 2000);
-      PayvoAPI.updateBaseURL(apiUrl);
-      const isConnected = await PayvoAPI.testConnection();
-
-      setTimeout(() => {
-        showNotification(
-          isConnected
-            ? 'Successfully connected to Payvo Middleware!'
-            : 'Connection failed. Please check your middleware service.',
-          isConnected ? 'success' : 'error',
-          4000
-        );
-      }, 1000);
+      // Save the URL first
+      await AsyncStorage.setItem('payvo_api_url', apiUrl);
+      // Test connection by calling health check
+      await PayvoAPI.getHealthCheck();
+      showNotification('✅ Connection successful!', 'success', 2000);
     } catch (error) {
-      showNotification(
-        'Could not connect to the middleware. Please check your settings.',
-        'error',
-        4000
-      );
+      showNotification('❌ Connection failed', 'error', 3000);
     }
   };
 

@@ -350,122 +350,105 @@ class PayvoAPIService {
   constructor() {
     // Use production URL by default, can be overridden
     this.baseURL = 'https://payvo-middleware-production.up.railway.app/api/v1';
-    this.loadAPIKey();
+    this.loadApiKey();
   }
 
-  private async loadAPIKey(): Promise<void> {
+  private async loadApiKey(): Promise<void> {
     try {
-      this.apiKey = await AsyncStorage.getItem('payvo_api_key');
+      const storedKey = await AsyncStorage.getItem('payvo_api_key');
+      this.apiKey = storedKey || undefined;
     } catch (error) {
-      console.warn('Failed to load API key:', error);
+      console.error('Failed to load API key:', error);
     }
   }
 
-  private async makeRequest<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
     const url = `${this.baseURL}${endpoint}`;
-    
-    const headers: HeadersInit = {
+    const apiKey = await this.loadApiKey();
+
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...options.headers as Record<string, string>,
     };
 
-    if (this.apiKey) {
-      headers['Authorization'] = `Bearer ${this.apiKey}`;
+    if (apiKey !== undefined) {
+      headers.Authorization = `Bearer ${apiKey}`;
     }
 
-    const config: RequestInit = {
+    const response = await fetch(url, {
       ...options,
-      headers,
-    };
+      headers: {
+        ...headers,
+        ...options.headers,
+      },
+    });
 
-    console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`);
-    
-    try {
-      const response = await fetch(url, config);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ API Error ${response.status}:`, errorText);
-        throw new Error(`API Error ${response.status}: ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log(`✅ API Response:`, data);
-      
-      return data;
-    } catch (error) {
-      console.error(`❌ Network Error:`, error);
-      throw error;
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
+
+    return response.json();
   }
 
   // Routing API Methods
-  async initiateRouting(request: RoutingInitiateRequest): Promise<RoutingSessionResponse> {
+  async initiateRouting(params: RoutingInitiateRequest): Promise<RoutingSessionResponse> {
     const response = await this.makeRequest('/routing/initiate', {
       method: 'POST',
-      body: JSON.stringify(request),
+      body: JSON.stringify(params),
     });
+
     this.currentSessionId = response.session_id;
-    return response;
+    return response as RoutingSessionResponse;
   }
 
-  async activateRouting(sessionId: string, location?: LocationData): Promise<RoutingSessionResponse> {
+  async activateRouting(sessionId: string, location: LocationData): Promise<RoutingSessionResponse> {
     const response = await this.makeRequest(`/routing/${sessionId}/activate`, {
       method: 'POST',
-      body: JSON.stringify({ location: location ? {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        accuracy: location.accuracy,
-        altitude: location.altitude,
-        speed: location.speed,
-        heading: location.heading,
-        timestamp: new Date(location.timestamp).toISOString(),
-        source: location.source,
-      } : undefined }),
+      body: JSON.stringify({ location }),
     });
-    return response;
+
+    return response as RoutingSessionResponse;
   }
 
   async completeRouting(sessionId: string): Promise<RoutingSessionResponse> {
     const response = await this.makeRequest(`/routing/${sessionId}/complete`, {
       method: 'POST',
     });
-    this.currentSessionId = null;
-    return response;
+
+    return response as RoutingSessionResponse;
   }
 
   async getRoutingStatus(sessionId: string): Promise<RoutingStatusResponse> {
     const response = await this.makeRequest(`/routing/${sessionId}/status`);
-    return response;
+    return response as RoutingStatusResponse;
   }
 
   async cancelRouting(sessionId: string): Promise<{ success: boolean; message: string }> {
-    const response = await this.makeRequest(`/routing/${sessionId}`, {
-      method: 'DELETE',
+    const response = await this.makeRequest(`/routing/${sessionId}/cancel`, {
+      method: 'POST',
     });
-    this.currentSessionId = null;
-    return response;
+
+    return response as { success: boolean; message: string };
   }
 
   // MCC Prediction API Methods
-  async predictMCC(request: MCCPredictionRequest): Promise<MCCPredictionResponse> {
+  async predictMCC(params: MCCPredictionRequest): Promise<MCCPredictionResponse> {
     const response = await this.makeRequest('/mcc/predict', {
       method: 'POST',
-      body: JSON.stringify(request),
+      body: JSON.stringify(params),
     });
-    return response;
+
+    return response as MCCPredictionResponse;
   }
 
   // Background Location API Methods
-  async startBackgroundTracking(request: StartBackgroundTrackingRequest): Promise<BackgroundTrackingResponse> {
+  async startBackgroundTracking(params: StartBackgroundTrackingRequest): Promise<BackgroundTrackingResponse> {
     const response = await this.makeRequest('/background-location/start', {
       method: 'POST',
-      body: JSON.stringify(request),
+      body: JSON.stringify(params),
     });
-    return response;
+
+    return response as BackgroundTrackingResponse;
   }
 
   async updateBackgroundLocation(update: BackgroundLocationUpdate): Promise<any> {
@@ -481,20 +464,17 @@ class PayvoAPIService {
     return response;
   }
 
-  async getOptimalMCC(
-    sessionId: string,
-    currentLat: number,
-    currentLng: number,
-    radiusMeters: number = 100
-  ): Promise<OptimalMCCResponse> {
-    const params = new URLSearchParams({
-      current_lat: currentLat.toString(),
-      current_lng: currentLng.toString(),
-      radius_meters: radiusMeters.toString(),
+  async getOptimalMCC(sessionId: string, latitude: number, longitude: number, radius: number): Promise<OptimalMCCResponse> {
+    const response = await this.makeRequest(`/background-location/session/${sessionId}/optimal-mcc`, {
+      method: 'POST',
+      body: JSON.stringify({
+        latitude,
+        longitude,
+        radius,
+      }),
     });
 
-    const response = await this.makeRequest(`/background-location/session/${sessionId}/optimal-mcc?${params}`);
-    return response;
+    return response as OptimalMCCResponse;
   }
 
   async extendBackgroundSession(sessionId: string, additionalMinutes: number = 30): Promise<any> {
@@ -520,7 +500,7 @@ class PayvoAPIService {
 
     const queryString = params.toString();
     const endpoint = `/background-location/sessions/user/${userId}${queryString ? `?${queryString}` : ''}`;
-    
+
     const response = await this.makeRequest(endpoint);
     return response;
   }
@@ -549,7 +529,7 @@ class PayvoAPIService {
   // Utility Methods
   async getHealthCheck(): Promise<HealthCheckResponse> {
     const response = await this.makeRequest('/health');
-    return response;
+    return response as HealthCheckResponse;
   }
 
   async getMetrics(): Promise<any> {

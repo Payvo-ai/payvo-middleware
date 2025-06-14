@@ -14,9 +14,10 @@ import {
 import {PayvoAPI, RoutingSessionResponse} from '../services/PayvoAPI';
 import {useLocation} from '../hooks/useLocation';
 import { useNotification } from '../components/NotificationProvider';
+import { useAuth } from '../contexts/AuthContext';
 
 const TransactionScreen: React.FC = () => {
-  const [userId, setUserId] = useState('test_user_001');
+  const [userId, setUserId] = useState('');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentSession, setCurrentSession] = useState<string | null>(null);
@@ -36,6 +37,22 @@ const TransactionScreen: React.FC = () => {
   } = useLocation();
 
   const { showNotification } = useNotification();
+  const { getUserId } = useAuth();
+
+  // Initialize user ID from authenticated user
+  useEffect(() => {
+    const initializeUserId = async () => {
+      try {
+        const authenticatedUserId = await getUserId();
+        setUserId(authenticatedUserId);
+        console.log('🔐 Initialized user ID from auth:', authenticatedUserId);
+      } catch (initError) {
+        console.error('❌ Failed to get authenticated user ID:', initError);
+      }
+    };
+
+    initializeUserId();
+  }, [getUserId]);
 
   // Helper functions to safely access session data
   const getPredictedMcc = (): string | undefined => {
@@ -366,13 +383,22 @@ const TransactionScreen: React.FC = () => {
               <Text style={styles.inputLabel}>User ID</Text>
               <TextInput
                 value={userId}
-                onChangeText={setUserId}
-                style={styles.textInput}
+                onChangeText={() => {}}
+                style={[styles.textInput, styles.readOnlyInput]}
                 mode="flat"
-                placeholder="Enter user ID"
+                placeholder="Loading username..."
                 underlineColor="transparent"
                 activeUnderlineColor="transparent"
+                editable={false}
+                right={
+                  <TextInput.Icon
+                    icon="account-check"
+                  />
+                }
               />
+              <Text style={styles.helperText}>
+                ✓ Automatically set from your authenticated username
+              </Text>
             </View>
 
             <View style={styles.walletSection}>
@@ -711,6 +737,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderRadius: 12,
   },
+  readOnlyInput: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+  },
   walletSection: {
     marginBottom: 20,
   },
@@ -973,6 +1003,11 @@ const styles = StyleSheet.create({
   },
   button: {
     borderRadius: 12,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'right',
   },
 });
 

@@ -26,7 +26,7 @@ const AnalyticsScreen: React.FC = () => {
       setLoading(true);
       const [metricsData, networkData] = await Promise.all([
         PayvoAPI.getMetrics(),
-        PayvoAPI.getNetworkAcceptance(),
+        PayvoAPI.getNetworkAcceptanceRates(),
       ]);
 
       setMetrics(metricsData);

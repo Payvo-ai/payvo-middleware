@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,10 @@ import {
 } from 'react-native';
 import { useBackgroundLocation } from '../hooks/useBackgroundLocation';
 import { PayvoAPI } from '../services/PayvoAPI';
+import { useAuth } from '../contexts/AuthContext';
 
 const BackgroundLocationDemo: React.FC = () => {
-  const [userId, setUserId] = useState('demo_user_bg_location');
+  const [userId, setUserId] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [config, setConfig] = useState({
     updateInterval: 4000, // 4 seconds
@@ -23,8 +24,9 @@ const BackgroundLocationDemo: React.FC = () => {
     enableWhenClosed: true,
   });
 
+  const { getUserId } = useAuth();
+
   const {
-    status,
     currentSession,
     recentPredictions,
     startTracking,
@@ -49,31 +51,46 @@ const BackgroundLocationDemo: React.FC = () => {
 
   const [userSessions, setUserSessions] = useState<any[]>([]);
 
-  // Load user sessions on mount
+  // Initialize user ID from authenticated user
   useEffect(() => {
-    loadUserSessions();
-  }, []);
+    const initializeUserId = async () => {
+      try {
+        const authenticatedUserId = await getUserId();
+        setUserId(authenticatedUserId);
+        console.log('🔐 Background Location - Initialized user ID from auth:', authenticatedUserId);
+      } catch (initError) {
+        console.error('❌ Background Location - Failed to get authenticated user ID:', initError);
+      }
+    };
 
-  const loadUserSessions = async () => {
+    initializeUserId();
+  }, [getUserId]);
+
+  // Load user sessions on mount
+  const loadUserSessions = useCallback(async () => {
     try {
       const response = await PayvoAPI.getUserBackgroundSessions(userId, false);
       setUserSessions(response.sessions || []);
-    } catch (error) {
-      console.error('Failed to load user sessions:', error);
+    } catch (loadError) {
+      console.error('Failed to load user sessions:', loadError);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadUserSessions();
+  }, [loadUserSessions]);
 
   const handleStartTracking = async () => {
     try {
-      const sessionId = await startTracking();
-      if (sessionId) {
-        Alert.alert('Success', `Background tracking started!\nSession ID: ${sessionId}`);
+      const newSessionId = await startTracking();
+      if (newSessionId) {
+        Alert.alert('Success', `Background tracking started!\nSession ID: ${newSessionId}`);
         await loadUserSessions();
       } else {
         Alert.alert('Error', 'Failed to start background tracking');
       }
-    } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Unknown error');
+    } catch (startError) {
+      Alert.alert('Error', startError instanceof Error ? startError.message : 'Unknown error');
     }
   };
 
@@ -82,8 +99,8 @@ const BackgroundLocationDemo: React.FC = () => {
       await stopTracking();
       Alert.alert('Success', 'Background tracking stopped');
       await loadUserSessions();
-    } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Unknown error');
+    } catch (stopError) {
+      Alert.alert('Error', stopError instanceof Error ? stopError.message : 'Unknown error');
     }
   };
 
@@ -99,8 +116,8 @@ const BackgroundLocationDemo: React.FC = () => {
       } else {
         Alert.alert('No Data', 'No optimal MCC available yet');
       }
-    } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Unknown error');
+    } catch (mccError) {
+      Alert.alert('Error', mccError instanceof Error ? mccError.message : 'Unknown error');
     }
   };
 
@@ -112,8 +129,8 @@ const BackgroundLocationDemo: React.FC = () => {
       } else {
         Alert.alert('Error', 'Failed to extend session');
       }
-    } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Unknown error');
+    } catch (extendError) {
+      Alert.alert('Error', extendError instanceof Error ? extendError.message : 'Unknown error');
     }
   };
 
@@ -122,8 +139,8 @@ const BackgroundLocationDemo: React.FC = () => {
     try {
       await refreshSessionStatus();
       await loadUserSessions();
-    } catch (error) {
-      console.error('Refresh failed:', error);
+    } catch (refreshError) {
+      console.error('Refresh failed:', refreshError);
     } finally {
       setRefreshing(false);
     }
@@ -167,15 +184,17 @@ const BackgroundLocationDemo: React.FC = () => {
       {/* Configuration Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Configuration</Text>
-        
+
         <View style={styles.configRow}>
           <Text style={styles.configLabel}>User ID:</Text>
           <TextInput
-            style={styles.configInput}
+            style={[styles.configInput, styles.readOnlyInput]}
             value={userId}
-            onChangeText={setUserId}
-            placeholder="Enter user ID"
+            onChangeText={() => {}} // No-op function to prevent changes
+            placeholder="Loading username..."
+            editable={false}
           />
+          <Text style={styles.configHelper}>✓ Auto-set</Text>
         </View>
 
         <View style={styles.configRow}>
@@ -183,7 +202,7 @@ const BackgroundLocationDemo: React.FC = () => {
           <TextInput
             style={styles.configInput}
             value={config.updateInterval.toString()}
-            onChangeText={(text) => setConfig(prev => ({ ...prev, updateInterval: parseInt(text) || 4000 }))}
+            onChangeText={(text) => setConfig(prev => ({ ...prev, updateInterval: parseInt(text, 10) || 4000 }))}
             placeholder="4000"
             keyboardType="numeric"
           />
@@ -195,7 +214,7 @@ const BackgroundLocationDemo: React.FC = () => {
           <TextInput
             style={styles.configInput}
             value={config.minDistanceFilter.toString()}
-            onChangeText={(text) => setConfig(prev => ({ ...prev, minDistanceFilter: parseInt(text) || 5 }))}
+            onChangeText={(text) => setConfig(prev => ({ ...prev, minDistanceFilter: parseInt(text, 10) || 5 }))}
             placeholder="5"
             keyboardType="numeric"
           />
@@ -207,7 +226,7 @@ const BackgroundLocationDemo: React.FC = () => {
           <TextInput
             style={styles.configInput}
             value={config.sessionDuration.toString()}
-            onChangeText={(text) => setConfig(prev => ({ ...prev, sessionDuration: parseInt(text) || 30 }))}
+            onChangeText={(text) => setConfig(prev => ({ ...prev, sessionDuration: parseInt(text, 10) || 30 }))}
             placeholder="30"
             keyboardType="numeric"
           />
@@ -226,7 +245,7 @@ const BackgroundLocationDemo: React.FC = () => {
       {/* Status Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Current Status</Text>
-        
+
         <View style={styles.statusGrid}>
           <View style={[styles.statusCard, isTracking ? styles.statusActive : styles.statusInactive]}>
             <Text style={styles.statusLabel}>Tracking</Text>
@@ -273,7 +292,7 @@ const BackgroundLocationDemo: React.FC = () => {
       {/* Controls Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Controls</Text>
-        
+
         <View style={styles.buttonGrid}>
           <TouchableOpacity
             style={[styles.button, isTracking ? styles.buttonDanger : styles.buttonPrimary]}
@@ -313,25 +332,25 @@ const BackgroundLocationDemo: React.FC = () => {
       {currentSession && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Current Session Details</Text>
-          
+
           <View style={styles.sessionDetails}>
             <Text style={styles.detailRow}>
               <Text style={styles.detailLabel}>Start Time: </Text>
               <Text style={styles.detailValue}>{currentSession.startTime.toLocaleString()}</Text>
             </Text>
-            
+
             <Text style={styles.detailRow}>
               <Text style={styles.detailLabel}>Expires At: </Text>
               <Text style={styles.detailValue}>{currentSession.expiresAt.toLocaleString()}</Text>
             </Text>
-            
+
             <Text style={styles.detailRow}>
               <Text style={styles.detailLabel}>Duration: </Text>
               <Text style={styles.detailValue}>
                 {formatDuration(currentSession.startTime.toISOString())}
               </Text>
             </Text>
-            
+
             <Text style={styles.detailRow}>
               <Text style={styles.detailLabel}>Location Count: </Text>
               <Text style={styles.detailValue}>{currentSession.locationCount}</Text>
@@ -344,7 +363,7 @@ const BackgroundLocationDemo: React.FC = () => {
       {optimalMCC && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Optimal MCC Prediction</Text>
-          
+
           <View style={styles.mccCard}>
             <Text style={styles.mccCode}>{optimalMCC.mcc}</Text>
             <Text style={styles.mccDescription}>{getMCCDescription(optimalMCC.mcc)}</Text>
@@ -360,7 +379,7 @@ const BackgroundLocationDemo: React.FC = () => {
       {recentPredictions.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Predictions ({recentPredictions.length})</Text>
-          
+
           {recentPredictions.slice(-5).reverse().map((prediction, index) => (
             <View key={index} style={styles.predictionCard}>
               <View style={styles.predictionHeader}>
@@ -371,11 +390,11 @@ const BackgroundLocationDemo: React.FC = () => {
                   ±{prediction.accuracy.toFixed(1)}m
                 </Text>
               </View>
-              
+
               <Text style={styles.predictionLocation}>
                 {prediction.location.latitude.toFixed(6)}, {prediction.location.longitude.toFixed(6)}
               </Text>
-              
+
               {prediction.mccPrediction && (
                 <View style={styles.predictionMCC}>
                   <Text style={styles.predictionMCCCode}>
@@ -395,7 +414,7 @@ const BackgroundLocationDemo: React.FC = () => {
       {userSessions.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Session History ({userSessions.length})</Text>
-          
+
           {userSessions.slice(0, 5).map((session, index) => (
             <View key={index} style={styles.sessionCard}>
               <View style={styles.sessionCardHeader}>
@@ -404,20 +423,20 @@ const BackgroundLocationDemo: React.FC = () => {
                 </Text>
                 <Text style={[
                   styles.sessionCardStatus,
-                  session.is_active ? styles.sessionActive : styles.sessionInactive
+                  session.is_active ? styles.sessionActive : styles.sessionInactive,
                 ]}>
                   {session.is_active ? 'Active' : 'Inactive'}
                 </Text>
               </View>
-              
+
               <Text style={styles.sessionCardDetail}>
                 Started: {formatDate(session.start_time)}
               </Text>
-              
+
               <Text style={styles.sessionCardDetail}>
                 Duration: {formatDuration(session.start_time, session.expires_at)}
               </Text>
-              
+
               <Text style={styles.sessionCardDetail}>
                 Locations: {session.location_count}
               </Text>
@@ -496,6 +515,11 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontSize: 14,
     color: '#666',
+  },
+  configHelper: {
+    marginLeft: 5,
+    fontSize: 12,
+    color: '#999',
   },
   statusGrid: {
     flexDirection: 'row',
@@ -699,6 +723,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 5,
   },
+  readOnlyInput: {
+    backgroundColor: '#f9f9f9',
+  },
 });
 
-export default BackgroundLocationDemo; 
+export default BackgroundLocationDemo;
