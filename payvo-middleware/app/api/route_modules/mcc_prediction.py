@@ -35,7 +35,7 @@ class MCCPredictionRequest(BaseModel):
     transaction_time: Optional[str] = Field(None, description="Transaction timestamp")
     wifi_ssids: Optional[List[str]] = Field(None, description="Available WiFi SSIDs")
     bluetooth_devices: Optional[List[str]] = Field(None, description="Available Bluetooth devices")
-    radius: Optional[int] = Field(200, ge=50, le=1000, description="Search radius in meters")
+    radius: Optional[int] = Field(None, ge=1, le=1000, description="Search radius in meters (defaults to adaptive radius starting at 1m)")
     include_alternatives: Optional[bool] = Field(True, description="Include alternative predictions")
     use_llm_enhancement: Optional[bool] = Field(True, description="Use LLM for enhanced analysis")
 
@@ -224,9 +224,16 @@ class MCCOrchestrator:
     async def _safe_predict_location(self, request: MCCPredictionRequest) -> Dict[str, Any]:
         """Safely execute location-based prediction"""
         try:
-            result = await location_service.predict_mcc_from_location(
-                request.latitude, request.longitude, request.radius
-            )
+            if request.radius is None:
+                # Use adaptive radius system
+                result = await location_service.analyze_business_district(
+                    request.latitude, request.longitude
+                )
+            else:
+                # Use specified radius
+                result = await location_service.predict_mcc_from_location(
+                    request.latitude, request.longitude, request.radius
+                )
             result['method'] = 'location_analysis'
             return result
         except Exception as e:
