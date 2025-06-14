@@ -54,7 +54,7 @@ const HomeScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('Health check failed:', error);
-      // Create a mock health response for error state
+      // Create a mock health response for error state with proper structure
       setHealth({
         status: 'error',
         version: 'unknown',
@@ -77,6 +77,8 @@ const HomeScreen: React.FC = () => {
         },
       });
       setConnectionStatus('disconnected');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -220,27 +222,27 @@ const HomeScreen: React.FC = () => {
                   <View style={styles.healthItem}>
                     <Text style={styles.healthLabel}>Database</Text>
                     <Chip
-                      style={[styles.healthChip, {backgroundColor: getStatusColor(health.components.database)}]}
+                      style={[styles.healthChip, {backgroundColor: getStatusColor(health.components?.database || 'unknown')}]}
                       textStyle={styles.chipText}>
-                      {health.components.database}
+                      {health.components?.database || 'unknown'}
                     </Chip>
                   </View>
 
                   <View style={styles.healthItem}>
                     <Text style={styles.healthLabel}>Routing Service</Text>
                     <Chip
-                      style={[styles.healthChip, {backgroundColor: getStatusColor(health.components.routing_orchestrator)}]}
+                      style={[styles.healthChip, {backgroundColor: getStatusColor(health.components?.routing_orchestrator || 'unknown')}]}
                       textStyle={styles.chipText}>
-                      {health.components.routing_orchestrator}
+                      {health.components?.routing_orchestrator || 'unknown'}
                     </Chip>
                   </View>
 
                   <View style={styles.healthItem}>
                     <Text style={styles.healthLabel}>Supabase</Text>
                     <Chip
-                      style={[styles.healthChip, {backgroundColor: getStatusColor(health.components.supabase)}]}
+                      style={[styles.healthChip, {backgroundColor: getStatusColor(health.components?.supabase || 'unknown')}]}
                       textStyle={styles.chipText}>
-                      {health.components.supabase}
+                      {health.components?.supabase || 'unknown'}
                     </Chip>
                   </View>
                 </View>
