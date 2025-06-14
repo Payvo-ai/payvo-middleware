@@ -45,7 +45,7 @@ export const RealtimeExample: React.FC<RealtimeExampleProps> = ({ userId }) => {
     onSession: handleSessionChange,
     onLocation: handleLocationUpdate,
     onProfile: handleProfileUpdate,
-    enabled: true
+    enabled: true,
   });
 
   // Alternative: Use specific hooks for more control
@@ -59,7 +59,7 @@ export const RealtimeExample: React.FC<RealtimeExampleProps> = ({ userId }) => {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>🔴 Live Updates</Text>
-      
+
       {/* Connection Status */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Connection Status</Text>
@@ -180,4 +180,4 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 4,
   },
-}); 
+});

@@ -50,7 +50,7 @@ class RealtimeService {
     onUpdate?: (transaction: TransactionUpdate) => void
   ): string {
     const channelName = `transactions-${userId}`;
-    
+
     const channel = supabase
       .channel(channelName)
       .on(
@@ -59,7 +59,7 @@ class RealtimeService {
           event: 'INSERT',
           schema: 'public',
           table: 'transaction_feedback',
-          filter: `user_id=eq.${userId}`
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           console.log('New transaction:', payload.new);
@@ -72,7 +72,7 @@ class RealtimeService {
           event: 'UPDATE',
           schema: 'public',
           table: 'transaction_feedback',
-          filter: `user_id=eq.${userId}`
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           console.log('Transaction updated:', payload.new);
@@ -93,7 +93,7 @@ class RealtimeService {
     onSessionChange?: (session: UserSessionUpdate) => void
   ): string {
     const channelName = `sessions-${userId}`;
-    
+
     const channel = supabase
       .channel(channelName)
       .on(
@@ -102,7 +102,7 @@ class RealtimeService {
           event: '*',
           schema: 'public',
           table: 'user_sessions',
-          filter: `user_id=eq.${userId}`
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           console.log('Session change:', payload);
@@ -123,7 +123,7 @@ class RealtimeService {
     onLocationUpdate?: (session: LocationSessionUpdate) => void
   ): string {
     const channelName = `location-${userId}`;
-    
+
     const channel = supabase
       .channel(channelName)
       .on(
@@ -132,7 +132,7 @@ class RealtimeService {
           event: '*',
           schema: 'public',
           table: 'background_location_sessions',
-          filter: `user_id=eq.${userId}`
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           console.log('Location session update:', payload.new);
@@ -153,7 +153,7 @@ class RealtimeService {
     onProfileUpdate?: (profile: UserProfileUpdate) => void
   ): string {
     const channelName = `profile-${userId}`;
-    
+
     const channel = supabase
       .channel(channelName)
       .on(
@@ -162,7 +162,7 @@ class RealtimeService {
           event: 'UPDATE',
           schema: 'public',
           table: 'user_profiles',
-          filter: `id=eq.${userId}`
+          filter: `id=eq.${userId}`,
         },
         (payload) => {
           console.log('Profile updated:', payload.new);
@@ -255,4 +255,4 @@ class RealtimeService {
   }
 }
 
-export const realtimeService = new RealtimeService(); 
+export const realtimeService = new RealtimeService();

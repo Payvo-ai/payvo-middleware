@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase';
+import { supabase, isSupabaseReady } from '../config/supabase';
 
 export interface AuthUser {
   id: string;
@@ -48,10 +48,21 @@ class AuthService {
   }
 
   /**
+   * Check if authentication service is available
+   */
+  isAvailable(): boolean {
+    return isSupabaseReady;
+  }
+
+  /**
    * Sign in with email and password using Supabase Auth
    */
   async signIn(credentials: SignInCredentials): Promise<AuthUser> {
     try {
+      if (!this.isAvailable()) {
+        throw new Error('Authentication service is not configured. Please set up Supabase credentials.');
+      }
+
       console.log('🔐 Attempting sign in for:', credentials.email);
 
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -93,6 +104,10 @@ class AuthService {
    */
   async forgotPassword(request: ForgotPasswordRequest): Promise<void> {
     try {
+      if (!this.isAvailable()) {
+        throw new Error('Authentication service is not configured. Please set up Supabase credentials.');
+      }
+
       console.log('📧 Sending forgot password email to:', request.email);
 
       const { error } = await supabase.auth.resetPasswordForEmail(request.email, {
@@ -117,6 +132,10 @@ class AuthService {
    */
   async changePassword(request: ChangePasswordRequest): Promise<void> {
     try {
+      if (!this.isAvailable()) {
+        throw new Error('Authentication service is not configured. Please set up Supabase credentials.');
+      }
+
       console.log('🔐 Changing password for authenticated user...');
 
       // First verify current password by attempting to sign in
@@ -158,6 +177,10 @@ class AuthService {
    */
   async setUsername(username: string): Promise<void> {
     try {
+      if (!this.isAvailable()) {
+        throw new Error('Authentication service is not configured. Please set up Supabase credentials.');
+      }
+
       console.log('👤 Setting username:', username);
 
       if (!username || username.trim().length < 2) {
@@ -196,8 +219,13 @@ class AuthService {
    */
   async getCurrentUser(): Promise<AuthUser | null> {
     try {
+      if (!this.isAvailable()) {
+        console.warn('⚠️ Authentication service not available - returning null user');
+        return null;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session?.user) {
         return null;
       }
@@ -226,6 +254,10 @@ class AuthService {
    */
   async getUserProfile(userId: string): Promise<UserProfile | null> {
     try {
+      if (!this.isAvailable()) {
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -263,6 +295,10 @@ class AuthService {
    */
   async isAuthenticated(): Promise<boolean> {
     try {
+      if (!this.isAvailable()) {
+        return false;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       return session?.user != null;
     } catch (error) {
@@ -289,6 +325,11 @@ class AuthService {
    */
   async signOut(): Promise<void> {
     try {
+      if (!this.isAvailable()) {
+        console.log('✅ Sign out successful (auth service not configured)');
+        return;
+      }
+
       console.log('🚪 Signing out user...');
 
       const { error } = await supabase.auth.signOut();
@@ -329,6 +370,19 @@ class AuthService {
    * Listen to auth state changes
    */
   onAuthStateChange(callback: (user: AuthUser | null) => void) {
+    if (!this.isAvailable()) {
+      console.warn('⚠️ Auth state change listener not available - Supabase not configured');
+      // Return a mock subscription that immediately calls callback with null
+      setTimeout(() => callback(null), 0);
+      return {
+        data: {
+          subscription: {
+            unsubscribe: () => console.log('Mock auth subscription unsubscribed'),
+          },
+        },
+      };
+    }
+
     return supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔄 Auth state changed:', event);
 
@@ -353,6 +407,10 @@ class AuthService {
    */
   async createUser(email: string, password: string, userData?: Partial<UserProfile>): Promise<AuthUser> {
     try {
+      if (!this.isAvailable()) {
+        throw new Error('Authentication service is not configured. Please set up Supabase credentials.');
+      }
+
       console.log('👤 Creating user account for:', email);
 
       const { data, error } = await supabase.auth.signUp({

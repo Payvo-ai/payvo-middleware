@@ -20,7 +20,7 @@ export const useRealtime = ({
   onSession,
   onLocation,
   onProfile,
-  enabled = true
+  enabled = true,
 }: UseRealtimeOptions) => {
   const subscriptionsRef = useRef<string[]>([]);
 
@@ -36,7 +36,7 @@ export const useRealtime = ({
       onTransaction,
       onSession,
       onLocation,
-      onProfile
+      onProfile,
     });
 
     subscriptionsRef.current = subscriptions;
@@ -58,7 +58,7 @@ export const useRealtime = ({
         realtimeService.unsubscribe(channelName);
       });
       subscriptionsRef.current = [];
-    }
+    },
   };
 };
 
@@ -103,7 +103,7 @@ export const useTransactionUpdates = (
         realtimeService.unsubscribe(subscriptionRef.current);
         subscriptionRef.current = null;
       }
-    }
+    },
   };
 };
 
@@ -146,7 +146,7 @@ export const useLocationUpdates = (
         realtimeService.unsubscribe(subscriptionRef.current);
         subscriptionRef.current = null;
       }
-    }
+    },
   };
 };
 
@@ -189,6 +189,6 @@ export const useProfileUpdates = (
         realtimeService.unsubscribe(subscriptionRef.current);
         subscriptionRef.current = null;
       }
-    }
+    },
   };
-}; 
+};

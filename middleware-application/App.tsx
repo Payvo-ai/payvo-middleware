@@ -23,6 +23,22 @@ import AnalyticsScreen from './src/screens/AnalyticsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SignInScreen from './src/screens/SignInScreen';
 
+// Custom theme with Payvo primary blue
+const PayvoTheme = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: '#2742d5',
+    primaryContainer: '#e8eaff',
+    onPrimary: '#ffffff',
+    onPrimaryContainer: '#001258',
+    secondary: '#5a5d72',
+    secondaryContainer: '#dfe1f9',
+    onSecondary: '#ffffff',
+    onSecondaryContainer: '#171b2c',
+  },
+};
+
 // Loading Screen Component
 const LoadingScreen: React.FC = () => {
   return (
@@ -129,7 +145,7 @@ const AppNavigator: React.FC = () => {
 const App: React.FC = () => {
   return (
     <SafeAreaProvider>
-      <PaperProvider theme={MD3LightTheme}>
+      <PaperProvider theme={PayvoTheme}>
         <StatusBar
           barStyle="dark-content"
           backgroundColor="#ffffff"

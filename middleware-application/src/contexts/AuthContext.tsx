@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Listen to auth state changes
     const { data: { subscription } } = AuthService.onAuthStateChange(async (authUser) => {
       console.log('🔄 Auth state changed in context:', authUser?.email);
-      
+
       setUser(authUser);
       setIsLoading(false);
     });

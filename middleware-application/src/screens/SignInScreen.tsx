@@ -165,7 +165,7 @@ const SignInScreen: React.FC = () => {
           />
           <Text style={styles.title}>Payvo Employee Portal</Text>
           <Text style={styles.subtitle}>
-            Sign in to access the payment testing platform
+            Sign in to access the Payvo Middleware Platform
           </Text>
         </View>
 
@@ -224,7 +224,7 @@ const SignInScreen: React.FC = () => {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            This app is restricted to Payvo employees only.
+            This app is restricted to Payvo AI employees only.
           </Text>
           <Text style={styles.footerText}>
             Contact your administrator for access.
@@ -278,31 +278,34 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 8,
     textAlign: 'center',
+    fontFamily: 'Inter',
   },
   subtitle: {
     fontSize: 16,
     color: '#64748b',
     textAlign: 'center',
     lineHeight: 22,
+    fontFamily: 'Inter',
   },
   card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    shadowColor: '#afafaf',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
     elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
     marginBottom: 20,
   },
   input: {
     marginBottom: 16,
+    backgroundColor: '#ffffff',
   },
   button: {
     marginTop: 8,
     marginBottom: 16,
     paddingVertical: 4,
+    borderRadius: 12,
   },
   linkButton: {
     marginTop: 8,
@@ -316,6 +319,7 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
     marginBottom: 4,
+    fontFamily: 'Inter',
   },
   errorSnackbar: {
     backgroundColor: '#dc2626',

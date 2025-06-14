@@ -206,27 +206,26 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 16,
+    shadowColor: '#afafaf',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
     elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
     color: '#1e293b',
     marginBottom: 8,
+    fontFamily: 'Inter',
   },
   subtitle: {
     fontSize: 16,
     color: '#64748b',
     marginBottom: 24,
+    fontFamily: 'Inter',
   },
   form: {
     gap: 20,
@@ -239,6 +238,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#374151',
     marginBottom: 8,
+    fontFamily: 'Inter',
   },
   textInput: {
     backgroundColor: '#ffffff',
@@ -247,6 +247,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#ef4444',
     marginTop: 4,
+    fontFamily: 'Inter',
   },
   changeButton: {
     backgroundColor: '#2742d5',
@@ -258,24 +259,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+    fontFamily: 'Inter',
   },
   infoCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderRadius: 20,
+    shadowColor: '#afafaf',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
     elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
   },
   infoTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1e293b',
     marginBottom: 16,
+    fontFamily: 'Inter',
   },
   requirementsList: {
     gap: 8,
@@ -284,7 +284,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748b',
     lineHeight: 20,
+    fontFamily: 'Inter',
   },
 });
 
-export default PasswordChangeScreen; 
+export default PasswordChangeScreen;
