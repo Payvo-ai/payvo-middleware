@@ -171,9 +171,9 @@ class AuthService {
       // Clear password change requirement and update timestamp
       const { error: profileError } = await supabase
         .from('user_profiles')
-        .update({ 
+        .update({
           password_change_required: false,
-          password_changed_at: new Date().toISOString()
+          password_changed_at: new Date().toISOString(),
         })
         .eq('id', currentUser.id);
 

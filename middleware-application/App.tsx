@@ -145,7 +145,19 @@ const AppNavigator: React.FC = () => {
       <Stack.Navigator
         id={undefined}
         screenOptions={{
-          headerShown: false,
+          headerShown: true,
+          header: () => (
+            <View style={styles.headerContainer}>
+              <View style={styles.headerContent}>
+                <Image
+                  source={require('./images/logo.png')}
+                  style={styles.headerLogo}
+                  resizeMode="contain"
+                />
+                <Text style={styles.logoSubtitle}>Payvo Middleware</Text>
+              </View>
+            </View>
+          ),
         }}
       >
         <Stack.Screen name="PasswordChange" component={PasswordChangeScreen} />

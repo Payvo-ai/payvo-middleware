@@ -117,7 +117,7 @@ const PasswordChangeScreen: React.FC = () => {
             {user?.password_change_required ? 'Password Change Required' : 'Change Password'}
           </Text>
           <Text style={styles.subtitle}>
-            {user?.password_change_required 
+            {user?.password_change_required
               ? 'You must change your temporary password before continuing to use the app.'
               : `Update your password for ${user?.email}`
             }
@@ -221,34 +221,34 @@ const PasswordChangeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#2742d5',
+    backgroundColor: '#f8fafc',
   },
   scrollContainer: {
     flexGrow: 1,
     padding: 24,
-    paddingTop: 60,
+    paddingTop: 24,
   },
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 24,
+    borderRadius: 20,
     marginBottom: 24,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowColor: '#afafaf',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
     paddingVertical: 8,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#ffffff',
+    color: '#1e293b',
     marginBottom: 12,
     fontFamily: 'Inter',
   },
   subtitle: {
     fontSize: 16,
-    color: '#e2e8f0',
+    color: '#64748b',
     marginBottom: 32,
     fontFamily: 'Inter',
     fontWeight: '400',
@@ -285,12 +285,12 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 24,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    borderRadius: 20,
+    shadowColor: '#afafaf',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
     paddingVertical: 8,
   },
   infoTitle: {
