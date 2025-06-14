@@ -472,13 +472,32 @@ async def health_check():
     """
     await orchestrator.initialize_services()
     
-    # Gather service statuses
+    # Helper function to safely get service status
+    async def safe_get_status(service, service_name):
+        try:
+            if hasattr(service, 'get_service_status'):
+                return await service.get_service_status()
+            else:
+                # For services without get_service_status, check if they're initialized
+                return {
+                    'service': service_name,
+                    'status': 'available' if service else 'unavailable',
+                    'initialized': bool(service)
+                }
+        except Exception as e:
+            return {
+                'service': service_name,
+                'status': 'error',
+                'error': str(e)
+            }
+    
+    # Gather service statuses safely
     statuses = await asyncio.gather(
-        location_service.get_service_status(),
-        terminal_service.get_service_status() if hasattr(terminal_service, 'get_service_status') else asyncio.coroutine(lambda: {'service': 'terminal', 'status': 'unknown'})(),
-        fingerprint_service.get_service_status() if hasattr(fingerprint_service, 'get_service_status') else asyncio.coroutine(lambda: {'service': 'fingerprint', 'status': 'unknown'})(),
-        historical_service.get_service_status() if hasattr(historical_service, 'get_service_status') else asyncio.coroutine(lambda: {'service': 'historical', 'status': 'unknown'})(),
-        llm_service.get_service_status(),
+        safe_get_status(location_service, 'location'),
+        safe_get_status(terminal_service, 'terminal'),
+        safe_get_status(fingerprint_service, 'fingerprint'),
+        safe_get_status(historical_service, 'historical'),
+        safe_get_status(llm_service, 'llm'),
         return_exceptions=True
     )
     
