@@ -1064,7 +1064,7 @@ class RoutingOrchestrator:
                     # Use the new adaptive radius system (starts at 1m, expands as needed)
                     logger.info(f"Starting adaptive location analysis at ({lat:.6f}, {lng:.6f})")
                     
-                    location_analysis = await self.location_service._search_with_adaptive_radius(
+                    location_analysis = await self.location_service.analyze_business_district(
                         lat, 
                         lng
                     )
