@@ -22,23 +22,6 @@ import TransactionScreen from './src/screens/TransactionScreen';
 import AnalyticsScreen from './src/screens/AnalyticsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SignInScreen from './src/screens/SignInScreen';
-import UsernameSetupScreen from './src/screens/UsernameSetupScreen';
-
-// Custom Header Component
-const CustomHeader: React.FC<{title: string}> = ({title}) => {
-  return (
-    <View style={styles.headerContainer}>
-      <View style={styles.headerContent}>
-        <Image
-          source={require('./images/logo.png')}
-          style={styles.headerLogo}
-          resizeMode="contain"
-        />
-        <Text style={styles.logoSubtitle}>{title}</Text>
-      </View>
-    </View>
-  );
-};
 
 // Loading Screen Component
 const LoadingScreen: React.FC = () => {
@@ -49,108 +32,71 @@ const LoadingScreen: React.FC = () => {
         style={styles.loadingLogo}
         resizeMode="contain"
       />
-      <ActivityIndicator size="large" color="#3b82f6" style={styles.loadingSpinner} />
+      <ActivityIndicator size="large" color="#2742d5" style={styles.loadingSpinner} />
       <Text style={styles.loadingText}>Loading Payvo...</Text>
     </View>
   );
 };
 
-// Theme configuration using MD3LightTheme as base
-const theme = {
-  ...MD3LightTheme,
-  colors: {
-    ...MD3LightTheme.colors,
-    primary: '#3b82f6',
-    secondary: '#03DAC6',
-    background: '#f8fafc',
-    surface: '#FFFFFF',
-    error: '#B00020',
-    onPrimary: '#FFFFFF',
-    onSecondary: '#000000',
-    onBackground: '#000000',
-    onSurface: '#000000',
-    disabled: '#C7C7C7',
-    placeholder: '#757575',
-    backdrop: '#000000',
-    notification: '#FF5722',
-  },
-};
-
+// Tab Navigator
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-// Main App Tabs (for authenticated users)
 const MainAppTabs: React.FC = () => {
   return (
     <Tab.Navigator
       id={undefined}
-      screenOptions={({route}) => ({
-        tabBarIcon: ({color, size}) => {
-          switch (route.name) {
-            case 'Home':
-              return <HomeIcon size={size} color={color} />;
-            case 'Transaction':
-              return <CreditCardIcon size={size} color={color} />;
-            case 'Analytics':
-              return <AnalyticsIcon size={size} color={color} />;
-            case 'Settings':
-              return <SettingsIcon size={size} color={color} />;
-            default:
-              return <HomeIcon size={size} color={color} />;
-          }
+      screenOptions={{
+        tabBarActiveTintColor: '#2742d5',
+        tabBarInactiveTintColor: '#64748b',
+        tabBarStyle: {
+          backgroundColor: '#ffffff',
+          borderTopColor: '#e2e8f0',
+          borderTopWidth: 1,
+          paddingTop: 8,
+          paddingBottom: 8,
+          height: 70,
         },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: 'gray',
-        headerStyle: {
-          backgroundColor: '#2742d5',
-          height: 80,
-          shadowColor: '#000',
-          shadowOffset: {
-            width: 0,
-            height: 2,
-          },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 4,
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+          marginTop: 4,
         },
-        headerTintColor: '#ffffff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      })}>
+        header: () => null,
+      }}>
       <Tab.Screen
         name="Home"
         component={HomeScreen}
         options={{
-          headerTitle: () => <CustomHeader title="System Dashboard" />,
+          tabBarIcon: ({color, size}) => <HomeIcon color={color} size={size} />,
         }}
       />
       <Tab.Screen
         name="Transaction"
         component={TransactionScreen}
         options={{
-          headerTitle: () => <CustomHeader title="Smart Payment Intelligence" />,
+          tabBarIcon: ({color, size}) => <CreditCardIcon color={color} size={size} />,
         }}
       />
       <Tab.Screen
         name="Analytics"
         component={AnalyticsScreen}
         options={{
-          headerTitle: () => <CustomHeader title="Analytics Dashboard" />,
+          tabBarIcon: ({color, size}) => <AnalyticsIcon color={color} size={size} />,
         }}
       />
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
         options={{
-          headerTitle: () => <CustomHeader title="Settings & Configuration" />,
+          tabBarIcon: ({color, size}) => <SettingsIcon color={color} size={size} />,
         }}
       />
     </Tab.Navigator>
   );
 };
 
-// Auth Stack (for unauthenticated users)
+// Auth Stack Navigator
 const AuthStack: React.FC = () => {
   return (
     <Stack.Navigator
@@ -166,7 +112,7 @@ const AuthStack: React.FC = () => {
 
 // App Navigator (handles authentication flow)
 const AppNavigator: React.FC = () => {
-  const { isAuthenticated, hasUsername, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -176,33 +122,22 @@ const AppNavigator: React.FC = () => {
     return <AuthStack />;
   }
 
-  if (!hasUsername) {
-    return (
-      <Stack.Navigator
-        id={undefined}
-        screenOptions={{
-          headerShown: false,
-        }}
-      >
-        <Stack.Screen name="UsernameSetup" component={UsernameSetupScreen} />
-      </Stack.Navigator>
-    );
-  }
-
   return <MainAppTabs />;
 };
 
+// Main App Component
 const App: React.FC = () => {
   return (
     <SafeAreaProvider>
-      <PaperProvider theme={theme}>
+      <PaperProvider theme={MD3LightTheme}>
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor="#ffffff"
+          translucent={false}
+        />
         <AuthProvider>
           <NotificationProvider>
             <NavigationContainer>
-              <StatusBar
-                barStyle="light-content"
-                backgroundColor={theme.colors.primary}
-              />
               <AppNavigator />
             </NavigationContainer>
           </NotificationProvider>
@@ -214,42 +149,43 @@ const App: React.FC = () => {
 
 const styles = StyleSheet.create({
   headerContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 0,
-    paddingHorizontal: 20,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
   },
   headerContent: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
   headerLogo: {
-    width: 50,
-    height: 50,
+    width: 32,
+    height: 32,
+    marginRight: 12,
   },
   logoSubtitle: {
-    fontSize: 12,
-    color: '#e2e8f0',
-    marginTop: 0,
-    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
   },
   loadingLogo: {
-    width: 100,
-    height: 100,
-    marginBottom: 30,
+    width: 120,
+    height: 120,
+    marginBottom: 32,
   },
   loadingSpinner: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   loadingText: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#64748b',
     fontWeight: '500',
   },

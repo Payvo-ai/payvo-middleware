@@ -1,10 +1,10 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Keychain from 'react-native-keychain';
+import { supabase } from '../config/supabase';
 
 export interface AuthUser {
   id: string;
   email: string;
   username?: string;
+  full_name?: string;
   isAuthenticated: boolean;
 }
 
@@ -17,15 +17,28 @@ export interface ForgotPasswordRequest {
   email: string;
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface UserProfile {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  phone: string | null;
+  employee_id: string | null;
+  department: string | null;
+  role: string | null;
+  preferences: any;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 class AuthService {
   private static instance: AuthService;
-  private readonly STORAGE_KEYS = {
-    USER: '@payvo_auth_user',
-    USERNAME: '@payvo_username',
-    SESSION: '@payvo_session',
-  };
-
-  private readonly KEYCHAIN_SERVICE = 'PayvoEmployeeAuth';
 
   public static getInstance(): AuthService {
     if (!AuthService.instance) {
@@ -35,51 +48,36 @@ class AuthService {
   }
 
   /**
-   * Sign in with email and password
-   * Note: This is a mock implementation since we're manually managing users in Supabase
-   * In production, this would integrate with Supabase Auth
+   * Sign in with email and password using Supabase Auth
    */
   async signIn(credentials: SignInCredentials): Promise<AuthUser> {
     try {
       console.log('🔐 Attempting sign in for:', credentials.email);
 
-      // Mock authentication - in production, this would call Supabase Auth
-      // For now, we'll validate against a predefined list of Payvo employee emails
-      const validEmployees = [
-        'test@payvo.ai',
-        'demo@payvo.ai',
-        'employee@payvo.ai',
-        'admin@payvo.ai',
-        'dev@payvo.ai',
-      ];
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password,
+      });
 
-      const isValidEmployee = validEmployees.includes(credentials.email.toLowerCase());
-
-      if (!isValidEmployee) {
-        throw new Error('Access denied. This app is only available to Payvo employees.');
+      if (error) {
+        console.error('❌ Supabase sign in error:', error);
+        throw new Error(error.message);
       }
 
-      // Mock password validation (in production, Supabase would handle this)
-      if (credentials.password.length < 6) {
-        throw new Error('Invalid credentials. Please check your email and password.');
+      if (!data.user || !data.session) {
+        throw new Error('Sign in failed - no user or session returned');
       }
 
-      // Create user object
+      // Get user profile
+      const profile = await this.getUserProfile(data.user.id);
+
       const user: AuthUser = {
-        id: `payvo_${Date.now()}`,
-        email: credentials.email.toLowerCase(),
+        id: data.user.id,
+        email: data.user.email!,
+        username: profile?.username || undefined,
+        full_name: profile?.full_name || undefined,
         isAuthenticated: true,
       };
-
-      // Store credentials securely
-      await Keychain.setInternetCredentials(
-        this.KEYCHAIN_SERVICE,
-        credentials.email,
-        credentials.password
-      );
-
-      // Store user data
-      await AsyncStorage.setItem(this.STORAGE_KEYS.USER, JSON.stringify(user));
 
       console.log('✅ Sign in successful for:', user.email);
       return user;
@@ -91,35 +89,66 @@ class AuthService {
   }
 
   /**
-   * Send forgot password email
-   * Note: This is a mock implementation
+   * Send forgot password email using Supabase Auth
    */
   async forgotPassword(request: ForgotPasswordRequest): Promise<void> {
     try {
       console.log('📧 Sending forgot password email to:', request.email);
 
-      // Mock validation
-      const validEmployees = [
-        'test@payvo.ai',
-        'demo@payvo.ai',
-        'employee@payvo.ai',
-        'admin@payvo.ai',
-        'dev@payvo.ai',
-      ];
+      const { error } = await supabase.auth.resetPasswordForEmail(request.email, {
+        redirectTo: 'payvo://reset-password', // Deep link for mobile app
+      });
 
-      const isValidEmployee = validEmployees.includes(request.email.toLowerCase());
-
-      if (!isValidEmployee) {
-        throw new Error('Email not found. Please contact your administrator.');
+      if (error) {
+        console.error('❌ Forgot password error:', error);
+        throw new Error(error.message);
       }
-
-      // Mock delay to simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
 
       console.log('✅ Password reset email sent to:', request.email);
 
     } catch (error) {
       console.error('❌ Forgot password failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Change password using Supabase Auth
+   */
+  async changePassword(request: ChangePasswordRequest): Promise<void> {
+    try {
+      console.log('🔐 Changing password for authenticated user...');
+
+      // First verify current password by attempting to sign in
+      const currentUser = await this.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('No authenticated user found.');
+      }
+
+      // Verify current password
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: currentUser.email,
+        password: request.currentPassword,
+      });
+
+      if (verifyError) {
+        throw new Error('Current password is incorrect.');
+      }
+
+      // Update password
+      const { error } = await supabase.auth.updateUser({
+        password: request.newPassword,
+      });
+
+      if (error) {
+        console.error('❌ Change password error:', error);
+        throw new Error(error.message);
+      }
+
+      console.log('✅ Password changed successfully');
+
+    } catch (error) {
+      console.error('❌ Change password failed:', error);
       throw error;
     }
   }
@@ -143,15 +172,16 @@ class AuthService {
         throw new Error('No authenticated user found.');
       }
 
-      // Update user with username
-      const updatedUser: AuthUser = {
-        ...currentUser,
-        username: trimmedUsername,
-      };
+      // Update user profile
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ username: trimmedUsername })
+        .eq('id', currentUser.id);
 
-      // Store updated user data
-      await AsyncStorage.setItem(this.STORAGE_KEYS.USER, JSON.stringify(updatedUser));
-      await AsyncStorage.setItem(this.STORAGE_KEYS.USERNAME, trimmedUsername);
+      if (error) {
+        console.error('❌ Set username error:', error);
+        throw new Error(error.message);
+      }
 
       console.log('✅ Username set successfully:', trimmedUsername);
 
@@ -166,12 +196,23 @@ class AuthService {
    */
   async getCurrentUser(): Promise<AuthUser | null> {
     try {
-      const userJson = await AsyncStorage.getItem(this.STORAGE_KEYS.USER);
-      if (!userJson) {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user) {
         return null;
       }
 
-      const user: AuthUser = JSON.parse(userJson);
+      // Get user profile
+      const profile = await this.getUserProfile(session.user.id);
+
+      const user: AuthUser = {
+        id: session.user.id,
+        email: session.user.email!,
+        username: profile?.username || undefined,
+        full_name: profile?.full_name || undefined,
+        isAuthenticated: true,
+      };
+
       return user;
 
     } catch (error) {
@@ -181,11 +222,36 @@ class AuthService {
   }
 
   /**
+   * Get user profile from database
+   */
+  async getUserProfile(userId: string): Promise<UserProfile | null> {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('❌ Get user profile error:', error);
+        return null;
+      }
+
+      return data;
+
+    } catch (error) {
+      console.error('❌ Get user profile failed:', error);
+      return null;
+    }
+  }
+
+  /**
    * Get stored username
    */
   async getUsername(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem(this.STORAGE_KEYS.USERNAME);
+      const user = await this.getCurrentUser();
+      return user?.username || null;
     } catch (error) {
       console.error('❌ Get username failed:', error);
       return null;
@@ -197,8 +263,8 @@ class AuthService {
    */
   async isAuthenticated(): Promise<boolean> {
     try {
-      const user = await this.getCurrentUser();
-      return user?.isAuthenticated === true;
+      const { data: { session } } = await supabase.auth.getSession();
+      return session?.user != null;
     } catch (error) {
       console.error('❌ Check authentication failed:', error);
       return false;
@@ -225,15 +291,12 @@ class AuthService {
     try {
       console.log('🚪 Signing out user...');
 
-      // Clear stored data
-      await AsyncStorage.multiRemove([
-        this.STORAGE_KEYS.USER,
-        this.STORAGE_KEYS.USERNAME,
-        this.STORAGE_KEYS.SESSION,
-      ]);
+      const { error } = await supabase.auth.signOut();
 
-      // Clear keychain
-      await Keychain.resetInternetCredentials(this.KEYCHAIN_SERVICE);
+      if (error) {
+        console.error('❌ Sign out error:', error);
+        throw new Error(error.message);
+      }
 
       console.log('✅ Sign out successful');
 
@@ -244,7 +307,7 @@ class AuthService {
   }
 
   /**
-   * Get user ID for transactions (uses username if available, otherwise email)
+   * Get user ID for transactions (uses email as the identifier)
    */
   async getUserId(): Promise<string> {
     try {
@@ -253,13 +316,8 @@ class AuthService {
         throw new Error('No authenticated user found.');
       }
 
-      // Use username if available, otherwise use email prefix
-      if (user.username) {
-        return user.username;
-      }
-
-      // Fallback to email prefix
-      return user.email.split('@')[0];
+      // Always use email as the user ID for transactions
+      return user.email;
 
     } catch (error) {
       console.error('❌ Get user ID failed:', error);
@@ -268,24 +326,69 @@ class AuthService {
   }
 
   /**
-   * Clear all stored data (for development/testing)
+   * Listen to auth state changes
    */
-  async clearAllData(): Promise<void> {
+  onAuthStateChange(callback: (user: AuthUser | null) => void) {
+    return supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔄 Auth state changed:', event);
+
+      if (session?.user) {
+        const profile = await this.getUserProfile(session.user.id);
+        const user: AuthUser = {
+          id: session.user.id,
+          email: session.user.email!,
+          username: profile?.username || undefined,
+          full_name: profile?.full_name || undefined,
+          isAuthenticated: true,
+        };
+        callback(user);
+      } else {
+        callback(null);
+      }
+    });
+  }
+
+  /**
+   * Create user account (admin function)
+   */
+  async createUser(email: string, password: string, userData?: Partial<UserProfile>): Promise<AuthUser> {
     try {
-      console.log('🧹 Clearing all authentication data...');
+      console.log('👤 Creating user account for:', email);
 
-      await AsyncStorage.multiRemove([
-        this.STORAGE_KEYS.USER,
-        this.STORAGE_KEYS.USERNAME,
-        this.STORAGE_KEYS.SESSION,
-      ]);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: userData?.full_name || '',
+            employee_id: userData?.employee_id || '',
+            department: userData?.department || '',
+            role: userData?.role || '',
+          },
+        },
+      });
 
-      await Keychain.resetInternetCredentials(this.KEYCHAIN_SERVICE);
+      if (error) {
+        console.error('❌ Create user error:', error);
+        throw new Error(error.message);
+      }
 
-      console.log('✅ All authentication data cleared');
+      if (!data.user) {
+        throw new Error('User creation failed - no user returned');
+      }
+
+      const user: AuthUser = {
+        id: data.user.id,
+        email: data.user.email!,
+        full_name: userData?.full_name,
+        isAuthenticated: true,
+      };
+
+      console.log('✅ User created successfully:', user.email);
+      return user;
 
     } catch (error) {
-      console.error('❌ Clear all data failed:', error);
+      console.error('❌ Create user failed:', error);
       throw error;
     }
   }

@@ -380,24 +380,24 @@ const TransactionScreen: React.FC = () => {
             </View>
 
             <View style={styles.inputSection}>
-              <Text style={styles.inputLabel}>User ID</Text>
+              <Text style={styles.inputLabel}>Email (User ID)</Text>
               <TextInput
                 value={userId}
                 onChangeText={() => {}}
                 style={[styles.textInput, styles.readOnlyInput]}
                 mode="flat"
-                placeholder="Loading username..."
+                placeholder="Loading email..."
                 underlineColor="transparent"
                 activeUnderlineColor="transparent"
                 editable={false}
                 right={
                   <TextInput.Icon
-                    icon="account-check"
+                    icon="email-check"
                   />
                 }
               />
               <Text style={styles.helperText}>
-                ✓ Automatically set from your authenticated username
+                ✓ Automatically set from your authenticated email address
               </Text>
             </View>
 

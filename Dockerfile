@@ -17,11 +17,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy middleware code
 COPY middleware-system/ .
 
-# Make startup scripts executable
-RUN chmod +x start.py simple_start.py run.py
+# Make startup script executable
+RUN chmod +x run.py
 
 # Expose port 8000 for the application
 EXPOSE 8000
 
-# Use the robust startup script
-CMD ["python", "start.py"] 
+# Use the run.py script that exists in middleware-system
+CMD ["python", "run.py"] 

@@ -1,14 +1,14 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import AuthService, { AuthUser, SignInCredentials, ForgotPasswordRequest } from '../services/AuthService';
+import AuthService, { AuthUser, SignInCredentials, ForgotPasswordRequest, ChangePasswordRequest } from '../services/AuthService';
 
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  hasUsername: boolean;
   signIn: (credentials: SignInCredentials) => Promise<void>;
   signOut: () => Promise<void>;
   forgotPassword: (request: ForgotPasswordRequest) => Promise<void>;
+  changePassword: (request: ChangePasswordRequest) => Promise<void>;
   setUsername: (username: string) => Promise<void>;
   getUserId: () => Promise<string>;
   refreshAuthState: () => Promise<void>;
@@ -23,11 +23,23 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasUsername, setHasUsername] = useState(false);
 
   // Initialize authentication state
   useEffect(() => {
     initializeAuth();
+
+    // Listen to auth state changes
+    const { data: { subscription } } = AuthService.onAuthStateChange(async (authUser) => {
+      console.log('🔄 Auth state changed in context:', authUser?.email);
+      
+      setUser(authUser);
+      setIsLoading(false);
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const initializeAuth = async () => {
@@ -36,20 +48,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('🔄 Initializing authentication state...');
 
       const currentUser = await AuthService.getCurrentUser();
-      const usernameExists = await AuthService.hasUsername();
-
       setUser(currentUser);
-      setHasUsername(usernameExists);
 
       console.log('✅ Authentication state initialized:', {
         user: currentUser?.email,
-        hasUsername: usernameExists,
       });
 
     } catch (error) {
       console.error('❌ Failed to initialize authentication:', error);
       setUser(null);
-      setHasUsername(false);
     } finally {
       setIsLoading(false);
     }
@@ -60,10 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('🔐 Signing in user:', credentials.email);
 
       const authenticatedUser = await AuthService.signIn(credentials);
-      const usernameExists = await AuthService.hasUsername();
-
       setUser(authenticatedUser);
-      setHasUsername(usernameExists);
 
       console.log('✅ User signed in successfully');
 
@@ -78,9 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('🚪 Signing out user...');
 
       await AuthService.signOut();
-
       setUser(null);
-      setHasUsername(false);
 
       console.log('✅ User signed out successfully');
 
@@ -104,6 +106,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const changePassword = async (request: ChangePasswordRequest) => {
+    try {
+      console.log('🔐 Changing password...');
+
+      await AuthService.changePassword(request);
+
+      console.log('✅ Password changed successfully');
+
+    } catch (error) {
+      console.error('❌ Change password failed:', error);
+      throw error;
+    }
+  };
+
   const setUsername = async (username: string) => {
     try {
       console.log('👤 Setting username:', username);
@@ -118,8 +134,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
         setUser(updatedUser);
       }
-
-      setHasUsername(true);
 
       console.log('✅ Username set successfully');
 
@@ -146,10 +160,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     isLoading,
     isAuthenticated: user?.isAuthenticated === true,
-    hasUsername,
     signIn,
     signOut,
     forgotPassword,
+    changePassword,
     setUsername,
     getUserId,
     refreshAuthState,
