@@ -106,7 +106,26 @@ async def activate_payment_token(
         if not response.get("success", False):
             raise HTTPException(status_code=400, detail=response.get("error", "Unknown error"))
         
-        return response
+        # Structure the response properly for APIResponse model
+        return APIResponse(
+            success=response.get("success", True),
+            data={
+                "session_id": response.get("session_id"),
+                "status": response.get("status"),
+                "message": response.get("message"),
+                "predicted_mcc": response.get("predicted_mcc"),
+                "confidence": response.get("confidence"),
+                "prediction_method": response.get("prediction_method"),
+                "recommended_card": response.get("recommended_card"),
+                "location_source": response.get("location_source"),
+                "real_time_data_used": response.get("real_time_data_used"),
+                "expires_at": response.get("expires_at"),
+                "analysis_details": response.get("analysis_details"),
+                "platform_config": response.get("data", {}).get("platform_config") if response.get("data") else None,
+                "token_status": response.get("data", {}).get("token_status") if response.get("data") else None
+            },
+            error=response.get("error")
+        )
         
     except Exception as e:
         logger.error(f"Payment activation failed: {e}")
