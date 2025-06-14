@@ -1,0 +1,3371 @@
+{
+    "name": "Main screen",
+    "type": "FRAME",
+    "width": 390,
+    "height": 844,
+    "layoutMode": "NONE",
+    "primaryAxisSizingMode": "FIXED",
+    "counterAxisSizingMode": "FIXED",
+    "primaryAxisAlignItems": "MIN",
+    "counterAxisAlignItems": "MIN",
+    "fills": [
+      {
+        "type": "SOLID",
+        "opacity": 1,
+        "color": {
+          "r": 0.9411764740943909,
+          "g": 0.9372549057006836,
+          "b": 0.9490196108818054,
+          "a": 1,
+          "hex": "#f0eff2"
+        }
+      }
+    ],
+    "strokeWeight": 1,
+    "strokeAlign": "INSIDE",
+    "strokeCap": "NONE",
+    "strokeJoin": "MITER",
+    "children": [
+      {
+        "name": "background",
+        "type": "FRAME",
+        "width": 390,
+        "height": 315,
+        "layoutMode": "NONE",
+        "primaryAxisSizingMode": "FIXED",
+        "counterAxisSizingMode": "FIXED",
+        "primaryAxisAlignItems": "MIN",
+        "counterAxisAlignItems": "MIN",
+        "fills": [
+          {
+            "type": "GRADIENT_LINEAR",
+            "opacity": 1,
+            "gradientType": "GRADIENT_LINEAR",
+            "gradientStops": [
+              {
+                "position": 0,
+                "color": {
+                  "r": 0.9411764740943909,
+                  "g": 0.9372549057006836,
+                  "b": 0.9490196108818054,
+                  "a": 1,
+                  "hex": "#f0eff2"
+                }
+              },
+              {
+                "position": 1,
+                "color": {
+                  "r": 0.8039215803146362,
+                  "g": 0.8180392384529114,
+                  "b": 0.9450980424880981,
+                  "a": 1,
+                  "hex": "#cdd1f1"
+                }
+              }
+            ],
+            "gradientTransform": [
+              [
+                -0.021851424127817154,
+                -1.0074944496154785,
+                1.0108898878097534
+              ],
+              [
+                1.0074944496154785,
+                -0.02330779656767845,
+                -0.0020955849904567003
+              ]
+            ]
+          }
+        ],
+        "strokeWeight": 1,
+        "strokeAlign": "INSIDE",
+        "strokeCap": "NONE",
+        "strokeJoin": "MITER",
+        "children": [
+          {
+            "name": "Stats Section Container",
+            "type": "FRAME",
+            "width": 390,
+            "height": 193,
+            "layoutMode": "HORIZONTAL",
+            "primaryAxisSizingMode": "FIXED",
+            "counterAxisSizingMode": "AUTO",
+            "primaryAxisAlignItems": "MIN",
+            "counterAxisAlignItems": "CENTER",
+            "paddingLeft": {
+              "name": "Variable 126",
+              "fullName": "Variable 126",
+              "notFound": true,
+              "actualValue": 16
+            },
+            "paddingRight": {
+              "name": "Variable 126",
+              "fullName": "Variable 126",
+              "notFound": true,
+              "actualValue": 16
+            },
+            "paddingTop": {
+              "name": "Variable 126",
+              "fullName": "Variable 126",
+              "notFound": true,
+              "actualValue": 16
+            },
+            "paddingBottom": {
+              "name": "Variable 126",
+              "fullName": "Variable 126",
+              "notFound": true,
+              "actualValue": 16
+            },
+            "itemSpacing": {
+              "name": "Variable 125",
+              "fullName": "Variable 125",
+              "notFound": true,
+              "actualValue": 12
+            },
+            "strokeWeight": 1,
+            "strokeAlign": "INSIDE",
+            "strokeCap": "NONE",
+            "strokeJoin": "MITER",
+            "variables": {
+              "itemSpacing": {
+                "name": "Variable 125",
+                "fullName": "Variable 125",
+                "notFound": true,
+                "actualValue": 12
+              },
+              "paddingLeft": {
+                "name": "Variable 126",
+                "fullName": "Variable 126",
+                "notFound": true,
+                "actualValue": 16
+              },
+              "paddingTop": {
+                "name": "Variable 126",
+                "fullName": "Variable 126",
+                "notFound": true,
+                "actualValue": 16
+              },
+              "paddingRight": {
+                "name": "Variable 126",
+                "fullName": "Variable 126",
+                "notFound": true,
+                "actualValue": 16
+              },
+              "paddingBottom": {
+                "name": "Variable 126",
+                "fullName": "Variable 126",
+                "notFound": true,
+                "actualValue": 16
+              }
+            },
+            "children": [
+              {
+                "name": "Item",
+                "type": "FRAME",
+                "width": 168,
+                "height": 161,
+                "cornerRadius": 20,
+                "layoutMode": "HORIZONTAL",
+                "primaryAxisSizingMode": "FIXED",
+                "counterAxisSizingMode": "AUTO",
+                "primaryAxisAlignItems": "CENTER",
+                "counterAxisAlignItems": "CENTER",
+                "paddingLeft": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "paddingRight": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "paddingTop": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "paddingBottom": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "itemSpacing": 24,
+                "fills": [
+                  {
+                    "type": "SOLID",
+                    "opacity": 1,
+                    "color": {
+                      "r": 1,
+                      "g": 1,
+                      "b": 1,
+                      "a": 1,
+                      "hex": "#ffffff"
+                    }
+                  }
+                ],
+                "strokes": [
+                  {
+                    "type": "SOLID",
+                    "opacity": 1,
+                    "color": {
+                      "r": 1,
+                      "g": 1,
+                      "b": 1,
+                      "a": 1,
+                      "hex": "#ffffff"
+                    }
+                  }
+                ],
+                "strokeWeight": 2,
+                "strokeAlign": "INSIDE",
+                "strokeCap": "NONE",
+                "strokeJoin": "MITER",
+                "effects": [
+                  {
+                    "type": "DROP_SHADOW",
+                    "radius": 12,
+                    "spread": 0,
+                    "offset": {
+                      "x": 0,
+                      "y": 2
+                    },
+                    "color": {
+                      "r": 0.6880821585655212,
+                      "g": 0.6880821585655212,
+                      "b": 0.6880821585655212,
+                      "a": 0.25,
+                      "hex": "#afafaf40"
+                    }
+                  }
+                ],
+                "effectStyle": {
+                  "name": "Library Style e91d9475",
+                  "fullName": "[Library] Style e91d9475",
+                  "estimated": true
+                },
+                "variables": {
+                  "paddingLeft": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  },
+                  "paddingTop": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  },
+                  "paddingRight": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  },
+                  "paddingBottom": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  }
+                },
+                "children": [
+                  {
+                    "name": "Cashback Container",
+                    "type": "FRAME",
+                    "width": 80,
+                    "height": 121,
+                    "layoutMode": "VERTICAL",
+                    "primaryAxisSizingMode": "AUTO",
+                    "counterAxisSizingMode": "AUTO",
+                    "primaryAxisAlignItems": "MIN",
+                    "counterAxisAlignItems": "MIN",
+                    "itemSpacing": {
+                      "name": "Variable 125",
+                      "fullName": "Variable 125",
+                      "notFound": true,
+                      "actualValue": 12
+                    },
+                    "strokeWeight": 1,
+                    "strokeAlign": "INSIDE",
+                    "strokeCap": "NONE",
+                    "strokeJoin": "MITER",
+                    "variables": {
+                      "itemSpacing": {
+                        "name": "Variable 125",
+                        "fullName": "Variable 125",
+                        "notFound": true,
+                        "actualValue": 12
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "Cashback Icon Container",
+                        "type": "FRAME",
+                        "width": 80,
+                        "height": 85,
+                        "layoutMode": "VERTICAL",
+                        "primaryAxisSizingMode": "AUTO",
+                        "counterAxisSizingMode": "FIXED",
+                        "primaryAxisAlignItems": "CENTER",
+                        "counterAxisAlignItems": "CENTER",
+                        "itemSpacing": {
+                          "name": "Variable 124",
+                          "fullName": "Variable 124",
+                          "notFound": true,
+                          "actualValue": 8
+                        },
+                        "strokeWeight": 1,
+                        "strokeAlign": "INSIDE",
+                        "strokeCap": "NONE",
+                        "strokeJoin": "MITER",
+                        "variables": {
+                          "itemSpacing": {
+                            "name": "Variable 124",
+                            "fullName": "Variable 124",
+                            "notFound": true,
+                            "actualValue": 8
+                          }
+                        }
+                      },
+                      {
+                        "name": "Cashback Label",
+                        "type": "TEXT",
+                        "width": 80,
+                        "height": 24,
+                        "fills": [
+                          {
+                            "name": "Variable 322",
+                            "fullName": "Variable 322",
+                            "notFound": true,
+                            "actualValue": {
+                              "type": "SOLID",
+                              "opacity": 1,
+                              "color": {
+                                "r": 0.40392157435417175,
+                                "g": 0.40392157435417175,
+                                "b": 0.40392157435417175,
+                                "a": 1,
+                                "hex": "#676767"
+                              }
+                            }
+                          }
+                        ],
+                        "strokeWeight": 1,
+                        "strokeAlign": "OUTSIDE",
+                        "strokeCap": "NONE",
+                        "strokeJoin": "MITER",
+                        "textStyle": {
+                          "name": "Library Style cc18be8b",
+                          "fullName": "[Library] Style cc18be8b",
+                          "estimated": true
+                        },
+                        "variables": {
+                          "fills": [
+                            {
+                              "name": "Variable 322",
+                              "fullName": "Variable 322",
+                              "notFound": true,
+                              "actualValue": {
+                                "type": "SOLID",
+                                "opacity": 1,
+                                "color": {
+                                  "r": 0.40392157435417175,
+                                  "g": 0.40392157435417175,
+                                  "b": 0.40392157435417175,
+                                  "a": 1,
+                                  "hex": "#676767"
+                                }
+                              }
+                            }
+                          ],
+                          "fontFamily": [
+                            {
+                              "name": "Variable 159",
+                              "fullName": "Variable 159",
+                              "notFound": true
+                            }
+                          ]
+                        },
+                        "fontFamily": [
+                          {
+                            "name": "Variable 159",
+                            "fullName": "Variable 159",
+                            "notFound": true
+                          }
+                        ],
+                        "characters": "Cashback",
+                        "fontSize": 16,
+                        "fontName": {
+                          "family": "Inter",
+                          "style": "Regular"
+                        },
+                        "fontWeight": 400,
+                        "letterSpacing": {
+                          "unit": "PERCENT",
+                          "value": 0
+                        },
+                        "lineHeight": {
+                          "unit": "PIXELS",
+                          "value": 24
+                        },
+                        "textAlignHorizontal": "CENTER",
+                        "textAlignVertical": "TOP",
+                        "textAutoResize": "HEIGHT",
+                        "textCase": "ORIGINAL",
+                        "textDecoration": "NONE",
+                        "textStyleName": "Text Style cc18be8b...",
+                        "paragraphSpacing": 16
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "Item",
+                "type": "FRAME",
+                "width": 168,
+                "height": 161,
+                "cornerRadius": 20,
+                "layoutMode": "HORIZONTAL",
+                "primaryAxisSizingMode": "FIXED",
+                "counterAxisSizingMode": "AUTO",
+                "primaryAxisAlignItems": "CENTER",
+                "counterAxisAlignItems": "CENTER",
+                "paddingLeft": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "paddingRight": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "paddingTop": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "paddingBottom": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "itemSpacing": 24,
+                "fills": [
+                  {
+                    "type": "SOLID",
+                    "opacity": 1,
+                    "color": {
+                      "r": 1,
+                      "g": 1,
+                      "b": 1,
+                      "a": 1,
+                      "hex": "#ffffff"
+                    }
+                  }
+                ],
+                "strokes": [
+                  {
+                    "type": "SOLID",
+                    "opacity": 1,
+                    "color": {
+                      "r": 1,
+                      "g": 1,
+                      "b": 1,
+                      "a": 1,
+                      "hex": "#ffffff"
+                    }
+                  }
+                ],
+                "strokeWeight": 2,
+                "strokeAlign": "INSIDE",
+                "strokeCap": "NONE",
+                "strokeJoin": "MITER",
+                "effects": [
+                  {
+                    "type": "DROP_SHADOW",
+                    "radius": 12,
+                    "spread": 0,
+                    "offset": {
+                      "x": 0,
+                      "y": 2
+                    },
+                    "color": {
+                      "r": 0.6880821585655212,
+                      "g": 0.6880821585655212,
+                      "b": 0.6880821585655212,
+                      "a": 0.25,
+                      "hex": "#afafaf40"
+                    }
+                  }
+                ],
+                "effectStyle": {
+                  "name": "Library Style e91d9475",
+                  "fullName": "[Library] Style e91d9475",
+                  "estimated": true
+                },
+                "variables": {
+                  "paddingLeft": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  },
+                  "paddingTop": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  },
+                  "paddingRight": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  },
+                  "paddingBottom": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  }
+                },
+                "children": [
+                  {
+                    "name": "Miles Container",
+                    "type": "FRAME",
+                    "width": 79,
+                    "height": 121,
+                    "layoutMode": "VERTICAL",
+                    "primaryAxisSizingMode": "AUTO",
+                    "counterAxisSizingMode": "AUTO",
+                    "primaryAxisAlignItems": "MIN",
+                    "counterAxisAlignItems": "MIN",
+                    "itemSpacing": {
+                      "name": "Variable 125",
+                      "fullName": "Variable 125",
+                      "notFound": true,
+                      "actualValue": 12
+                    },
+                    "strokeWeight": 1,
+                    "strokeAlign": "INSIDE",
+                    "strokeCap": "NONE",
+                    "strokeJoin": "MITER",
+                    "variables": {
+                      "itemSpacing": {
+                        "name": "Variable 125",
+                        "fullName": "Variable 125",
+                        "notFound": true,
+                        "actualValue": 12
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "Miles Icon Container",
+                        "type": "FRAME",
+                        "width": 79,
+                        "height": 85,
+                        "layoutMode": "VERTICAL",
+                        "primaryAxisSizingMode": "AUTO",
+                        "counterAxisSizingMode": "FIXED",
+                        "primaryAxisAlignItems": "CENTER",
+                        "counterAxisAlignItems": "CENTER",
+                        "itemSpacing": {
+                          "name": "Variable 124",
+                          "fullName": "Variable 124",
+                          "notFound": true,
+                          "actualValue": 8
+                        },
+                        "strokeWeight": 1,
+                        "strokeAlign": "INSIDE",
+                        "strokeCap": "NONE",
+                        "strokeJoin": "MITER",
+                        "variables": {
+                          "itemSpacing": {
+                            "name": "Variable 124",
+                            "fullName": "Variable 124",
+                            "notFound": true,
+                            "actualValue": 8
+                          }
+                        }
+                      },
+                      {
+                        "name": "Miles Label",
+                        "type": "TEXT",
+                        "width": 79,
+                        "height": 24,
+                        "fills": [
+                          {
+                            "name": "Variable 322",
+                            "fullName": "Variable 322",
+                            "notFound": true,
+                            "actualValue": {
+                              "type": "SOLID",
+                              "opacity": 1,
+                              "color": {
+                                "r": 0.40392157435417175,
+                                "g": 0.40392157435417175,
+                                "b": 0.40392157435417175,
+                                "a": 1,
+                                "hex": "#676767"
+                              }
+                            }
+                          }
+                        ],
+                        "strokeWeight": 1,
+                        "strokeAlign": "OUTSIDE",
+                        "strokeCap": "NONE",
+                        "strokeJoin": "MITER",
+                        "textStyle": {
+                          "name": "Library Style cc18be8b",
+                          "fullName": "[Library] Style cc18be8b",
+                          "estimated": true
+                        },
+                        "variables": {
+                          "fills": [
+                            {
+                              "name": "Variable 322",
+                              "fullName": "Variable 322",
+                              "notFound": true,
+                              "actualValue": {
+                                "type": "SOLID",
+                                "opacity": 1,
+                                "color": {
+                                  "r": 0.40392157435417175,
+                                  "g": 0.40392157435417175,
+                                  "b": 0.40392157435417175,
+                                  "a": 1,
+                                  "hex": "#676767"
+                                }
+                              }
+                            }
+                          ],
+                          "fontFamily": [
+                            {
+                              "name": "Variable 159",
+                              "fullName": "Variable 159",
+                              "notFound": true
+                            }
+                          ]
+                        },
+                        "fontFamily": [
+                          {
+                            "name": "Variable 159",
+                            "fullName": "Variable 159",
+                            "notFound": true
+                          }
+                        ],
+                        "characters": "Miles",
+                        "fontSize": 16,
+                        "fontName": {
+                          "family": "Inter",
+                          "style": "Regular"
+                        },
+                        "fontWeight": 400,
+                        "letterSpacing": {
+                          "unit": "PERCENT",
+                          "value": 0
+                        },
+                        "lineHeight": {
+                          "unit": "PIXELS",
+                          "value": 24
+                        },
+                        "textAlignHorizontal": "CENTER",
+                        "textAlignVertical": "TOP",
+                        "textAutoResize": "HEIGHT",
+                        "textCase": "ORIGINAL",
+                        "textDecoration": "NONE",
+                        "textStyleName": "Text Style cc18be8b...",
+                        "paragraphSpacing": 16
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "Item",
+                "type": "FRAME",
+                "width": 168,
+                "height": 161,
+                "cornerRadius": 20,
+                "layoutMode": "HORIZONTAL",
+                "primaryAxisSizingMode": "FIXED",
+                "counterAxisSizingMode": "AUTO",
+                "primaryAxisAlignItems": "CENTER",
+                "counterAxisAlignItems": "CENTER",
+                "paddingLeft": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "paddingRight": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "paddingTop": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "paddingBottom": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "itemSpacing": 24,
+                "fills": [
+                  {
+                    "type": "SOLID",
+                    "opacity": 1,
+                    "color": {
+                      "r": 1,
+                      "g": 1,
+                      "b": 1,
+                      "a": 1,
+                      "hex": "#ffffff"
+                    }
+                  }
+                ],
+                "strokes": [
+                  {
+                    "type": "SOLID",
+                    "opacity": 1,
+                    "color": {
+                      "r": 1,
+                      "g": 1,
+                      "b": 1,
+                      "a": 1,
+                      "hex": "#ffffff"
+                    }
+                  }
+                ],
+                "strokeWeight": 2,
+                "strokeAlign": "INSIDE",
+                "strokeCap": "NONE",
+                "strokeJoin": "MITER",
+                "effects": [
+                  {
+                    "type": "DROP_SHADOW",
+                    "radius": 12,
+                    "spread": 0,
+                    "offset": {
+                      "x": 0,
+                      "y": 2
+                    },
+                    "color": {
+                      "r": 0.6880821585655212,
+                      "g": 0.6880821585655212,
+                      "b": 0.6880821585655212,
+                      "a": 0.25,
+                      "hex": "#afafaf40"
+                    }
+                  }
+                ],
+                "effectStyle": {
+                  "name": "Library Style e91d9475",
+                  "fullName": "[Library] Style e91d9475",
+                  "estimated": true
+                },
+                "variables": {
+                  "paddingLeft": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  },
+                  "paddingTop": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  },
+                  "paddingRight": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  },
+                  "paddingBottom": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  }
+                },
+                "children": [
+                  {
+                    "name": "Points Container",
+                    "type": "FRAME",
+                    "width": 90,
+                    "height": 121,
+                    "layoutMode": "VERTICAL",
+                    "primaryAxisSizingMode": "AUTO",
+                    "counterAxisSizingMode": "AUTO",
+                    "primaryAxisAlignItems": "MIN",
+                    "counterAxisAlignItems": "MIN",
+                    "itemSpacing": {
+                      "name": "Variable 125",
+                      "fullName": "Variable 125",
+                      "notFound": true,
+                      "actualValue": 12
+                    },
+                    "strokeWeight": 1,
+                    "strokeAlign": "INSIDE",
+                    "strokeCap": "NONE",
+                    "strokeJoin": "MITER",
+                    "variables": {
+                      "itemSpacing": {
+                        "name": "Variable 125",
+                        "fullName": "Variable 125",
+                        "notFound": true,
+                        "actualValue": 12
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "Points Icon Container",
+                        "type": "FRAME",
+                        "width": 90,
+                        "height": 85,
+                        "layoutMode": "VERTICAL",
+                        "primaryAxisSizingMode": "AUTO",
+                        "counterAxisSizingMode": "FIXED",
+                        "primaryAxisAlignItems": "CENTER",
+                        "counterAxisAlignItems": "CENTER",
+                        "itemSpacing": {
+                          "name": "Variable 124",
+                          "fullName": "Variable 124",
+                          "notFound": true,
+                          "actualValue": 8
+                        },
+                        "strokeWeight": 1,
+                        "strokeAlign": "INSIDE",
+                        "strokeCap": "NONE",
+                        "strokeJoin": "MITER",
+                        "variables": {
+                          "itemSpacing": {
+                            "name": "Variable 124",
+                            "fullName": "Variable 124",
+                            "notFound": true,
+                            "actualValue": 8
+                          }
+                        }
+                      },
+                      {
+                        "name": "Points Label",
+                        "type": "TEXT",
+                        "width": 90,
+                        "height": 24,
+                        "fills": [
+                          {
+                            "name": "Variable 322",
+                            "fullName": "Variable 322",
+                            "notFound": true,
+                            "actualValue": {
+                              "type": "SOLID",
+                              "opacity": 1,
+                              "color": {
+                                "r": 0.40392157435417175,
+                                "g": 0.40392157435417175,
+                                "b": 0.40392157435417175,
+                                "a": 1,
+                                "hex": "#676767"
+                              }
+                            }
+                          }
+                        ],
+                        "strokeWeight": 1,
+                        "strokeAlign": "OUTSIDE",
+                        "strokeCap": "NONE",
+                        "strokeJoin": "MITER",
+                        "textStyle": {
+                          "name": "Library Style cc18be8b",
+                          "fullName": "[Library] Style cc18be8b",
+                          "estimated": true
+                        },
+                        "variables": {
+                          "fills": [
+                            {
+                              "name": "Variable 322",
+                              "fullName": "Variable 322",
+                              "notFound": true,
+                              "actualValue": {
+                                "type": "SOLID",
+                                "opacity": 1,
+                                "color": {
+                                  "r": 0.40392157435417175,
+                                  "g": 0.40392157435417175,
+                                  "b": 0.40392157435417175,
+                                  "a": 1,
+                                  "hex": "#676767"
+                                }
+                              }
+                            }
+                          ],
+                          "fontFamily": [
+                            {
+                              "name": "Variable 159",
+                              "fullName": "Variable 159",
+                              "notFound": true
+                            }
+                          ]
+                        },
+                        "fontFamily": [
+                          {
+                            "name": "Variable 159",
+                            "fullName": "Variable 159",
+                            "notFound": true
+                          }
+                        ],
+                        "characters": "Points",
+                        "fontSize": 16,
+                        "fontName": {
+                          "family": "Inter",
+                          "style": "Regular"
+                        },
+                        "fontWeight": 400,
+                        "letterSpacing": {
+                          "unit": "PERCENT",
+                          "value": 0
+                        },
+                        "lineHeight": {
+                          "unit": "PIXELS",
+                          "value": 24
+                        },
+                        "textAlignHorizontal": "CENTER",
+                        "textAlignVertical": "TOP",
+                        "textAutoResize": "HEIGHT",
+                        "textCase": "ORIGINAL",
+                        "textDecoration": "NONE",
+                        "textStyleName": "Text Style cc18be8b...",
+                        "paragraphSpacing": 16
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Card Section Container",
+        "type": "FRAME",
+        "width": 390,
+        "height": 332,
+        "layoutMode": "VERTICAL",
+        "primaryAxisSizingMode": "FIXED",
+        "counterAxisSizingMode": "FIXED",
+        "primaryAxisAlignItems": "MIN",
+        "counterAxisAlignItems": "MIN",
+        "paddingLeft": {
+          "name": "Variable 126",
+          "fullName": "Variable 126",
+          "notFound": true,
+          "actualValue": 16
+        },
+        "paddingRight": {
+          "name": "Variable 126",
+          "fullName": "Variable 126",
+          "notFound": true,
+          "actualValue": 16
+        },
+        "paddingTop": {
+          "name": "Variable 126",
+          "fullName": "Variable 126",
+          "notFound": true,
+          "actualValue": 16
+        },
+        "paddingBottom": {
+          "name": "Variable 126",
+          "fullName": "Variable 126",
+          "notFound": true,
+          "actualValue": 16
+        },
+        "itemSpacing": 10,
+        "strokeWeight": 1,
+        "strokeAlign": "INSIDE",
+        "strokeCap": "NONE",
+        "strokeJoin": "MITER",
+        "variables": {
+          "paddingLeft": {
+            "name": "Variable 126",
+            "fullName": "Variable 126",
+            "notFound": true,
+            "actualValue": 16
+          },
+          "paddingTop": {
+            "name": "Variable 126",
+            "fullName": "Variable 126",
+            "notFound": true,
+            "actualValue": 16
+          },
+          "paddingRight": {
+            "name": "Variable 126",
+            "fullName": "Variable 126",
+            "notFound": true,
+            "actualValue": 16
+          },
+          "paddingBottom": {
+            "name": "Variable 126",
+            "fullName": "Variable 126",
+            "notFound": true,
+            "actualValue": 16
+          }
+        },
+        "children": [
+          {
+            "name": "Item",
+            "type": "FRAME",
+            "width": 358,
+            "height": 300,
+            "cornerRadius": 20,
+            "layoutMode": "VERTICAL",
+            "primaryAxisSizingMode": "FIXED",
+            "counterAxisSizingMode": "FIXED",
+            "primaryAxisAlignItems": "MIN",
+            "counterAxisAlignItems": "CENTER",
+            "fills": [
+              {
+                "type": "SOLID",
+                "opacity": 1,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 1,
+                  "hex": "#ffffff"
+                }
+              }
+            ],
+            "strokes": [
+              {
+                "type": "SOLID",
+                "opacity": 1,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 1,
+                  "hex": "#ffffff"
+                }
+              }
+            ],
+            "strokeWeight": 2,
+            "strokeAlign": "INSIDE",
+            "strokeCap": "NONE",
+            "strokeJoin": "MITER",
+            "effects": [
+              {
+                "type": "DROP_SHADOW",
+                "radius": 12,
+                "spread": 0,
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "color": {
+                  "r": 0.6880821585655212,
+                  "g": 0.6880821585655212,
+                  "b": 0.6880821585655212,
+                  "a": 0.25,
+                  "hex": "#afafaf40"
+                }
+              }
+            ],
+            "effectStyle": {
+              "name": "Library Style e91d9475",
+              "fullName": "[Library] Style e91d9475",
+              "estimated": true
+            },
+            "variables": {
+              "paddingLeft": {
+                "name": "Variable 120",
+                "fullName": "Variable 120",
+                "notFound": true
+              },
+              "paddingTop": {
+                "name": "Variable 120",
+                "fullName": "Variable 120",
+                "notFound": true
+              },
+              "paddingRight": {
+                "name": "Variable 120",
+                "fullName": "Variable 120",
+                "notFound": true
+              }
+            },
+            "paddingLeft": {
+              "name": "Variable 120",
+              "fullName": "Variable 120",
+              "notFound": true
+            },
+            "paddingTop": {
+              "name": "Variable 120",
+              "fullName": "Variable 120",
+              "notFound": true
+            },
+            "paddingRight": {
+              "name": "Variable 120",
+              "fullName": "Variable 120",
+              "notFound": true
+            },
+            "children": [
+              {
+                "name": "Card Section Header",
+                "type": "FRAME",
+                "width": 358,
+                "height": 64,
+                "layoutMode": "HORIZONTAL",
+                "primaryAxisSizingMode": "FIXED",
+                "counterAxisSizingMode": "AUTO",
+                "primaryAxisAlignItems": "MIN",
+                "counterAxisAlignItems": "CENTER",
+                "paddingLeft": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "paddingRight": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "paddingTop": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "paddingBottom": {
+                  "name": "Variable 127",
+                  "fullName": "Variable 127",
+                  "notFound": true,
+                  "actualValue": 20
+                },
+                "itemSpacing": 24,
+                "strokeWeight": 1,
+                "strokeAlign": "INSIDE",
+                "strokeCap": "NONE",
+                "strokeJoin": "MITER",
+                "variables": {
+                  "paddingLeft": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  },
+                  "paddingTop": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  },
+                  "paddingRight": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  },
+                  "paddingBottom": {
+                    "name": "Variable 127",
+                    "fullName": "Variable 127",
+                    "notFound": true,
+                    "actualValue": 20
+                  }
+                },
+                "children": [
+                  {
+                    "name": "Card Section Title",
+                    "type": "TEXT",
+                    "width": 241,
+                    "height": 24,
+                    "fills": [
+                      {
+                        "name": "Variable 317",
+                        "fullName": "Variable 317",
+                        "notFound": true,
+                        "actualValue": {
+                          "type": "SOLID",
+                          "opacity": 1,
+                          "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 1,
+                            "hex": "#000000"
+                          }
+                        }
+                      }
+                    ],
+                    "strokeWeight": 1,
+                    "strokeAlign": "OUTSIDE",
+                    "strokeCap": "NONE",
+                    "strokeJoin": "MITER",
+                    "textStyle": {
+                      "name": "Library Style 4bfb75a2",
+                      "fullName": "[Library] Style 4bfb75a2",
+                      "estimated": true
+                    },
+                    "variables": {
+                      "fills": [
+                        {
+                          "name": "Variable 317",
+                          "fullName": "Variable 317",
+                          "notFound": true,
+                          "actualValue": {
+                            "type": "SOLID",
+                            "opacity": 1,
+                            "color": {
+                              "r": 0,
+                              "g": 0,
+                              "b": 0,
+                              "a": 1,
+                              "hex": "#000000"
+                            }
+                          }
+                        }
+                      ],
+                      "fontFamily": [
+                        {
+                          "name": "Variable 159",
+                          "fullName": "Variable 159",
+                          "notFound": true
+                        }
+                      ]
+                    },
+                    "fontFamily": [
+                      {
+                        "name": "Variable 159",
+                        "fullName": "Variable 159",
+                        "notFound": true
+                      }
+                    ],
+                    "characters": "Your Cards",
+                    "fontSize": 16,
+                    "fontName": {
+                      "family": "Inter",
+                      "style": "Semi Bold"
+                    },
+                    "fontWeight": 600,
+                    "letterSpacing": {
+                      "unit": "PERCENT",
+                      "value": 0
+                    },
+                    "lineHeight": {
+                      "unit": "PIXELS",
+                      "value": 24
+                    },
+                    "textAlignHorizontal": "LEFT",
+                    "textAlignVertical": "TOP",
+                    "textAutoResize": "HEIGHT",
+                    "textCase": "ORIGINAL",
+                    "textDecoration": "NONE",
+                    "textStyleName": "Text Style 4bfb75a2...",
+                    "paragraphSpacing": 16
+                  },
+                  {
+                    "name": "Card Section Action",
+                    "type": "TEXT",
+                    "width": 53,
+                    "height": 16,
+                    "fills": [
+                      {
+                        "name": "Variable 322",
+                        "fullName": "Variable 322",
+                        "notFound": true,
+                        "actualValue": {
+                          "type": "SOLID",
+                          "opacity": 1,
+                          "color": {
+                            "r": 0.40392157435417175,
+                            "g": 0.40392157435417175,
+                            "b": 0.40392157435417175,
+                            "a": 1,
+                            "hex": "#676767"
+                          }
+                        }
+                      }
+                    ],
+                    "strokeWeight": 1,
+                    "strokeAlign": "OUTSIDE",
+                    "strokeCap": "NONE",
+                    "strokeJoin": "MITER",
+                    "variables": {
+                      "fills": [
+                        {
+                          "name": "Variable 322",
+                          "fullName": "Variable 322",
+                          "notFound": true,
+                          "actualValue": {
+                            "type": "SOLID",
+                            "opacity": 1,
+                            "color": {
+                              "r": 0.40392157435417175,
+                              "g": 0.40392157435417175,
+                              "b": 0.40392157435417175,
+                              "a": 1,
+                              "hex": "#676767"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "characters": "View All",
+                    "fontSize": 14,
+                    "fontName": {
+                      "family": "Geist",
+                      "style": "Medium"
+                    },
+                    "fontWeight": 500,
+                    "letterSpacing": {
+                      "unit": "PIXELS",
+                      "value": 0
+                    },
+                    "lineHeight": {
+                      "unit": "PIXELS",
+                      "value": 16
+                    },
+                    "textAlignHorizontal": "LEFT",
+                    "textAlignVertical": "TOP",
+                    "textAutoResize": "WIDTH_AND_HEIGHT",
+                    "textCase": "ORIGINAL",
+                    "textDecoration": "NONE"
+                  }
+                ]
+              },
+              {
+                "name": "Cards",
+                "type": "FRAME",
+                "width": 358,
+                "height": 259.005859375,
+                "layoutMode": "VERTICAL",
+                "primaryAxisSizingMode": "AUTO",
+                "counterAxisSizingMode": "FIXED",
+                "primaryAxisAlignItems": "CENTER",
+                "counterAxisAlignItems": "CENTER",
+                "paddingLeft": {
+                  "name": "Variable 123",
+                  "fullName": "Variable 123",
+                  "notFound": true,
+                  "actualValue": 4
+                },
+                "paddingRight": {
+                  "name": "Variable 123",
+                  "fullName": "Variable 123",
+                  "notFound": true,
+                  "actualValue": 4
+                },
+                "paddingTop": {
+                  "name": "Variable 123",
+                  "fullName": "Variable 123",
+                  "notFound": true,
+                  "actualValue": 4
+                },
+                "paddingBottom": {
+                  "name": "Variable 123",
+                  "fullName": "Variable 123",
+                  "notFound": true,
+                  "actualValue": 4
+                },
+                "itemSpacing": -155,
+                "strokeWeight": 0.9871583580970764,
+                "strokeAlign": "INSIDE",
+                "strokeCap": "NONE",
+                "strokeJoin": "MITER",
+                "variables": {
+                  "paddingLeft": {
+                    "name": "Variable 123",
+                    "fullName": "Variable 123",
+                    "notFound": true,
+                    "actualValue": 4
+                  },
+                  "paddingTop": {
+                    "name": "Variable 123",
+                    "fullName": "Variable 123",
+                    "notFound": true,
+                    "actualValue": 4
+                  },
+                  "paddingRight": {
+                    "name": "Variable 123",
+                    "fullName": "Variable 123",
+                    "notFound": true,
+                    "actualValue": 4
+                  },
+                  "paddingBottom": {
+                    "name": "Variable 123",
+                    "fullName": "Variable 123",
+                    "notFound": true,
+                    "actualValue": 4
+                  }
+                },
+                "children": [
+                  {
+                    "name": "realistic-credit-card-design 1",
+                    "type": "RECTANGLE",
+                    "width": 264,
+                    "height": 172.005859375,
+                    "fills": [
+                      {
+                        "type": "IMAGE",
+                        "opacity": 1,
+                        "imageHash": "84e82cb9e2cf8c60e6792c8c50b613b3d8e102b5",
+                        "scaleMode": "CROP",
+                        "imageTransform": [
+                          [
+                            0.6830000281333923,
+                            0,
+                            0.15850000083446503
+                          ],
+                          [
+                            0,
+                            0.445000022649765,
+                            0.2775000035762787
+                          ]
+                        ]
+                      }
+                    ],
+                    "strokeWeight": 0.9663712382316589,
+                    "strokeAlign": "INSIDE",
+                    "strokeCap": "NONE",
+                    "strokeJoin": "MITER"
+                  },
+                  {
+                    "name": "realistic-monochromatic-credit-card 1",
+                    "type": "RECTANGLE",
+                    "width": 288,
+                    "height": 189,
+                    "fills": [
+                      {
+                        "type": "IMAGE",
+                        "opacity": 1,
+                        "imageHash": "a98747fdeeb7966b31cc0db0efc87c2ff8024700",
+                        "scaleMode": "CROP",
+                        "imageTransform": [
+                          [
+                            0.6830000281333923,
+                            0,
+                            0.15850001573562622
+                          ],
+                          [
+                            0,
+                            0.44700002670288086,
+                            0.27650001645088196
+                          ]
+                        ]
+                      }
+                    ],
+                    "strokeWeight": 0.9698920845985413,
+                    "strokeAlign": "INSIDE",
+                    "strokeCap": "NONE",
+                    "strokeJoin": "MITER"
+                  },
+                  {
+                    "name": "Card Image",
+                    "type": "RECTANGLE",
+                    "width": 322,
+                    "height": 200,
+                    "fills": [
+                      {
+                        "type": "IMAGE",
+                        "opacity": 1,
+                        "imageHash": "0922a1e1cdbab5c92c92b93e176ec38df6fbf5a6",
+                        "scaleMode": "CROP",
+                        "imageTransform": [
+                          [
+                            0.849609375,
+                            0,
+                            0.0751953125
+                          ],
+                          [
+                            0,
+                            0.529296875,
+                            0.2353515625
+                          ]
+                        ]
+                      }
+                    ],
+                    "strokeWeight": 1,
+                    "strokeAlign": "INSIDE",
+                    "strokeCap": "NONE",
+                    "strokeJoin": "MITER"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "UI Text/Heading/Gray/H5 Copy 7",
+        "type": "INSTANCE",
+        "width": 22.8799991607666,
+        "height": 14.774617195129395,
+        "layoutMode": "NONE",
+        "primaryAxisSizingMode": "AUTO",
+        "counterAxisSizingMode": "FIXED",
+        "primaryAxisAlignItems": "MIN",
+        "counterAxisAlignItems": "MIN",
+        "fills": [
+          {
+            "type": "SOLID",
+            "opacity": 1,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 1,
+              "hex": "#ffffff"
+            }
+          }
+        ],
+        "strokeWeight": 1,
+        "strokeAlign": "INSIDE",
+        "strokeCap": "NONE",
+        "strokeJoin": "MITER",
+        "mainComponent": {
+          "name": "UI Text/Heading/Gray/H5"
+        }
+      },
+      {
+        "name": "Status Bar",
+        "type": "INSTANCE",
+        "width": 390,
+        "height": 40,
+        "layoutMode": "NONE",
+        "primaryAxisSizingMode": "AUTO",
+        "counterAxisSizingMode": "FIXED",
+        "primaryAxisAlignItems": "MIN",
+        "counterAxisAlignItems": "MIN",
+        "fills": [
+          {
+            "type": "SOLID",
+            "opacity": 1,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 1,
+              "hex": "#ffffff"
+            }
+          }
+        ],
+        "strokeWeight": 1,
+        "strokeAlign": "INSIDE",
+        "strokeCap": "NONE",
+        "strokeJoin": "MITER",
+        "mainComponent": {
+          "name": "System / StatusBars / White"
+        }
+      },
+      {
+        "name": "Header Container",
+        "type": "FRAME",
+        "width": 390,
+        "height": 76,
+        "layoutMode": "HORIZONTAL",
+        "primaryAxisSizingMode": "FIXED",
+        "counterAxisSizingMode": "FIXED",
+        "primaryAxisAlignItems": "SPACE_BETWEEN",
+        "counterAxisAlignItems": "CENTER",
+        "paddingLeft": {
+          "name": "Variable 126",
+          "fullName": "Variable 126",
+          "notFound": true,
+          "actualValue": 16
+        },
+        "paddingRight": {
+          "name": "Variable 126",
+          "fullName": "Variable 126",
+          "notFound": true,
+          "actualValue": 16
+        },
+        "paddingTop": {
+          "name": "Variable 125",
+          "fullName": "Variable 125",
+          "notFound": true,
+          "actualValue": 12
+        },
+        "paddingBottom": {
+          "name": "Variable 125",
+          "fullName": "Variable 125",
+          "notFound": true,
+          "actualValue": 12
+        },
+        "itemSpacing": 105,
+        "strokeWeight": 1,
+        "strokeAlign": "INSIDE",
+        "strokeCap": "NONE",
+        "strokeJoin": "MITER",
+        "variables": {
+          "paddingLeft": {
+            "name": "Variable 126",
+            "fullName": "Variable 126",
+            "notFound": true,
+            "actualValue": 16
+          },
+          "paddingTop": {
+            "name": "Variable 125",
+            "fullName": "Variable 125",
+            "notFound": true,
+            "actualValue": 12
+          },
+          "paddingRight": {
+            "name": "Variable 126",
+            "fullName": "Variable 126",
+            "notFound": true,
+            "actualValue": 16
+          },
+          "paddingBottom": {
+            "name": "Variable 125",
+            "fullName": "Variable 125",
+            "notFound": true,
+            "actualValue": 12
+          }
+        },
+        "children": [
+          {
+            "name": "Greeting Container",
+            "type": "FRAME",
+            "width": 136,
+            "height": 52,
+            "cornerRadius": 9999,
+            "layoutMode": "HORIZONTAL",
+            "primaryAxisSizingMode": "AUTO",
+            "counterAxisSizingMode": "FIXED",
+            "primaryAxisAlignItems": "MIN",
+            "counterAxisAlignItems": "CENTER",
+            "paddingLeft": {
+              "name": "Variable 123",
+              "fullName": "Variable 123",
+              "notFound": true,
+              "actualValue": 4
+            },
+            "paddingRight": {
+              "name": "Variable 125",
+              "fullName": "Variable 125",
+              "notFound": true,
+              "actualValue": 12
+            },
+            "paddingTop": {
+              "name": "Variable 123",
+              "fullName": "Variable 123",
+              "notFound": true,
+              "actualValue": 4
+            },
+            "paddingBottom": {
+              "name": "Variable 123",
+              "fullName": "Variable 123",
+              "notFound": true,
+              "actualValue": 4
+            },
+            "itemSpacing": {
+              "name": "Variable 124",
+              "fullName": "Variable 124",
+              "notFound": true,
+              "actualValue": 8
+            },
+            "fills": [
+              {
+                "type": "SOLID",
+                "opacity": 1,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 1,
+                  "hex": "#ffffff"
+                }
+              }
+            ],
+            "strokeWeight": 1,
+            "strokeAlign": "INSIDE",
+            "strokeCap": "NONE",
+            "strokeJoin": "MITER",
+            "variables": {
+              "itemSpacing": {
+                "name": "Variable 124",
+                "fullName": "Variable 124",
+                "notFound": true,
+                "actualValue": 8
+              },
+              "paddingLeft": {
+                "name": "Variable 123",
+                "fullName": "Variable 123",
+                "notFound": true,
+                "actualValue": 4
+              },
+              "paddingTop": {
+                "name": "Variable 123",
+                "fullName": "Variable 123",
+                "notFound": true,
+                "actualValue": 4
+              },
+              "paddingRight": {
+                "name": "Variable 125",
+                "fullName": "Variable 125",
+                "notFound": true,
+                "actualValue": 12
+              },
+              "paddingBottom": {
+                "name": "Variable 123",
+                "fullName": "Variable 123",
+                "notFound": true,
+                "actualValue": 4
+              },
+              "topLeftRadius": {
+                "name": "Variable 119",
+                "fullName": "Variable 119",
+                "notFound": true
+              },
+              "topRightRadius": {
+                "name": "Variable 119",
+                "fullName": "Variable 119",
+                "notFound": true
+              },
+              "bottomLeftRadius": {
+                "name": "Variable 119",
+                "fullName": "Variable 119",
+                "notFound": true
+              },
+              "bottomRightRadius": {
+                "name": "Variable 119",
+                "fullName": "Variable 119",
+                "notFound": true
+              }
+            },
+            "topLeftRadius": {
+              "name": "Variable 119",
+              "fullName": "Variable 119",
+              "notFound": true
+            },
+            "topRightRadius": {
+              "name": "Variable 119",
+              "fullName": "Variable 119",
+              "notFound": true
+            },
+            "bottomLeftRadius": {
+              "name": "Variable 119",
+              "fullName": "Variable 119",
+              "notFound": true
+            },
+            "bottomRightRadius": {
+              "name": "Variable 119",
+              "fullName": "Variable 119",
+              "notFound": true
+            },
+            "children": [
+              {
+                "name": "Profile Image",
+                "type": "FRAME",
+                "width": 44,
+                "height": 44,
+                "cornerRadius": 9999,
+                "layoutMode": "NONE",
+                "primaryAxisSizingMode": "AUTO",
+                "counterAxisSizingMode": "FIXED",
+                "primaryAxisAlignItems": "MIN",
+                "counterAxisAlignItems": "MIN",
+                "fills": [
+                  {
+                    "type": "SOLID",
+                    "opacity": 1,
+                    "color": {
+                      "r": 1,
+                      "g": 1,
+                      "b": 1,
+                      "a": 1,
+                      "hex": "#ffffff"
+                    }
+                  },
+                  {
+                    "type": "IMAGE",
+                    "opacity": 1,
+                    "imageHash": "169480ffca2c939f628b1c3cf2e79c07ca83281d",
+                    "scaleMode": "FILL",
+                    "imageTransform": [
+                      [
+                        1,
+                        0,
+                        0
+                      ],
+                      [
+                        0,
+                        1,
+                        0
+                      ]
+                    ]
+                  }
+                ],
+                "strokeWeight": 1,
+                "strokeAlign": "INSIDE",
+                "strokeCap": "NONE",
+                "strokeJoin": "MITER",
+                "effects": [
+                  {
+                    "type": "DROP_SHADOW",
+                    "radius": 8,
+                    "spread": 0,
+                    "offset": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "color": {
+                      "r": 0.5965481996536255,
+                      "g": 0.5965481996536255,
+                      "b": 0.5965481996536255,
+                      "a": 0.25,
+                      "hex": "#98989840"
+                    }
+                  }
+                ],
+                "variables": {
+                  "topLeftRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  },
+                  "topRightRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  },
+                  "bottomLeftRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  },
+                  "bottomRightRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  }
+                },
+                "topLeftRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "topRightRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "bottomLeftRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "bottomRightRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                }
+              },
+              {
+                "name": "Greeting Text",
+                "type": "TEXT",
+                "width": 68,
+                "height": 24,
+                "fills": [
+                  {
+                    "name": "Variable 161",
+                    "fullName": "Variable 161",
+                    "notFound": true,
+                    "actualValue": {
+                      "type": "SOLID",
+                      "opacity": 1,
+                      "color": {
+                        "r": 0,
+                        "g": 0,
+                        "b": 0,
+                        "a": 1,
+                        "hex": "#000000"
+                      }
+                    }
+                  }
+                ],
+                "strokeWeight": 1,
+                "strokeAlign": "OUTSIDE",
+                "strokeCap": "NONE",
+                "strokeJoin": "MITER",
+                "textStyle": {
+                  "name": "Library Style 4bfb75a2",
+                  "fullName": "[Library] Style 4bfb75a2",
+                  "estimated": true
+                },
+                "variables": {
+                  "fills": [
+                    {
+                      "name": "Variable 161",
+                      "fullName": "Variable 161",
+                      "notFound": true,
+                      "actualValue": {
+                        "type": "SOLID",
+                        "opacity": 1,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0,
+                          "a": 1,
+                          "hex": "#000000"
+                        }
+                      }
+                    }
+                  ],
+                  "fontFamily": [
+                    {
+                      "name": "Variable 159",
+                      "fullName": "Variable 159",
+                      "notFound": true
+                    }
+                  ]
+                },
+                "fontFamily": [
+                  {
+                    "name": "Variable 159",
+                    "fullName": "Variable 159",
+                    "notFound": true
+                  }
+                ],
+                "characters": "Hi, John!",
+                "fontSize": 16,
+                "fontName": {
+                  "family": "Inter",
+                  "style": "Semi Bold"
+                },
+                "fontWeight": 600,
+                "letterSpacing": {
+                  "unit": "PERCENT",
+                  "value": 0
+                },
+                "lineHeight": {
+                  "unit": "PIXELS",
+                  "value": 24
+                },
+                "textAlignHorizontal": "LEFT",
+                "textAlignVertical": "TOP",
+                "textAutoResize": "WIDTH_AND_HEIGHT",
+                "textCase": "ORIGINAL",
+                "textDecoration": "NONE",
+                "textStyleName": "Text Style 4bfb75a2...",
+                "paragraphSpacing": 16
+              }
+            ]
+          },
+          {
+            "name": "Header Icons Container",
+            "type": "FRAME",
+            "width": 112,
+            "height": 52,
+            "layoutMode": "HORIZONTAL",
+            "primaryAxisSizingMode": "AUTO",
+            "counterAxisSizingMode": "AUTO",
+            "primaryAxisAlignItems": "MIN",
+            "counterAxisAlignItems": "CENTER",
+            "itemSpacing": {
+              "name": "Variable 124",
+              "fullName": "Variable 124",
+              "notFound": true,
+              "actualValue": 8
+            },
+            "strokeWeight": 1,
+            "strokeAlign": "INSIDE",
+            "strokeCap": "NONE",
+            "strokeJoin": "MITER",
+            "variables": {
+              "itemSpacing": {
+                "name": "Variable 124",
+                "fullName": "Variable 124",
+                "notFound": true,
+                "actualValue": 8
+              }
+            },
+            "children": [
+              {
+                "name": "Settings Icon Container",
+                "type": "FRAME",
+                "width": 52,
+                "height": 52,
+                "cornerRadius": 9999,
+                "layoutMode": "HORIZONTAL",
+                "primaryAxisSizingMode": "AUTO",
+                "counterAxisSizingMode": "AUTO",
+                "primaryAxisAlignItems": "MIN",
+                "counterAxisAlignItems": "CENTER",
+                "paddingLeft": 14,
+                "paddingRight": 14,
+                "paddingTop": 14,
+                "paddingBottom": 14,
+                "itemSpacing": 10,
+                "fills": [
+                  {
+                    "type": "SOLID",
+                    "opacity": 1,
+                    "color": {
+                      "r": 1,
+                      "g": 1,
+                      "b": 1,
+                      "a": 1,
+                      "hex": "#ffffff"
+                    }
+                  }
+                ],
+                "strokeWeight": 1,
+                "strokeAlign": "INSIDE",
+                "strokeCap": "NONE",
+                "strokeJoin": "MITER",
+                "effects": [
+                  {
+                    "type": "DROP_SHADOW",
+                    "radius": 8,
+                    "spread": 0,
+                    "offset": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "color": {
+                      "r": 0.5965481996536255,
+                      "g": 0.5965481996536255,
+                      "b": 0.5965481996536255,
+                      "a": 0.25,
+                      "hex": "#98989840"
+                    }
+                  }
+                ],
+                "variables": {
+                  "topLeftRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  },
+                  "topRightRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  },
+                  "bottomLeftRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  },
+                  "bottomRightRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  }
+                },
+                "topLeftRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "topRightRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "bottomLeftRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "bottomRightRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "children": [
+                  {
+                    "name": "Frame",
+                    "type": "FRAME",
+                    "width": 24,
+                    "height": 24,
+                    "layoutMode": "NONE",
+                    "primaryAxisSizingMode": "AUTO",
+                    "counterAxisSizingMode": "FIXED",
+                    "primaryAxisAlignItems": "MIN",
+                    "counterAxisAlignItems": "MIN",
+                    "fills": [
+                      {
+                        "type": "SOLID",
+                        "opacity": 1,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1,
+                          "hex": "#ffffff"
+                        }
+                      }
+                    ],
+                    "strokeWeight": 1,
+                    "strokeAlign": "INSIDE",
+                    "strokeCap": "NONE",
+                    "strokeJoin": "MITER",
+                    "children": [
+                      {
+                        "name": "Vector",
+                        "type": "VECTOR",
+                        "width": 17.18744468688965,
+                        "height": 18,
+                        "strokes": [
+                          {
+                            "type": "SOLID",
+                            "opacity": 1,
+                            "color": {
+                              "r": 0,
+                              "g": 0,
+                              "b": 0,
+                              "a": 1,
+                              "hex": "#000000"
+                            }
+                          }
+                        ],
+                        "strokeWeight": 1.5,
+                        "strokeAlign": "CENTER",
+                        "strokeCap": "ROUND",
+                        "strokeJoin": "ROUND"
+                      },
+                      {
+                        "name": "Vector",
+                        "type": "VECTOR",
+                        "width": 6,
+                        "height": 6,
+                        "strokes": [
+                          {
+                            "type": "SOLID",
+                            "opacity": 1,
+                            "color": {
+                              "r": 0,
+                              "g": 0,
+                              "b": 0,
+                              "a": 1,
+                              "hex": "#000000"
+                            }
+                          }
+                        ],
+                        "strokeWeight": 1.5,
+                        "strokeAlign": "CENTER",
+                        "strokeCap": "ROUND",
+                        "strokeJoin": "ROUND"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "Bell Icon Container",
+                "type": "FRAME",
+                "width": 52,
+                "height": 52,
+                "cornerRadius": 9999,
+                "layoutMode": "HORIZONTAL",
+                "primaryAxisSizingMode": "AUTO",
+                "counterAxisSizingMode": "AUTO",
+                "primaryAxisAlignItems": "MIN",
+                "counterAxisAlignItems": "CENTER",
+                "paddingLeft": 14,
+                "paddingRight": 14,
+                "paddingTop": 14,
+                "paddingBottom": 14,
+                "itemSpacing": 10,
+                "fills": [
+                  {
+                    "type": "SOLID",
+                    "opacity": 1,
+                    "color": {
+                      "r": 1,
+                      "g": 1,
+                      "b": 1,
+                      "a": 1,
+                      "hex": "#ffffff"
+                    }
+                  }
+                ],
+                "strokeWeight": 1,
+                "strokeAlign": "INSIDE",
+                "strokeCap": "NONE",
+                "strokeJoin": "MITER",
+                "effects": [
+                  {
+                    "type": "DROP_SHADOW",
+                    "radius": 8,
+                    "spread": 0,
+                    "offset": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "color": {
+                      "r": 0.5965481996536255,
+                      "g": 0.5965481996536255,
+                      "b": 0.5965481996536255,
+                      "a": 0.25,
+                      "hex": "#98989840"
+                    }
+                  }
+                ],
+                "variables": {
+                  "topLeftRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  },
+                  "topRightRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  },
+                  "bottomLeftRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  },
+                  "bottomRightRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  }
+                },
+                "topLeftRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "topRightRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "bottomLeftRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "bottomRightRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "children": [
+                  {
+                    "name": "Frame",
+                    "type": "FRAME",
+                    "width": 24,
+                    "height": 24,
+                    "layoutMode": "NONE",
+                    "primaryAxisSizingMode": "AUTO",
+                    "counterAxisSizingMode": "FIXED",
+                    "primaryAxisAlignItems": "MIN",
+                    "counterAxisAlignItems": "MIN",
+                    "fills": [
+                      {
+                        "type": "SOLID",
+                        "opacity": 1,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1,
+                          "hex": "#ffffff"
+                        }
+                      }
+                    ],
+                    "strokeWeight": 1,
+                    "strokeAlign": "INSIDE",
+                    "strokeCap": "NONE",
+                    "strokeJoin": "MITER",
+                    "children": [
+                      {
+                        "name": "Vector",
+                        "type": "VECTOR",
+                        "width": 16.623001098632812,
+                        "height": 17.99717903137207,
+                        "strokes": [
+                          {
+                            "type": "SOLID",
+                            "opacity": 1,
+                            "color": {
+                              "r": 0,
+                              "g": 0,
+                              "b": 0,
+                              "a": 1,
+                              "hex": "#000000"
+                            }
+                          }
+                        ],
+                        "strokeWeight": 1.5,
+                        "strokeAlign": "CENTER",
+                        "strokeCap": "ROUND",
+                        "strokeJoin": "ROUND"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Tab Bar Container",
+        "type": "FRAME",
+        "width": 390,
+        "height": 123.39605712890625,
+        "layoutMode": "VERTICAL",
+        "primaryAxisSizingMode": "AUTO",
+        "counterAxisSizingMode": "FIXED",
+        "primaryAxisAlignItems": "MIN",
+        "counterAxisAlignItems": "MIN",
+        "strokeWeight": 1,
+        "strokeAlign": "INSIDE",
+        "strokeCap": "NONE",
+        "strokeJoin": "MITER",
+        "children": [
+          {
+            "name": "Tab Bar Background",
+            "type": "FRAME",
+            "width": 390,
+            "height": 92,
+            "layoutMode": "VERTICAL",
+            "primaryAxisSizingMode": "AUTO",
+            "counterAxisSizingMode": "FIXED",
+            "primaryAxisAlignItems": "MIN",
+            "counterAxisAlignItems": "CENTER",
+            "paddingLeft": 10,
+            "paddingRight": 10,
+            "paddingTop": 10,
+            "paddingBottom": 10,
+            "itemSpacing": 10,
+            "strokeWeight": 1,
+            "strokeAlign": "INSIDE",
+            "strokeCap": "NONE",
+            "strokeJoin": "MITER",
+            "children": [
+              {
+                "name": "Tab Bar Items",
+                "type": "FRAME",
+                "width": 238,
+                "height": 72,
+                "cornerRadius": 9999,
+                "layoutMode": "HORIZONTAL",
+                "primaryAxisSizingMode": "AUTO",
+                "counterAxisSizingMode": "AUTO",
+                "primaryAxisAlignItems": "MIN",
+                "counterAxisAlignItems": "CENTER",
+                "paddingLeft": {
+                  "name": "Variable 125",
+                  "fullName": "Variable 125",
+                  "notFound": true,
+                  "actualValue": 12
+                },
+                "paddingRight": {
+                  "name": "Variable 125",
+                  "fullName": "Variable 125",
+                  "notFound": true,
+                  "actualValue": 12
+                },
+                "paddingTop": {
+                  "name": "Variable 125",
+                  "fullName": "Variable 125",
+                  "notFound": true,
+                  "actualValue": 12
+                },
+                "paddingBottom": {
+                  "name": "Variable 125",
+                  "fullName": "Variable 125",
+                  "notFound": true,
+                  "actualValue": 12
+                },
+                "itemSpacing": {
+                  "name": "Variable 125",
+                  "fullName": "Variable 125",
+                  "notFound": true,
+                  "actualValue": 12
+                },
+                "fills": [
+                  {
+                    "type": "SOLID",
+                    "opacity": 1,
+                    "color": {
+                      "r": 1,
+                      "g": 1,
+                      "b": 1,
+                      "a": 1,
+                      "hex": "#ffffff"
+                    }
+                  }
+                ],
+                "strokeWeight": 1,
+                "strokeAlign": "INSIDE",
+                "strokeCap": "NONE",
+                "strokeJoin": "MITER",
+                "effects": [
+                  {
+                    "type": "DROP_SHADOW",
+                    "radius": 8,
+                    "spread": 0,
+                    "offset": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "color": {
+                      "r": 0.5965481996536255,
+                      "g": 0.5965481996536255,
+                      "b": 0.5965481996536255,
+                      "a": 0.25,
+                      "hex": "#98989840"
+                    }
+                  }
+                ],
+                "variables": {
+                  "itemSpacing": {
+                    "name": "Variable 125",
+                    "fullName": "Variable 125",
+                    "notFound": true,
+                    "actualValue": 12
+                  },
+                  "paddingLeft": {
+                    "name": "Variable 125",
+                    "fullName": "Variable 125",
+                    "notFound": true,
+                    "actualValue": 12
+                  },
+                  "paddingTop": {
+                    "name": "Variable 125",
+                    "fullName": "Variable 125",
+                    "notFound": true,
+                    "actualValue": 12
+                  },
+                  "paddingRight": {
+                    "name": "Variable 125",
+                    "fullName": "Variable 125",
+                    "notFound": true,
+                    "actualValue": 12
+                  },
+                  "paddingBottom": {
+                    "name": "Variable 125",
+                    "fullName": "Variable 125",
+                    "notFound": true,
+                    "actualValue": 12
+                  },
+                  "topLeftRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  },
+                  "topRightRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  },
+                  "bottomLeftRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  },
+                  "bottomRightRadius": {
+                    "name": "Variable 119",
+                    "fullName": "Variable 119",
+                    "notFound": true
+                  }
+                },
+                "topLeftRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "topRightRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "bottomLeftRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "bottomRightRadius": {
+                  "name": "Variable 119",
+                  "fullName": "Variable 119",
+                  "notFound": true
+                },
+                "children": [
+                  {
+                    "name": "Home Tab",
+                    "type": "FRAME",
+                    "width": 94,
+                    "height": 48,
+                    "cornerRadius": 9999,
+                    "layoutMode": "HORIZONTAL",
+                    "primaryAxisSizingMode": "AUTO",
+                    "counterAxisSizingMode": "AUTO",
+                    "primaryAxisAlignItems": "MIN",
+                    "counterAxisAlignItems": "CENTER",
+                    "paddingLeft": 12,
+                    "paddingRight": 12,
+                    "paddingTop": 12,
+                    "paddingBottom": 12,
+                    "itemSpacing": {
+                      "name": "Variable 124",
+                      "fullName": "Variable 124",
+                      "notFound": true,
+                      "actualValue": 8
+                    },
+                    "fills": [
+                      {
+                        "type": "SOLID",
+                        "opacity": 1,
+                        "color": {
+                          "r": 0.1568627506494522,
+                          "g": 0.26274511218070984,
+                          "b": 0.8352941274642944,
+                          "a": 1,
+                          "hex": "#2843d5"
+                        }
+                      }
+                    ],
+                    "strokeWeight": 1,
+                    "strokeAlign": "INSIDE",
+                    "strokeCap": "NONE",
+                    "strokeJoin": "MITER",
+                    "variables": {
+                      "itemSpacing": {
+                        "name": "Variable 124",
+                        "fullName": "Variable 124",
+                        "notFound": true,
+                        "actualValue": 8
+                      },
+                      "topLeftRadius": {
+                        "name": "Variable 119",
+                        "fullName": "Variable 119",
+                        "notFound": true
+                      },
+                      "topRightRadius": {
+                        "name": "Variable 119",
+                        "fullName": "Variable 119",
+                        "notFound": true
+                      },
+                      "bottomLeftRadius": {
+                        "name": "Variable 119",
+                        "fullName": "Variable 119",
+                        "notFound": true
+                      },
+                      "bottomRightRadius": {
+                        "name": "Variable 119",
+                        "fullName": "Variable 119",
+                        "notFound": true
+                      }
+                    },
+                    "topLeftRadius": {
+                      "name": "Variable 119",
+                      "fullName": "Variable 119",
+                      "notFound": true
+                    },
+                    "topRightRadius": {
+                      "name": "Variable 119",
+                      "fullName": "Variable 119",
+                      "notFound": true
+                    },
+                    "bottomLeftRadius": {
+                      "name": "Variable 119",
+                      "fullName": "Variable 119",
+                      "notFound": true
+                    },
+                    "bottomRightRadius": {
+                      "name": "Variable 119",
+                      "fullName": "Variable 119",
+                      "notFound": true
+                    },
+                    "children": [
+                      {
+                        "name": "Home Icon",
+                        "type": "INSTANCE",
+                        "width": 24,
+                        "height": 24,
+                        "layoutMode": "NONE",
+                        "primaryAxisSizingMode": "FIXED",
+                        "counterAxisSizingMode": "FIXED",
+                        "primaryAxisAlignItems": "MIN",
+                        "counterAxisAlignItems": "MIN",
+                        "fills": [
+                          {
+                            "type": "SOLID",
+                            "opacity": 1,
+                            "color": {
+                              "r": 1,
+                              "g": 1,
+                              "b": 1,
+                              "a": 1,
+                              "hex": "#ffffff"
+                            }
+                          }
+                        ],
+                        "strokeWeight": 1,
+                        "strokeAlign": "INSIDE",
+                        "strokeCap": "NONE",
+                        "strokeJoin": "MITER",
+                        "mainComponent": {
+                          "name": "Iconsans/Linear/Home-1"
+                        }
+                      },
+                      {
+                        "name": "Home Label",
+                        "type": "TEXT",
+                        "width": 38,
+                        "height": 18,
+                        "fills": [
+                          {
+                            "type": "SOLID",
+                            "opacity": 1,
+                            "color": {
+                              "r": 1,
+                              "g": 1,
+                              "b": 1,
+                              "a": 1,
+                              "hex": "#ffffff"
+                            }
+                          }
+                        ],
+                        "strokeWeight": 1,
+                        "strokeAlign": "OUTSIDE",
+                        "strokeCap": "NONE",
+                        "strokeJoin": "MITER",
+                        "characters": "Home",
+                        "fontSize": 14,
+                        "fontName": {
+                          "family": "Geist",
+                          "style": "Regular"
+                        },
+                        "fontWeight": 400,
+                        "letterSpacing": {
+                          "unit": "PIXELS",
+                          "value": 0
+                        },
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "textAlignHorizontal": "LEFT",
+                        "textAlignVertical": "TOP",
+                        "textAutoResize": "WIDTH_AND_HEIGHT",
+                        "textCase": "ORIGINAL",
+                        "textDecoration": "NONE"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Wallet Tab",
+                    "type": "FRAME",
+                    "width": 48,
+                    "height": 48,
+                    "cornerRadius": 9999,
+                    "layoutMode": "HORIZONTAL",
+                    "primaryAxisSizingMode": "FIXED",
+                    "counterAxisSizingMode": "FIXED",
+                    "primaryAxisAlignItems": "CENTER",
+                    "counterAxisAlignItems": "CENTER",
+                    "paddingLeft": 12,
+                    "paddingRight": 12,
+                    "paddingTop": 8,
+                    "paddingBottom": 8,
+                    "itemSpacing": {
+                      "name": "Variable 124",
+                      "fullName": "Variable 124",
+                      "notFound": true,
+                      "actualValue": 8
+                    },
+                    "fills": [
+                      {
+                        "type": "SOLID",
+                        "opacity": 1,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1,
+                          "hex": "#ffffff"
+                        }
+                      }
+                    ],
+                    "strokeWeight": 1,
+                    "strokeAlign": "INSIDE",
+                    "strokeCap": "NONE",
+                    "strokeJoin": "MITER",
+                    "variables": {
+                      "itemSpacing": {
+                        "name": "Variable 124",
+                        "fullName": "Variable 124",
+                        "notFound": true,
+                        "actualValue": 8
+                      },
+                      "topLeftRadius": {
+                        "name": "Variable 119",
+                        "fullName": "Variable 119",
+                        "notFound": true
+                      },
+                      "topRightRadius": {
+                        "name": "Variable 119",
+                        "fullName": "Variable 119",
+                        "notFound": true
+                      },
+                      "bottomLeftRadius": {
+                        "name": "Variable 119",
+                        "fullName": "Variable 119",
+                        "notFound": true
+                      },
+                      "bottomRightRadius": {
+                        "name": "Variable 119",
+                        "fullName": "Variable 119",
+                        "notFound": true
+                      }
+                    },
+                    "topLeftRadius": {
+                      "name": "Variable 119",
+                      "fullName": "Variable 119",
+                      "notFound": true
+                    },
+                    "topRightRadius": {
+                      "name": "Variable 119",
+                      "fullName": "Variable 119",
+                      "notFound": true
+                    },
+                    "bottomLeftRadius": {
+                      "name": "Variable 119",
+                      "fullName": "Variable 119",
+                      "notFound": true
+                    },
+                    "bottomRightRadius": {
+                      "name": "Variable 119",
+                      "fullName": "Variable 119",
+                      "notFound": true
+                    },
+                    "children": [
+                      {
+                        "name": "Wallet Icon",
+                        "type": "INSTANCE",
+                        "width": 24,
+                        "height": 24,
+                        "layoutMode": "NONE",
+                        "primaryAxisSizingMode": "AUTO",
+                        "counterAxisSizingMode": "FIXED",
+                        "primaryAxisAlignItems": "MIN",
+                        "counterAxisAlignItems": "MIN",
+                        "fills": [
+                          {
+                            "type": "SOLID",
+                            "opacity": 1,
+                            "color": {
+                              "r": 1,
+                              "g": 1,
+                              "b": 1,
+                              "a": 1,
+                              "hex": "#ffffff"
+                            }
+                          }
+                        ],
+                        "strokeWeight": 1,
+                        "strokeAlign": "INSIDE",
+                        "strokeCap": "NONE",
+                        "strokeJoin": "MITER",
+                        "mainComponent": {
+                          "name": "Iconsans/Linear/Wallet"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Activity Tab",
+                    "type": "FRAME",
+                    "width": 48,
+                    "height": 48,
+                    "cornerRadius": 9999,
+                    "layoutMode": "HORIZONTAL",
+                    "primaryAxisSizingMode": "FIXED",
+                    "counterAxisSizingMode": "FIXED",
+                    "primaryAxisAlignItems": "CENTER",
+                    "counterAxisAlignItems": "CENTER",
+                    "paddingLeft": 12,
+                    "paddingRight": 12,
+                    "paddingTop": 8,
+                    "paddingBottom": 8,
+                    "itemSpacing": {
+                      "name": "Variable 124",
+                      "fullName": "Variable 124",
+                      "notFound": true,
+                      "actualValue": 8
+                    },
+                    "fills": [
+                      {
+                        "type": "SOLID",
+                        "opacity": 1,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1,
+                          "hex": "#ffffff"
+                        }
+                      }
+                    ],
+                    "strokeWeight": 1,
+                    "strokeAlign": "INSIDE",
+                    "strokeCap": "NONE",
+                    "strokeJoin": "MITER",
+                    "variables": {
+                      "itemSpacing": {
+                        "name": "Variable 124",
+                        "fullName": "Variable 124",
+                        "notFound": true,
+                        "actualValue": 8
+                      },
+                      "topLeftRadius": {
+                        "name": "Variable 119",
+                        "fullName": "Variable 119",
+                        "notFound": true
+                      },
+                      "topRightRadius": {
+                        "name": "Variable 119",
+                        "fullName": "Variable 119",
+                        "notFound": true
+                      },
+                      "bottomLeftRadius": {
+                        "name": "Variable 119",
+                        "fullName": "Variable 119",
+                        "notFound": true
+                      },
+                      "bottomRightRadius": {
+                        "name": "Variable 119",
+                        "fullName": "Variable 119",
+                        "notFound": true
+                      }
+                    },
+                    "topLeftRadius": {
+                      "name": "Variable 119",
+                      "fullName": "Variable 119",
+                      "notFound": true
+                    },
+                    "topRightRadius": {
+                      "name": "Variable 119",
+                      "fullName": "Variable 119",
+                      "notFound": true
+                    },
+                    "bottomLeftRadius": {
+                      "name": "Variable 119",
+                      "fullName": "Variable 119",
+                      "notFound": true
+                    },
+                    "bottomRightRadius": {
+                      "name": "Variable 119",
+                      "fullName": "Variable 119",
+                      "notFound": true
+                    },
+                    "children": [
+                      {
+                        "name": "Activity Icon",
+                        "type": "INSTANCE",
+                        "width": 24,
+                        "height": 24,
+                        "layoutMode": "NONE",
+                        "primaryAxisSizingMode": "AUTO",
+                        "counterAxisSizingMode": "FIXED",
+                        "primaryAxisAlignItems": "MIN",
+                        "counterAxisAlignItems": "MIN",
+                        "fills": [
+                          {
+                            "type": "SOLID",
+                            "opacity": 1,
+                            "color": {
+                              "r": 1,
+                              "g": 1,
+                              "b": 1,
+                              "a": 1,
+                              "hex": "#ffffff"
+                            }
+                          }
+                        ],
+                        "strokeWeight": 1,
+                        "strokeAlign": "INSIDE",
+                        "strokeCap": "NONE",
+                        "strokeJoin": "MITER",
+                        "mainComponent": {
+                          "name": "Iconsans/Linear/Activity-Square"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Tab Bar Indicator",
+            "type": "INSTANCE",
+            "width": 390,
+            "height": 31.396060943603516,
+            "layoutMode": "NONE",
+            "primaryAxisSizingMode": "AUTO",
+            "counterAxisSizingMode": "FIXED",
+            "primaryAxisAlignItems": "MIN",
+            "counterAxisAlignItems": "MIN",
+            "strokeWeight": 1,
+            "strokeAlign": "INSIDE",
+            "strokeCap": "NONE",
+            "strokeJoin": "MITER",
+            "mainComponent": {
+              "name": "System / TabBar / Display Down"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Button Container",
+        "type": "FRAME",
+        "width": 390,
+        "height": 80,
+        "layoutMode": "VERTICAL",
+        "primaryAxisSizingMode": "FIXED",
+        "counterAxisSizingMode": "FIXED",
+        "primaryAxisAlignItems": "MIN",
+        "counterAxisAlignItems": "MIN",
+        "paddingLeft": {
+          "name": "Variable 126",
+          "fullName": "Variable 126",
+          "notFound": true,
+          "actualValue": 16
+        },
+        "paddingRight": {
+          "name": "Variable 126",
+          "fullName": "Variable 126",
+          "notFound": true,
+          "actualValue": 16
+        },
+        "paddingTop": {
+          "name": "Variable 125",
+          "fullName": "Variable 125",
+          "notFound": true,
+          "actualValue": 12
+        },
+        "paddingBottom": {
+          "name": "Variable 125",
+          "fullName": "Variable 125",
+          "notFound": true,
+          "actualValue": 12
+        },
+        "itemSpacing": 10,
+        "strokeWeight": 1,
+        "strokeAlign": "INSIDE",
+        "strokeCap": "NONE",
+        "strokeJoin": "MITER",
+        "variables": {
+          "paddingLeft": {
+            "name": "Variable 126",
+            "fullName": "Variable 126",
+            "notFound": true,
+            "actualValue": 16
+          },
+          "paddingTop": {
+            "name": "Variable 125",
+            "fullName": "Variable 125",
+            "notFound": true,
+            "actualValue": 12
+          },
+          "paddingRight": {
+            "name": "Variable 126",
+            "fullName": "Variable 126",
+            "notFound": true,
+            "actualValue": 16
+          },
+          "paddingBottom": {
+            "name": "Variable 125",
+            "fullName": "Variable 125",
+            "notFound": true,
+            "actualValue": 12
+          }
+        },
+        "children": [
+          {
+            "name": "Button",
+            "type": "FRAME",
+            "width": 358,
+            "height": 56,
+            "cornerRadius": 1000,
+            "layoutMode": "HORIZONTAL",
+            "primaryAxisSizingMode": "FIXED",
+            "counterAxisSizingMode": "AUTO",
+            "primaryAxisAlignItems": "CENTER",
+            "counterAxisAlignItems": "CENTER",
+            "paddingLeft": {
+              "name": "Variable #2749:244",
+              "fullName": "Variable #2749:244",
+              "notFound": true,
+              "actualValue": 12
+            },
+            "paddingRight": {
+              "name": "Variable #2749:244",
+              "fullName": "Variable #2749:244",
+              "notFound": true,
+              "actualValue": 12
+            },
+            "paddingTop": {
+              "name": "Variable 126",
+              "fullName": "Variable 126",
+              "notFound": true,
+              "actualValue": 16
+            },
+            "paddingBottom": {
+              "name": "Variable 126",
+              "fullName": "Variable 126",
+              "notFound": true,
+              "actualValue": 16
+            },
+            "itemSpacing": {
+              "name": "Variable #394:328",
+              "fullName": "Variable #394:328",
+              "notFound": true,
+              "actualValue": 4
+            },
+            "fills": [
+              {
+                "name": "Variable 341",
+                "fullName": "Variable 341",
+                "notFound": true,
+                "actualValue": {
+                  "type": "SOLID",
+                  "opacity": 1,
+                  "color": {
+                    "r": 0.1547224074602127,
+                    "g": 0.256908118724823,
+                    "b": 0.8371769785881042,
+                    "a": 1,
+                    "hex": "#2742d5"
+                  }
+                }
+              }
+            ],
+            "strokeWeight": 1,
+            "strokeAlign": "INSIDE",
+            "strokeCap": "NONE",
+            "strokeJoin": "MITER",
+            "effects": [
+              {
+                "type": "DROP_SHADOW",
+                "radius": 12,
+                "spread": 0,
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "color": {
+                  "r": 0.6880821585655212,
+                  "g": 0.6880821585655212,
+                  "b": 0.6880821585655212,
+                  "a": 0.25,
+                  "hex": "#afafaf40"
+                }
+              }
+            ],
+            "effectStyle": {
+              "name": "Library Style e91d9475",
+              "fullName": "[Library] Style e91d9475",
+              "estimated": true
+            },
+            "variables": {
+              "itemSpacing": {
+                "name": "Variable #394:328",
+                "fullName": "Variable #394:328",
+                "notFound": true,
+                "actualValue": 4
+              },
+              "paddingLeft": {
+                "name": "Variable #2749:244",
+                "fullName": "Variable #2749:244",
+                "notFound": true,
+                "actualValue": 12
+              },
+              "paddingTop": {
+                "name": "Variable 126",
+                "fullName": "Variable 126",
+                "notFound": true,
+                "actualValue": 16
+              },
+              "paddingRight": {
+                "name": "Variable #2749:244",
+                "fullName": "Variable #2749:244",
+                "notFound": true,
+                "actualValue": 12
+              },
+              "paddingBottom": {
+                "name": "Variable 126",
+                "fullName": "Variable 126",
+                "notFound": true,
+                "actualValue": 16
+              },
+              "fills": [
+                {
+                  "name": "Variable 341",
+                  "fullName": "Variable 341",
+                  "notFound": true,
+                  "actualValue": {
+                    "type": "SOLID",
+                    "opacity": 1,
+                    "color": {
+                      "r": 0.1547224074602127,
+                      "g": 0.256908118724823,
+                      "b": 0.8371769785881042,
+                      "a": 1,
+                      "hex": "#2742d5"
+                    }
+                  }
+                }
+              ]
+            },
+            "children": [
+              {
+                "name": "Wrap",
+                "type": "FRAME",
+                "width": 125,
+                "height": 24,
+                "layoutMode": "HORIZONTAL",
+                "primaryAxisSizingMode": "AUTO",
+                "counterAxisSizingMode": "AUTO",
+                "primaryAxisAlignItems": "MIN",
+                "counterAxisAlignItems": "MIN",
+                "paddingLeft": {
+                  "name": "spacing/1",
+                  "fullName": "spacing/1",
+                  "actualValue": 4
+                },
+                "paddingRight": {
+                  "name": "spacing/1",
+                  "fullName": "spacing/1",
+                  "actualValue": 4
+                },
+                "strokeWeight": 1,
+                "strokeAlign": "INSIDE",
+                "strokeCap": "NONE",
+                "strokeJoin": "MITER",
+                "variables": {
+                  "itemSpacing": {
+                    "name": "spacing/0",
+                    "fullName": "spacing/0"
+                  },
+                  "paddingLeft": {
+                    "name": "spacing/1",
+                    "fullName": "spacing/1",
+                    "actualValue": 4
+                  },
+                  "paddingTop": {
+                    "name": "spacing/0",
+                    "fullName": "spacing/0"
+                  },
+                  "paddingRight": {
+                    "name": "spacing/1",
+                    "fullName": "spacing/1",
+                    "actualValue": 4
+                  },
+                  "paddingBottom": {
+                    "name": "spacing/0",
+                    "fullName": "spacing/0"
+                  }
+                },
+                "itemSpacing": {
+                  "name": "spacing/0",
+                  "fullName": "spacing/0"
+                },
+                "paddingTop": {
+                  "name": "spacing/0",
+                  "fullName": "spacing/0"
+                },
+                "paddingBottom": {
+                  "name": "spacing/0",
+                  "fullName": "spacing/0"
+                },
+                "children": [
+                  {
+                    "name": "Button Text",
+                    "type": "TEXT",
+                    "width": 117,
+                    "height": 24,
+                    "fills": [
+                      {
+                        "name": "Variable 323",
+                        "fullName": "Variable 323",
+                        "notFound": true,
+                        "actualValue": {
+                          "type": "SOLID",
+                          "opacity": 1,
+                          "color": {
+                            "r": 1,
+                            "g": 1,
+                            "b": 1,
+                            "a": 1,
+                            "hex": "#ffffff"
+                          }
+                        }
+                      }
+                    ],
+                    "strokeWeight": 1,
+                    "strokeAlign": "OUTSIDE",
+                    "strokeCap": "NONE",
+                    "strokeJoin": "MITER",
+                    "textStyle": {
+                      "name": "Library Style 4bfb75a2",
+                      "fullName": "[Library] Style 4bfb75a2",
+                      "estimated": true
+                    },
+                    "variables": {
+                      "fills": [
+                        {
+                          "name": "Variable 323",
+                          "fullName": "Variable 323",
+                          "notFound": true,
+                          "actualValue": {
+                            "type": "SOLID",
+                            "opacity": 1,
+                            "color": {
+                              "r": 1,
+                              "g": 1,
+                              "b": 1,
+                              "a": 1,
+                              "hex": "#ffffff"
+                            }
+                          }
+                        }
+                      ],
+                      "fontFamily": [
+                        {
+                          "name": "Variable 159",
+                          "fullName": "Variable 159",
+                          "notFound": true
+                        }
+                      ]
+                    },
+                    "fontFamily": [
+                      {
+                        "name": "Variable 159",
+                        "fullName": "Variable 159",
+                        "notFound": true
+                      }
+                    ],
+                    "characters": "Pay with Payvo",
+                    "fontSize": 16,
+                    "fontName": {
+                      "family": "Inter",
+                      "style": "Semi Bold"
+                    },
+                    "fontWeight": 600,
+                    "letterSpacing": {
+                      "unit": "PERCENT",
+                      "value": 0
+                    },
+                    "lineHeight": {
+                      "unit": "PIXELS",
+                      "value": 24
+                    },
+                    "textAlignHorizontal": "LEFT",
+                    "textAlignVertical": "TOP",
+                    "textAutoResize": "WIDTH_AND_HEIGHT",
+                    "textCase": "ORIGINAL",
+                    "textDecoration": "NONE",
+                    "textStyleName": "Text Style 4bfb75a2...",
+                    "paragraphSpacing": 16
+                  }
+                ]
+              },
+              {
+                "name": "plus",
+                "type": "INSTANCE",
+                "skippedByOptimize": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "textContent": [
+      {
+        "name": "Cashback Amount",
+        "text": "$1,246",
+        "path": "Main screen/background/Stats Section Container/Item/Cashback Container/Cashback Icon Container/Cashback Amount",
+        "nodeType": "TEXT"
+      },
+      {
+        "name": "Cashback Label",
+        "text": "Cashback",
+        "path": "Main screen/background/Stats Section Container/Item/Cashback Container/Cashback Label",
+        "nodeType": "TEXT"
+      },
+      {
+        "name": "Miles Amount",
+        "text": "42,150",
+        "path": "Main screen/background/Stats Section Container/Item/Miles Container/Miles Icon Container/Miles Amount",
+        "nodeType": "TEXT"
+      },
+      {
+        "name": "Miles Label",
+        "text": "Miles",
+        "path": "Main screen/background/Stats Section Container/Item/Miles Container/Miles Label",
+        "nodeType": "TEXT"
+      },
+      {
+        "name": "Points Amount",
+        "text": "89, 234",
+        "path": "Main screen/background/Stats Section Container/Item/Points Container/Points Icon Container/Points Amount",
+        "nodeType": "TEXT"
+      },
+      {
+        "name": "Points Label",
+        "text": "Points",
+        "path": "Main screen/background/Stats Section Container/Item/Points Container/Points Label",
+        "nodeType": "TEXT"
+      },
+      {
+        "name": "Card Section Title",
+        "text": "Your Cards",
+        "path": "Main screen/Card Section Container/Item/Card Section Header/Card Section Title",
+        "nodeType": "TEXT"
+      },
+      {
+        "name": "Card Section Action",
+        "text": "View All",
+        "path": "Main screen/Card Section Container/Item/Card Section Header/Card Section Action",
+        "nodeType": "TEXT"
+      },
+      {
+        "name": "Greeting Text",
+        "text": "Hi, John!",
+        "path": "Main screen/Header Container/Greeting Container/Greeting Text",
+        "nodeType": "TEXT"
+      },
+      {
+        "name": "Home Label",
+        "text": "Home",
+        "path": "Main screen/Tab Bar Container/Tab Bar Background/Tab Bar Items/Home Tab/Home Label",
+        "nodeType": "TEXT"
+      },
+      {
+        "name": "Button Text",
+        "text": "Pay with Payvo",
+        "path": "Main screen/Button Container/Button/Wrap/Button Text",
+        "nodeType": "TEXT"
+      }
+    ]
+  }

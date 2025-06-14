@@ -29,11 +29,15 @@ env/
 ENV/
 env.bak/
 venv.bak/
+middleware-system/venv/
+middleware-application/venv/
 
 # Environment variables
 .env
 .env.local
 .env.production
+middleware-system/.env
+middleware-application/.env
 
 # IDE
 .vscode/
@@ -54,6 +58,8 @@ Thumbs.db
 # Logs
 *.log
 logs/
+middleware-system/logs/
+middleware-application/logs/
 
 # Database
 *.db
@@ -64,6 +70,10 @@ logs/
 .pytest_cache/
 .tox/
 htmlcov/
+middleware-system/.coverage
+middleware-system/.pytest_cache/
+middleware-application/.coverage
+middleware-application/.pytest_cache/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -79,25 +89,56 @@ celerybeat.pid
 dump.rdb
 
 # Node modules (React Native app dependencies)
-payvo-test-app/node_modules/
-payvo-test-app/.expo/
-payvo-test-app/dist/
-payvo-test-app/web-build/
+middleware-application/node_modules/
+middleware-application/.expo/
+middleware-application/dist/
+middleware-application/web-build/
 
 # React Native
-payvo-test-app/ios/build/
-payvo-test-app/android/build/
-payvo-test-app/android/app/build/
-payvo-test-app/.bundle/
-payvo-test-app/vendor/bundle/
+middleware-application/ios/build/
+middleware-application/android/build/
+middleware-application/android/app/build/
+middleware-application/.bundle/
+middleware-application/vendor/bundle/
+middleware-application/ios/Pods/
+middleware-application/ios/.xcode.env.local
+
+# React Native Metro
+middleware-application/.metro-health-check*
+middleware-application/metro-cache/
 
 # Temporary files
 tmp/
 temp/
 session_id.tmp
+*.tmp
 
 # Railway
 .railway/
 
 # Docker
-.dockerignore 
+.dockerignore
+
+# Backup files
+*.bak
+*.backup
+
+# Cache directories
+.cache/
+middleware-system/.cache/
+middleware-application/.cache/
+
+# Build artifacts
+middleware-system/build/
+middleware-application/build/
+
+# Package lock files (keep one, ignore duplicates)
+middleware-application/package-lock\ 2.json
+
+# Deployment artifacts
+.vercel/
+.netlify/
+
+# Local development
+local_config.py
+dev_settings.py 

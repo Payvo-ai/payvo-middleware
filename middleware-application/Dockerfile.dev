@@ -1,0 +1,31 @@
+# Development Dockerfile for React Native App
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for React Native
+RUN apk add --no-cache \
+    git \
+    python3 \
+    make \
+    g++ \
+    watchman
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Expose Metro bundler port
+EXPOSE 8081
+
+# Expose development server port
+EXPOSE 3000
+
+# Start Metro bundler
+CMD ["npm", "start"] 

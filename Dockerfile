@@ -9,16 +9,16 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
-COPY payvo-middleware/requirements.txt .
+COPY middleware-system/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy middleware code
-COPY payvo-middleware/ .
+COPY middleware-system/ .
 
 # Make startup scripts executable
-RUN chmod +x start.py simple_start.py
+RUN chmod +x start.py simple_start.py run.py
 
 # Expose port 8000 for the application
 EXPOSE 8000

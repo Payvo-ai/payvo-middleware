@@ -1,8 +1,11 @@
 version: '3.8'
 
 services:
-  payvo-middleware:
-    build: .
+  # Backend - Payvo Middleware System
+  middleware-backend:
+    build: 
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     environment:
@@ -11,10 +14,13 @@ services:
       - SUPABASE_KEY=${SUPABASE_KEY}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - SECRET_KEY=${SECRET_KEY}
-      - DEBUG=false
-      - LOG_LEVEL=INFO
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
       - GOOGLE_PLACES_API_KEY=${GOOGLE_PLACES_API_KEY}
       - FOURSQUARE_API_KEY=${FOURSQUARE_API_KEY}
+    volumes:
+      - ./middleware-system:/app
+      - /app/venv
     depends_on:
       redis:
         condition: service_healthy
@@ -26,6 +32,25 @@ services:
       retries: 3
       start_period: 40s
 
+  # Frontend - React Native Development Server
+  middleware-frontend:
+    build:
+      context: ./middleware-application
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8081:8081"  # Metro bundler
+      - "3000:3000"  # Development server
+    environment:
+      - API_BASE_URL=http://middleware-backend:8000
+      - NODE_ENV=development
+    volumes:
+      - ./middleware-application:/app
+      - /app/node_modules
+    depends_on:
+      - middleware-backend
+    restart: unless-stopped
+
+  # Redis for caching and session management
   redis:
     image: redis:7-alpine
     ports:
