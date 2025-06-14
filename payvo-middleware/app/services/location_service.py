@@ -22,6 +22,7 @@ import numpy as np
 from ..core.config import settings
 from ..database.supabase_client import get_supabase_client
 from app.utils.mcc_categories import get_mcc_for_google_place_type, get_mcc_for_foursquare_category
+from ..config.enhanced_services import EnhancedServicesConfig
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,14 @@ class LocationService:
         self.foursquare_api_key = None
         self.cache_duration = timedelta(hours=6)  # Cache results for 6 hours
         self.supabase = None
+        
+        # Enhanced consistency settings
+        self.min_search_radius = EnhancedServicesConfig.MIN_SEARCH_RADIUS_METERS
+        self.location_cluster_threshold = EnhancedServicesConfig.LOCATION_CLUSTER_THRESHOLD_METERS
+        self.consistency_cache = {}  # In-memory cache for recent locations
+        self.cache_duration_minutes = EnhancedServicesConfig.LOCATION_CACHE_DURATION_MINUTES
+        self.enable_redundant_calls = EnhancedServicesConfig.ENABLE_REDUNDANT_API_CALLS
+        self.max_redundant_calls = EnhancedServicesConfig.MAX_REDUNDANT_API_CALLS
         
     async def initialize(self):
         """Initialize the location service with API clients"""
@@ -65,9 +74,67 @@ class LocationService:
             logger.warning(f"Location service initialization warning: {e}")
             # Continue without database - use API-only mode
     
+    def _find_clustered_location(self, lat: float, lng: float) -> Optional[Tuple[float, float]]:
+        """
+        Find if this location is close to a recently cached location
+        Returns the clustered location coordinates if found
+        """
+        current_time = datetime.now()
+        
+        for cached_key, cached_data in list(self.consistency_cache.items()):
+            # Remove expired entries
+            if current_time - cached_data['timestamp'] > timedelta(minutes=self.cache_duration_minutes):
+                del self.consistency_cache[cached_key]
+                continue
+                
+            cached_lat, cached_lng = cached_data['coordinates']
+            distance = geodesic((lat, lng), (cached_lat, cached_lng)).meters
+            
+            if distance <= self.location_cluster_threshold:
+                logger.info(f"Location clustering: Using cached location {distance:.1f}m away")
+                return (cached_lat, cached_lng)
+        
+        return None
+    
+    def _cache_location_result(self, lat: float, lng: float, result: Dict[str, Any]):
+        """Cache location result for consistency"""
+        cache_key = f"{lat:.6f},{lng:.6f}"
+        self.consistency_cache[cache_key] = {
+            'coordinates': (lat, lng),
+            'result': result,
+            'timestamp': datetime.now()
+        }
+        
+        # Keep cache size manageable
+        if len(self.consistency_cache) > 100:
+            # Remove oldest entries
+            oldest_keys = sorted(
+                self.consistency_cache.keys(),
+                key=lambda k: self.consistency_cache[k]['timestamp']
+            )[:20]
+            for key in oldest_keys:
+                del self.consistency_cache[key]
+    
+    def _get_cached_location_result(self, lat: float, lng: float) -> Optional[Dict[str, Any]]:
+        """Get cached result for this exact location"""
+        cache_key = f"{lat:.6f},{lng:.6f}"
+        cached_data = self.consistency_cache.get(cache_key)
+        
+        if cached_data:
+            # Check if cache is still valid
+            if datetime.now() - cached_data['timestamp'] <= timedelta(minutes=self.cache_duration_minutes):
+                logger.info("Using cached location result")
+                return cached_data['result']
+            else:
+                # Remove expired cache
+                del self.consistency_cache[cache_key]
+        
+        return None
+    
     async def analyze_business_district(self, lat: float, lng: float, radius: int = 500) -> Dict[str, Any]:
         """
         Comprehensive business district analysis using multiple data sources
+        Enhanced with location clustering and consistency improvements
         
         Args:
             lat: Latitude
@@ -78,23 +145,58 @@ class LocationService:
             Detailed business district analysis
         """
         try:
-            # Check cache first
-            cache_key = self._generate_location_cache_key(lat, lng, radius)
-            cached_result = await self._get_cached_analysis(cache_key)
+            # Apply minimum search radius for consistency
+            effective_radius = max(radius, self.min_search_radius)
+            if effective_radius != radius:
+                logger.info(f"Applied minimum search radius: {radius}m → {effective_radius}m")
+            
+            # Check for clustered location first
+            clustered_coords = self._find_clustered_location(lat, lng)
+            if clustered_coords:
+                clustered_lat, clustered_lng = clustered_coords
+                # Check if we have a cached result for the clustered location
+                cached_result = self._get_cached_location_result(clustered_lat, clustered_lng)
+                if cached_result:
+                    logger.info("Using clustered location cached result")
+                    return cached_result
+                # Use clustered coordinates for API calls
+                lat, lng = clustered_lat, clustered_lng
+            
+            # Check exact location cache
+            cached_result = self._get_cached_location_result(lat, lng)
             if cached_result:
                 return cached_result
             
-            # Gather data from multiple sources
-            google_places = await self._get_google_places_data(lat, lng, radius)
-            foursquare_venues = await self._get_foursquare_data(lat, lng, radius)
-            historical_data = await self._get_historical_transaction_data(lat, lng, radius)
+            # Check database cache
+            cache_key = self._generate_location_cache_key(lat, lng, effective_radius)
+            db_cached_result = await self._get_cached_analysis(cache_key)
+            if db_cached_result:
+                self._cache_location_result(lat, lng, db_cached_result)
+                return db_cached_result
+            
+            # Gather data from multiple sources with redundancy
+            logger.info(f"Performing comprehensive location analysis at ({lat}, {lng}) with {effective_radius}m radius")
+            
+            # Use multiple API calls with slightly different coordinates for redundancy
+            primary_google = await self._get_google_places_data(lat, lng, effective_radius)
+            primary_foursquare = await self._get_foursquare_data(lat, lng, effective_radius)
+            
+            # Add redundant calls with small coordinate variations for better coverage
+            redundant_results = await self._get_redundant_api_data(lat, lng, effective_radius)
+            
+            historical_data = await self._get_historical_transaction_data(lat, lng, effective_radius)
+            
+            # Combine all data sources
+            combined_google = self._merge_google_results(primary_google, redundant_results['google'])
+            combined_foursquare = self._merge_foursquare_results(primary_foursquare, redundant_results['foursquare'])
             
             # Combine and analyze data
             analysis = await self._combine_location_analyses(
-                google_places, foursquare_venues, historical_data, lat, lng, radius
+                combined_google, combined_foursquare, historical_data, lat, lng, effective_radius
             )
             
-            # Cache the result
+            # Cache the result in both memory and database
+            self._cache_location_result(lat, lng, analysis)
             await self._cache_analysis(cache_key, analysis)
             
             return analysis
@@ -102,6 +204,105 @@ class LocationService:
         except Exception as e:
             logger.error(f"Error in business district analysis: {str(e)}")
             return self._get_fallback_analysis()
+    
+    async def _get_redundant_api_data(self, lat: float, lng: float, radius: int) -> Dict[str, Any]:
+        """
+        Get redundant API data with slightly different coordinates for better coverage
+        """
+        # Check if redundant calls are enabled
+        if not self.enable_redundant_calls:
+            logger.info("Redundant API calls disabled by configuration")
+            return {'google': [], 'foursquare': []}
+        
+        # Create small coordinate variations (±0.0001 degrees ≈ ±10 meters)
+        variations = [
+            (lat + 0.0001, lng),      # North
+            (lat - 0.0001, lng),      # South  
+            (lat, lng + 0.0001),      # East
+            (lat, lng - 0.0001),      # West
+        ]
+        
+        # Limit the number of redundant calls
+        variations = variations[:self.max_redundant_calls]
+        
+        google_results = []
+        foursquare_results = []
+        
+        logger.info(f"Making {len(variations)} redundant API calls for better coverage")
+        
+        # Run redundant API calls
+        for var_lat, var_lng in variations:
+            try:
+                google_task = self._get_google_places_data(var_lat, var_lng, radius)
+                foursquare_task = self._get_foursquare_data(var_lat, var_lng, radius)
+                
+                google_result, foursquare_result = await asyncio.gather(
+                    google_task, foursquare_task, return_exceptions=True
+                )
+                
+                if not isinstance(google_result, Exception):
+                    google_results.append(google_result)
+                if not isinstance(foursquare_result, Exception):
+                    foursquare_results.append(foursquare_result)
+                    
+            except Exception as e:
+                logger.warning(f"Redundant API call failed for ({var_lat}, {var_lng}): {e}")
+                continue
+        
+        return {
+            'google': google_results,
+            'foursquare': foursquare_results
+        }
+    
+    def _merge_google_results(self, primary: Dict[str, Any], redundant: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Merge primary and redundant Google Places results"""
+        if not redundant:
+            return primary
+        
+        # Start with primary results
+        merged_businesses = list(primary.get('businesses', []))
+        seen_place_ids = {b.get('place_id') for b in merged_businesses if b.get('place_id')}
+        
+        # Add unique businesses from redundant calls
+        for result in redundant:
+            for business in result.get('businesses', []):
+                place_id = business.get('place_id')
+                if place_id and place_id not in seen_place_ids:
+                    merged_businesses.append(business)
+                    seen_place_ids.add(place_id)
+        
+        # Update the result
+        merged_result = primary.copy()
+        merged_result['businesses'] = merged_businesses
+        merged_result['total_businesses'] = len(merged_businesses)
+        
+        logger.info(f"Google Places: Merged {len(merged_businesses)} unique businesses from {len(redundant) + 1} API calls")
+        return merged_result
+    
+    def _merge_foursquare_results(self, primary: Dict[str, Any], redundant: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Merge primary and redundant Foursquare results"""
+        if not redundant:
+            return primary
+        
+        # Start with primary results
+        merged_venues = list(primary.get('venues', []))
+        seen_venue_ids = {v.get('fsq_id') for v in merged_venues if v.get('fsq_id')}
+        
+        # Add unique venues from redundant calls
+        for result in redundant:
+            for venue in result.get('venues', []):
+                venue_id = venue.get('fsq_id')
+                if venue_id and venue_id not in seen_venue_ids:
+                    merged_venues.append(venue)
+                    seen_venue_ids.add(venue_id)
+        
+        # Update the result
+        merged_result = primary.copy()
+        merged_result['venues'] = merged_venues
+        merged_result['total_venues'] = len(merged_venues)
+        
+        logger.info(f"Foursquare: Merged {len(merged_venues)} unique venues from {len(redundant) + 1} API calls")
+        return merged_result
     
     async def _get_google_places_data(self, lat: float, lng: float, radius: int) -> Dict[str, Any]:
         """Get business data from Google Places API"""

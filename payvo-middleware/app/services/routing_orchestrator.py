@@ -155,10 +155,19 @@ class RoutingOrchestrator:
         # Core Location-based prediction (highest priority)
         if location_data.get("latitude") and location_data.get("longitude") and self.location_service:
             try:
+                # Apply minimum radius for consistency (50m minimum)
+                raw_radius = location_data.get("accuracy", 200)
+                effective_radius = max(raw_radius, 50)
+                
+                if effective_radius != raw_radius:
+                    logger.info(f"Applied minimum search radius for consistency: {raw_radius}m → {effective_radius}m")
+                
+                logger.info(f"Starting core location analysis at ({location_data['latitude']:.6f}, {location_data['longitude']:.6f}) with {effective_radius}m radius")
+                
                 location_analysis = await self.location_service.analyze_business_district(
                     location_data["latitude"], 
                     location_data["longitude"],
-                    radius=location_data.get("accuracy", 200)
+                    radius=effective_radius
                 )
                 # Fix: Check for predicted_mcc instead of predicted
                 predicted_mcc_data = location_analysis.get("predicted_mcc")
@@ -173,8 +182,12 @@ class RoutingOrchestrator:
                     predictions.append(location_prediction)
                     analysis_details["location_analysis"] = location_analysis
                     logger.info(f"Core location prediction: MCC {location_prediction['mcc']} with {location_prediction['confidence']:.2f} confidence")
+                else:
+                    logger.warning(f"Core location analysis completed but no MCC prediction found")
             except Exception as e:
                 logger.error(f"Error in core location prediction: {str(e)}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
         
         # Fallback to legacy prediction methods if no core predictions
         if not predictions:

@@ -47,6 +47,12 @@ class EnhancedServicesConfig:
     MAX_SEARCH_RADIUS_METERS = int(os.getenv("MAX_SEARCH_RADIUS_METERS", "1000"))
     MIN_SEARCH_RADIUS_METERS = int(os.getenv("MIN_SEARCH_RADIUS_METERS", "50"))
     
+    # Location Consistency Settings
+    LOCATION_CLUSTER_THRESHOLD_METERS = int(os.getenv("LOCATION_CLUSTER_THRESHOLD_METERS", "25"))
+    LOCATION_CACHE_DURATION_MINUTES = int(os.getenv("LOCATION_CACHE_DURATION_MINUTES", "30"))
+    ENABLE_REDUNDANT_API_CALLS = os.getenv("ENABLE_REDUNDANT_API_CALLS", "true").lower() == "true"
+    MAX_REDUNDANT_API_CALLS = int(os.getenv("MAX_REDUNDANT_API_CALLS", "4"))
+    
     # Database Settings
     ENABLE_DATA_COLLECTION = os.getenv("ENABLE_DATA_COLLECTION", "true").lower() == "true"
     ENABLE_LEARNING = os.getenv("ENABLE_LEARNING", "true").lower() == "true"
