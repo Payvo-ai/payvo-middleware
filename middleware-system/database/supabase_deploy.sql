@@ -780,27 +780,45 @@ CREATE TRIGGER on_auth_user_created
 -- 8. Realtime Configuration
 -- =====================================================
 
--- Enable realtime for key tables that benefit from live updates
+-- Enable realtime for ALL tables to provide comprehensive live updates
 -- This allows clients to receive real-time notifications when data changes
+-- across the entire application ecosystem
 
--- User profiles - for profile updates, status changes
+-- Authentication & User Management Tables
+-- User profiles - for profile updates, status changes, role modifications
 ALTER PUBLICATION supabase_realtime ADD TABLE user_profiles;
 
--- User sessions - for login/logout status, session management
+-- User sessions - for login/logout status, session management, security monitoring
 ALTER PUBLICATION supabase_realtime ADD TABLE user_sessions;
 
--- Transaction feedback - for live transaction monitoring
+-- User activity logs - for live activity monitoring, security alerts, audit trails
+ALTER PUBLICATION supabase_realtime ADD TABLE user_activity_logs;
+
+-- Core Business Logic Tables
+-- Transaction feedback - for live transaction monitoring, real-time analytics
 ALTER PUBLICATION supabase_realtime ADD TABLE transaction_feedback;
 
--- Background location sessions - for real-time location tracking status
+-- Background location sessions - for real-time location tracking status, session updates
 ALTER PUBLICATION supabase_realtime ADD TABLE background_location_sessions;
 
--- User activity logs - for live activity monitoring (optional, can be high volume)
--- ALTER PUBLICATION supabase_realtime ADD TABLE user_activity_logs;
+-- Cache Tables - for live cache updates, performance monitoring
+-- Terminal cache - for real-time terminal data updates, MCC predictions
+ALTER PUBLICATION supabase_realtime ADD TABLE terminal_cache;
 
--- Cache tables for live cache updates (optional)
--- ALTER PUBLICATION supabase_realtime ADD TABLE terminal_cache;
--- ALTER PUBLICATION supabase_realtime ADD TABLE location_cache;
+-- Location cache - for live location-based predictions, spatial data updates
+ALTER PUBLICATION supabase_realtime ADD TABLE location_cache;
+
+-- =====================================================
+-- Realtime Benefits by Table:
+-- =====================================================
+-- user_profiles: Live profile updates, status changes, role modifications
+-- user_sessions: Real-time login/logout tracking, session security monitoring
+-- user_activity_logs: Live audit trails, security monitoring, user behavior analytics
+-- transaction_feedback: Real-time transaction monitoring, live prediction accuracy
+-- background_location_sessions: Live location tracking status, session management
+-- terminal_cache: Real-time terminal data updates, live MCC prediction improvements
+-- location_cache: Live spatial predictions, real-time location-based insights
+-- =====================================================
 
 -- =====================================================
 -- 9. Database Statistics and Health Check
