@@ -60,7 +60,7 @@ middleware-system/
 ├── test_enhanced_mcc.py          # MCC prediction tests
 ├── test_installation.py         # Installation verification
 ├── simulate_real_transactions.py # Transaction simulation
-├── database_schema.sql           # Database schema
+├── supabase_schema.sql           # Supabase database schema
 ├── STARTUP_GUIDE.md              # Quick start guide
 └── SUPABASE_SETUP.md             # Database setup instructions
 ```
@@ -525,7 +525,7 @@ python --version  # Should be 3.11+
 
 #### Step 3: Set Up Database Schema
 1. Go to **SQL Editor** in Supabase dashboard
-2. Copy contents of `database_schema.sql`
+2. Copy contents of `supabase_schema.sql`
 3. Paste and run in SQL Editor
 
 This creates tables for:
