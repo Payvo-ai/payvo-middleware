@@ -43,6 +43,11 @@ class LocationService:
         self.enable_redundant_calls = EnhancedServicesConfig.ENABLE_REDUNDANT_API_CALLS
         self.max_redundant_calls = EnhancedServicesConfig.MAX_REDUNDANT_API_CALLS
         
+        # Smart adaptive radius settings
+        self.adaptive_radius_tiers = [1, 3, 5, 10, 20, 50]  # Progressive expansion
+        self.min_results_threshold = 1  # Minimum results before expanding
+        self.gps_accuracy_multiplier = 1.5  # Multiply GPS accuracy for initial radius
+        
     async def initialize(self):
         """Initialize the location service with API clients"""
         try:
@@ -134,22 +139,17 @@ class LocationService:
     async def analyze_business_district(self, lat: float, lng: float, radius: int = 500) -> Dict[str, Any]:
         """
         Comprehensive business district analysis using multiple data sources
-        Enhanced with location clustering and consistency improvements
+        Enhanced with smart adaptive radius that starts at 1m and expands intelligently
         
         Args:
             lat: Latitude
             lng: Longitude
-            radius: Search radius in meters (default 500m)
+            radius: Maximum search radius in meters (used as fallback, adaptive system starts at 1m)
         
         Returns:
-            Detailed business district analysis
+            Detailed business district analysis with adaptive search metadata
         """
         try:
-            # Apply minimum search radius for consistency
-            effective_radius = max(radius, self.min_search_radius)
-            if effective_radius != radius:
-                logger.info(f"Applied minimum search radius: {radius}m → {effective_radius}m")
-            
             # Check for clustered location first
             clustered_coords = self._find_clustered_location(lat, lng)
             if clustered_coords:
@@ -167,33 +167,51 @@ class LocationService:
             if cached_result:
                 return cached_result
             
-            # Check database cache
-            cache_key = self._generate_location_cache_key(lat, lng, effective_radius)
+            # Check database cache with adaptive key
+            cache_key = self._generate_location_cache_key(lat, lng, 1)  # Use 1m for cache key
             db_cached_result = await self._get_cached_analysis(cache_key)
             if db_cached_result:
                 self._cache_location_result(lat, lng, db_cached_result)
                 return db_cached_result
             
-            # Gather data from multiple sources with redundancy
-            logger.info(f"Performing comprehensive location analysis at ({lat}, {lng}) with {effective_radius}m radius")
+            logger.info(f"Starting adaptive location analysis at ({lat}, {lng})")
             
-            # Use multiple API calls with slightly different coordinates for redundancy
-            primary_google = await self._get_google_places_data(lat, lng, effective_radius)
-            primary_foursquare = await self._get_foursquare_data(lat, lng, effective_radius)
+            # Use smart adaptive radius search
+            adaptive_results = await self._search_with_adaptive_radius(lat, lng, max_attempts=4)
             
-            # Add redundant calls with small coordinate variations for better coverage
-            redundant_results = await self._get_redundant_api_data(lat, lng, effective_radius)
+            # Extract the API results
+            google_data = adaptive_results["google"]
+            foursquare_data = adaptive_results["foursquare"]
+            search_metadata = adaptive_results["search_metadata"]
             
-            historical_data = await self._get_historical_transaction_data(lat, lng, effective_radius)
+            # Get historical data using the final radius from adaptive search
+            final_radius = search_metadata["final_radius"]
+            historical_data = await self._get_historical_transaction_data(lat, lng, final_radius)
             
-            # Combine all data sources
-            combined_google = self._merge_google_results(primary_google, redundant_results['google'])
-            combined_foursquare = self._merge_foursquare_results(primary_foursquare, redundant_results['foursquare'])
+            logger.info(f"Adaptive search completed: {search_metadata['total_results']} total results with {final_radius}m final radius")
             
             # Combine and analyze data
             analysis = await self._combine_location_analyses(
-                combined_google, combined_foursquare, historical_data, lat, lng, effective_radius
+                google_data, foursquare_data, historical_data, lat, lng, final_radius
             )
+            
+            # Add adaptive search metadata to the analysis
+            analysis["adaptive_search"] = {
+                "strategy": "smart_adaptive_radius",
+                "initial_radius": 1,
+                "final_radius": final_radius,
+                "attempts_made": len(search_metadata["attempts"]),
+                "total_results_found": search_metadata["total_results"],
+                "search_efficiency": search_metadata["total_results"] / len(search_metadata["attempts"]) if search_metadata["attempts"] else 0,
+                "precision_score": adaptive_results["combined_confidence"],
+                "attempt_details": search_metadata["attempts"]
+            }
+            
+            # Boost confidence if we found results with small radius
+            if final_radius <= 5 and search_metadata["total_results"] > 0:
+                if "confidence" in analysis:
+                    analysis["confidence"] = min(0.95, analysis["confidence"] * 1.2)
+                    logger.info(f"Boosted confidence due to small radius precision: {analysis['confidence']:.2f}")
             
             # Cache the result in both memory and database
             self._cache_location_result(lat, lng, analysis)
@@ -202,8 +220,15 @@ class LocationService:
             return analysis
             
         except Exception as e:
-            logger.error(f"Error in business district analysis: {str(e)}")
-            return self._get_fallback_analysis()
+            logger.error(f"Error in adaptive business district analysis: {e}")
+            # Return fallback with error info
+            fallback = self._get_fallback_analysis()
+            fallback["adaptive_search"] = {
+                "strategy": "fallback_due_to_error",
+                "error": str(e),
+                "final_radius": radius
+            }
+            return fallback
     
     async def _get_redundant_api_data(self, lat: float, lng: float, radius: int) -> Dict[str, Any]:
         """
@@ -1180,4 +1205,149 @@ class LocationService:
                 'historical_data_available': False,
                 'combined_business_count': 0
             }
-        } 
+        }
+    
+    def _estimate_gps_accuracy(self, lat: float, lng: float) -> float:
+        """
+        Estimate GPS accuracy based on location characteristics
+        Returns estimated accuracy in meters
+        """
+        # Base accuracy for consumer GPS
+        base_accuracy = 3.0
+        
+        # Urban areas typically have better GPS due to more satellites visible
+        # but worse due to building interference - assume moderate accuracy
+        estimated_accuracy = base_accuracy
+        
+        # Add some randomness based on coordinate precision
+        # More decimal places suggest higher precision input
+        lat_precision = len(str(lat).split('.')[-1]) if '.' in str(lat) else 0
+        lng_precision = len(str(lng).split('.')[-1]) if '.' in str(lng) else 0
+        avg_precision = (lat_precision + lng_precision) / 2
+        
+        # Higher precision coordinates suggest better GPS accuracy
+        if avg_precision >= 6:  # Very high precision
+            estimated_accuracy = 2.0
+        elif avg_precision >= 4:  # Good precision
+            estimated_accuracy = 3.0
+        elif avg_precision >= 2:  # Moderate precision
+            estimated_accuracy = 5.0
+        else:  # Low precision
+            estimated_accuracy = 10.0
+            
+        logger.info(f"Estimated GPS accuracy: {estimated_accuracy}m (precision: {avg_precision} decimals)")
+        return estimated_accuracy
+    
+    def _calculate_adaptive_radius(self, lat: float, lng: float, attempt: int = 0) -> int:
+        """
+        Calculate adaptive search radius based on GPS accuracy and attempt number
+        
+        Args:
+            lat: Latitude
+            lng: Longitude  
+            attempt: Current attempt number (0-based)
+            
+        Returns:
+            Optimal search radius in meters
+        """
+        if attempt >= len(self.adaptive_radius_tiers):
+            # Use maximum radius if we've exhausted all tiers
+            return self.adaptive_radius_tiers[-1]
+            
+        # Get base radius from tier
+        base_radius = self.adaptive_radius_tiers[attempt]
+        
+        # For first attempt, consider GPS accuracy
+        if attempt == 0:
+            gps_accuracy = self._estimate_gps_accuracy(lat, lng)
+            # Use GPS accuracy as minimum radius, but cap at tier 2 (5m)
+            accuracy_based_radius = min(int(gps_accuracy * self.gps_accuracy_multiplier), 5)
+            radius = max(base_radius, accuracy_based_radius)
+            logger.info(f"Adaptive radius attempt {attempt}: {radius}m (GPS-adjusted from {base_radius}m)")
+        else:
+            radius = base_radius
+            logger.info(f"Adaptive radius attempt {attempt}: {radius}m (expanding search)")
+            
+        return radius
+    
+    async def _search_with_adaptive_radius(self, lat: float, lng: float, max_attempts: int = 4) -> Dict[str, Any]:
+        """
+        Perform location search with adaptive radius expansion
+        
+        Args:
+            lat: Latitude
+            lng: Longitude
+            max_attempts: Maximum number of radius expansions to try
+            
+        Returns:
+            Combined search results with metadata about the search process
+        """
+        search_metadata = {
+            "attempts": [],
+            "final_radius": 1,
+            "total_results": 0,
+            "search_strategy": "adaptive"
+        }
+        
+        best_results = {
+            "google": {"places": [], "status": "no_results"},
+            "foursquare": {"venues": [], "status": "no_results"},
+            "combined_confidence": 0.0
+        }
+        
+        for attempt in range(max_attempts):
+            radius = self._calculate_adaptive_radius(lat, lng, attempt)
+            search_metadata["final_radius"] = radius
+            
+            logger.info(f"Adaptive search attempt {attempt + 1}/{max_attempts} with {radius}m radius")
+            
+            # Perform searches with current radius
+            google_results = await self._get_google_places_data(lat, lng, radius)
+            foursquare_results = await self._get_foursquare_data(lat, lng, radius)
+            
+            # Count total results
+            google_count = len(google_results.get("places", []))
+            foursquare_count = len(foursquare_results.get("venues", []))
+            total_results = google_count + foursquare_count
+            
+            attempt_data = {
+                "attempt": attempt + 1,
+                "radius": radius,
+                "google_results": google_count,
+                "foursquare_results": foursquare_count,
+                "total_results": total_results
+            }
+            search_metadata["attempts"].append(attempt_data)
+            search_metadata["total_results"] = total_results
+            
+            logger.info(f"Attempt {attempt + 1} results: Google={google_count}, Foursquare={foursquare_count}, Total={total_results}")
+            
+            # Update best results if we found something
+            if total_results > 0:
+                best_results["google"] = google_results
+                best_results["foursquare"] = foursquare_results
+                
+                # Calculate combined confidence based on result quality and radius
+                radius_confidence = max(0.1, 1.0 - (radius - 1) / 50.0)  # Higher confidence for smaller radius
+                result_confidence = min(1.0, total_results / 5.0)  # More results = higher confidence
+                best_results["combined_confidence"] = (radius_confidence + result_confidence) / 2
+                
+                # If we have good results with small radius, stop here
+                if radius <= 5 and total_results >= self.min_results_threshold:
+                    logger.info(f"Found sufficient results ({total_results}) with small radius ({radius}m), stopping search")
+                    break
+                    
+                # If we have many results, we can stop
+                if total_results >= 3:
+                    logger.info(f"Found good number of results ({total_results}), stopping search")
+                    break
+            
+            # If this is the last attempt, use whatever we found
+            if attempt == max_attempts - 1:
+                logger.info(f"Reached maximum attempts, using best results found")
+                break
+        
+        # Add search metadata to results
+        best_results["search_metadata"] = search_metadata
+        
+        return best_results 

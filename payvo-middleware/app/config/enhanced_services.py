@@ -15,13 +15,13 @@ class EnhancedServicesConfig:
     # Google Places API Configuration
     GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY", "")
     GOOGLE_PLACES_ENABLED = os.getenv("GOOGLE_PLACES_ENABLED", "false").lower() == "true"
-    GOOGLE_PLACES_RADIUS_METERS = int(os.getenv("GOOGLE_PLACES_RADIUS_METERS", "200"))
+    GOOGLE_PLACES_RADIUS_METERS = int(os.getenv("GOOGLE_PLACES_RADIUS_METERS", "1"))
     GOOGLE_PLACES_MAX_RESULTS = int(os.getenv("GOOGLE_PLACES_MAX_RESULTS", "20"))
     
     # Foursquare API Configuration
     FOURSQUARE_API_KEY = os.getenv("FOURSQUARE_API_KEY", "")
     FOURSQUARE_ENABLED = os.getenv("FOURSQUARE_ENABLED", "false").lower() == "true"
-    FOURSQUARE_RADIUS_METERS = int(os.getenv("FOURSQUARE_RADIUS_METERS", "200"))
+    FOURSQUARE_RADIUS_METERS = int(os.getenv("FOURSQUARE_RADIUS_METERS", "1"))
     FOURSQUARE_MAX_RESULTS = int(os.getenv("FOURSQUARE_MAX_RESULTS", "20"))
     
     # Cache Configuration
@@ -43,12 +43,12 @@ class EnhancedServicesConfig:
     MIN_HISTORICAL_CONFIDENCE = float(os.getenv("MIN_HISTORICAL_CONFIDENCE", "0.5"))
     
     # Analysis Settings
-    DEFAULT_SEARCH_RADIUS_METERS = int(os.getenv("DEFAULT_SEARCH_RADIUS_METERS", "200"))
-    MAX_SEARCH_RADIUS_METERS = int(os.getenv("MAX_SEARCH_RADIUS_METERS", "1000"))
-    MIN_SEARCH_RADIUS_METERS = int(os.getenv("MIN_SEARCH_RADIUS_METERS", "50"))
+    DEFAULT_SEARCH_RADIUS_METERS = int(os.getenv("DEFAULT_SEARCH_RADIUS_METERS", "1"))
+    MAX_SEARCH_RADIUS_METERS = int(os.getenv("MAX_SEARCH_RADIUS_METERS", "10"))
+    MIN_SEARCH_RADIUS_METERS = int(os.getenv("MIN_SEARCH_RADIUS_METERS", "1"))
     
     # Location Consistency Settings
-    LOCATION_CLUSTER_THRESHOLD_METERS = int(os.getenv("LOCATION_CLUSTER_THRESHOLD_METERS", "25"))
+    LOCATION_CLUSTER_THRESHOLD_METERS = int(os.getenv("LOCATION_CLUSTER_THRESHOLD_METERS", "1"))
     LOCATION_CACHE_DURATION_MINUTES = int(os.getenv("LOCATION_CACHE_DURATION_MINUTES", "30"))
     ENABLE_REDUNDANT_API_CALLS = os.getenv("ENABLE_REDUNDANT_API_CALLS", "true").lower() == "true"
     MAX_REDUNDANT_API_CALLS = int(os.getenv("MAX_REDUNDANT_API_CALLS", "4"))
