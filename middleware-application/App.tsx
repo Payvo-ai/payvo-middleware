@@ -217,11 +217,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#2742d5',
   },
   loadingLogo: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
     marginBottom: 32,
   },
   loadingSpinner: {
@@ -229,8 +229,9 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#ffffff',
     fontWeight: '500',
+    fontFamily: 'Inter',
   },
 });
 
