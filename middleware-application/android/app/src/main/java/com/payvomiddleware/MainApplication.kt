@@ -1,4 +1,4 @@
-package com.payvotestapp
+package com.payvomiddleware
 
 import android.app.Application
 import com.facebook.react.PackageList

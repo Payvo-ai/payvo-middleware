@@ -2,12 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "group:PayvoTestApp.xcodeproj">
+      location = "group:PayvoMiddleware.xcodeproj">
    </FileRef>
    <FileRef
       location = "group:Pods/Pods.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:PayvoMiddleware.xcodeproj">
    </FileRef>
 </Workspace>
