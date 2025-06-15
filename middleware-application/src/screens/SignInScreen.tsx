@@ -15,6 +15,7 @@ import {
   Snackbar,
 } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../components/NotificationProvider';
 
 const SignInScreen: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -28,6 +29,7 @@ const SignInScreen: React.FC = () => {
   const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
 
   const { signIn, forgotPassword } = useAuth();
+  const { showNotification } = useNotification();
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) {
@@ -46,7 +48,22 @@ const SignInScreen: React.FC = () => {
 
     } catch (err: any) {
       console.error('Sign in error:', err);
-      setError(err.message || 'Sign in failed. Please try again.');
+      
+      // Provide more user-friendly error messages
+      let errorMessage = 'Sign in failed. Please try again.';
+      
+      if (err.message && err.message.toLowerCase().includes('invalid login credentials')) {
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+      } else if (err.message && err.message.toLowerCase().includes('email not confirmed')) {
+        errorMessage = 'Please check your email and confirm your account before signing in.';
+      } else if (err.message && err.message.toLowerCase().includes('too many requests')) {
+        errorMessage = 'Too many sign-in attempts. Please wait a moment before trying again.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+      showNotification(errorMessage, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -69,10 +86,12 @@ const SignInScreen: React.FC = () => {
       setForgotPasswordSuccess(true);
       setShowForgotPassword(false);
       setForgotPasswordEmail('');
+      showNotification('Password reset email sent! Check your inbox.', 'success');
 
     } catch (err: any) {
       console.error('Forgot password error:', err);
       setError(err.message || 'Failed to send reset email. Please try again.');
+      showNotification(err.message || 'Failed to send reset email. Please try again.', 'error');
     } finally {
       setForgotPasswordLoading(false);
     }
