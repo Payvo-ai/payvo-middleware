@@ -49,7 +49,7 @@ const LoadingScreen: React.FC = () => {
         style={styles.loadingLogo}
         resizeMode="contain"
       />
-      <ActivityIndicator size="large" color="#2742d5" style={styles.loadingSpinner} />
+      <ActivityIndicator size="large" color="#ffffff" style={styles.loadingSpinner} />
       <Text style={styles.loadingText}>Loading Payvo...</Text>
     </View>
   );
