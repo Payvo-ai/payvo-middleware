@@ -79,7 +79,19 @@ const MainAppTabs: React.FC = () => {
           fontWeight: '600',
           marginTop: 4,
         },
-        header: () => null,
+        headerShown: true,
+        header: () => (
+          <View style={styles.headerContainer}>
+            <View style={styles.headerContent}>
+              <Image
+                source={require('./images/logo.png')}
+                style={styles.headerLogo}
+                resizeMode="contain"
+              />
+              <Text style={styles.logoSubtitle}>Payvo Middleware</Text>
+            </View>
+          </View>
+        ),
       }}>
       <Tab.Screen
         name="Home"

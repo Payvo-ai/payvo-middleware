@@ -10,6 +10,7 @@ import {
   Text,
   ActivityIndicator,
 } from 'react-native-paper';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {PayvoAPI, HealthCheckResponse} from '../services/PayvoAPI';
 import { useNotification } from '../components/NotificationProvider';
 
@@ -138,9 +139,8 @@ const HomeScreen: React.FC = () => {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* System Status Card */}
-      <View style={styles.card}>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Stats Section */}
         <View style={styles.statsSection}>
           <View style={styles.statsGrid}>
@@ -248,7 +248,7 @@ const HomeScreen: React.FC = () => {
                 </View>
 
                 <Text style={styles.timestamp}>
-                  Last updated: {new Date(health.timestamp).toLocaleString()}
+                  Last updated: {health.timestamp ? new Date(health.timestamp).toLocaleString() : 'Invalid Date'}
                 </Text>
               </View>
             </View>
@@ -280,12 +280,16 @@ const HomeScreen: React.FC = () => {
             </View>
           </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
@@ -304,7 +308,8 @@ const styles = StyleSheet.create({
   },
   statsSection: {
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -314,33 +319,33 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 16,
+    padding: 16,
     alignItems: 'center',
-    shadowColor: '#afafaf',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   statIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#f8f9fa',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#f1f5f9',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#2742d5',
     fontFamily: 'Inter',
   },
   statLabel: {
-    fontSize: 14,
-    color: '#676767',
+    fontSize: 12,
+    color: '#64748b',
     fontFamily: 'Inter',
     textAlign: 'center',
   },
@@ -350,28 +355,28 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    shadowColor: '#afafaf',
+    borderRadius: 16,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   cardHeader: {
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#f1f5f9',
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: '#1e293b',
     fontFamily: 'Inter',
     marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: 14,
-    color: '#676767',
+    color: '#64748b',
     fontFamily: 'Inter',
   },
   cardContent: {
@@ -391,7 +396,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
   },
   healthGrid: {
-    gap: 16,
+    gap: 12,
     marginBottom: 20,
   },
   healthItem: {
@@ -400,12 +405,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
   },
   healthLabel: {
     fontSize: 14,
-    color: '#333333',
+    color: '#374151',
     fontFamily: 'Inter',
     fontWeight: '500',
   },
@@ -415,7 +420,7 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 12,
-    color: '#999999',
+    color: '#9ca3af',
     fontFamily: 'Inter',
     textAlign: 'center',
     fontStyle: 'italic',
@@ -425,7 +430,7 @@ const styles = StyleSheet.create({
   },
   featureItem: {
     fontSize: 14,
-    color: '#333333',
+    color: '#374151',
     fontFamily: 'Inter',
     marginBottom: 8,
     lineHeight: 20,
