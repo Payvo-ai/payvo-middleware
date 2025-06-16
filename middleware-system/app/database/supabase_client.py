@@ -54,24 +54,12 @@ class SupabaseClient:
         try:
             logger.info(f"📝 Received feedback data: {feedback_data}")
             
-            # Convert email to UUID if needed
-            user_uuid = None
-            if feedback_data.get("user_id"):
-                user_email = feedback_data.get("user_id")
-                if "@" in user_email:  # It's an email, need to convert to UUID
-                    try:
-                        # Query auth.users table to get UUID for this email
-                        auth_result = self.client.from_("auth.users").select("id").eq("email", user_email).execute()
-                        if auth_result.data:
-                            user_uuid = auth_result.data[0]["id"]
-                            logger.info(f"✅ Converted email {user_email} to UUID {user_uuid}")
-                        else:
-                            logger.warning(f"⚠️ No user found for email {user_email}")
-                    except Exception as e:
-                        logger.warning(f"⚠️ Failed to convert email to UUID: {e}, using email as fallback")
-                        user_uuid = user_email  # Use email as fallback
-                else:
-                    user_uuid = user_email  # Already a UUID
+            # Handle user_id - for now, use email directly since auth.users isn't accessible
+            user_id_value = feedback_data.get("user_id")
+            if user_id_value and "@" in user_id_value:
+                # For now, let's store the email as a string since we can't access auth.users
+                # In production, you'd want to have a user mapping table or use Supabase auth properly
+                logger.info(f"📧 Using email as user identifier: {user_id_value}")
             
             # Extract location data if provided
             location_lat = None
@@ -95,7 +83,7 @@ class SupabaseClient:
             # Prepare data for Supabase with proper field mapping
             data = {
                 "session_id": feedback_data.get("session_id"),
-                "user_id": user_uuid,
+                "user_id": None,  # Will be set to None due to UUID constraint for now
                 "predicted_mcc": feedback_data.get("predicted_mcc"),
                 "actual_mcc": feedback_data.get("actual_mcc"),
                 "prediction_confidence": feedback_data.get("prediction_confidence"),
@@ -121,16 +109,24 @@ class SupabaseClient:
                 "updated_at": datetime.utcnow().isoformat()
             }
             
+            # Store email in context_features for now
+            if user_id_value:
+                data["context_features"]["user_email"] = user_id_value
+            
             # Log data before filtering
             logger.info(f"🔍 Data before filtering: {data}")
             
-            # Remove None values to avoid database errors - but keep empty dicts/arrays
+            # Remove None values to avoid database errors - but keep empty dicts/arrays and important zeros
             filtered_data = {}
             for k, v in data.items():
                 if v is not None and v != "":
                     filtered_data[k] = v
-                elif k in ["context_features"] and v == {}:
-                    filtered_data[k] = v  # Keep empty context_features
+                elif k in ["context_features"] and isinstance(v, dict):
+                    filtered_data[k] = v  # Keep context_features even if empty
+                elif isinstance(v, (int, float)) and v == 0:
+                    filtered_data[k] = v  # Keep zero values
+                elif isinstance(v, bool):
+                    filtered_data[k] = v  # Keep boolean values
             
             logger.info(f"💾 Final data to insert: {filtered_data}")
             
