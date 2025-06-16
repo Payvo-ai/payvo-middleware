@@ -641,8 +641,8 @@ class PayvoAPIService {
   }
 
   async getUserTransactionHistory(
-    userId: string, 
-    limit: number = 50, 
+    userId: string,
+    limit: number = 50,
     offset: number = 0
   ): Promise<TransactionHistoryResponse> {
     try {

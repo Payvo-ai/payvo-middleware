@@ -286,10 +286,10 @@ const TransactionScreen: React.FC = () => {
       setError(null);
 
       await PayvoAPI.completeRouting(currentSession);
-      
+
       // Show success notification
       showNotification('Transaction completed successfully!', 'success', 3000);
-      
+
       // Reset state for new transaction after a brief delay
       setTimeout(() => {
         setCurrentSession(null);
@@ -297,7 +297,7 @@ const TransactionScreen: React.FC = () => {
         setStatus('idle');
         setAmount('');
       }, 1500);
-      
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to complete payment');
       setStatus('failed');
@@ -362,7 +362,7 @@ const TransactionScreen: React.FC = () => {
           <Text style={styles.notificationText}>Processing Transaction...</Text>
         </View>
       )}
-      
+
       {error && (
         <View style={[styles.topNotification, styles.errorNotification]}>
           <Text style={styles.errorNotificationText}>Error: {error}</Text>

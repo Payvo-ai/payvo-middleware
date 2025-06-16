@@ -48,10 +48,10 @@ const SignInScreen: React.FC = () => {
 
     } catch (err: any) {
       console.error('Sign in error:', err);
-      
+
       // Provide more user-friendly error messages
       let errorMessage = 'Sign in failed. Please try again.';
-      
+
       if (err.message && err.message.toLowerCase().includes('invalid login credentials')) {
         errorMessage = 'Invalid email or password. Please check your credentials and try again.';
       } else if (err.message && err.message.toLowerCase().includes('email not confirmed')) {
@@ -61,7 +61,7 @@ const SignInScreen: React.FC = () => {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
+
       setError(errorMessage);
       showNotification(errorMessage, 'error');
     } finally {

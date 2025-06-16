@@ -33,10 +33,10 @@ export class DeepLinkHandler {
 
   private handleDeepLink(url: string) {
     console.log('🔗 Processing deep link:', url);
-    
+
     // Parse the URL
     const parsedUrl = this.parseDeepLink(url);
-    
+
     if (parsedUrl) {
       // Notify all listeners
       this.listeners.forEach(listener => {
@@ -52,7 +52,7 @@ export class DeepLinkHandler {
   private parseDeepLink(url: string): { scheme: string; path: string; params: Record<string, string> } | null {
     try {
       const urlObj = new URL(url);
-      
+
       if (urlObj.protocol !== 'payvo:') {
         console.warn('⚠️ Unsupported deep link scheme:', urlObj.protocol);
         return null;
@@ -98,4 +98,4 @@ export class DeepLinkHandler {
     }
     return false;
   }
-} 
+}

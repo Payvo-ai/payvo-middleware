@@ -24,7 +24,7 @@ const HomeScreen: React.FC = () => {
     try {
       setConnectionStatus('checking');
       console.log('🔍 Attempting to connect to middleware...');
-      
+
       const response = await PayvoAPI.getHealthCheck();
       console.log('✅ Health check successful:', response);
 
@@ -43,7 +43,7 @@ const HomeScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('❌ Health check failed:', error);
-      
+
       // Determine error type for better user feedback
       let errorMessage = '⚠️ Middleware offline - using demo mode';
       if (error instanceof Error) {
@@ -57,7 +57,7 @@ const HomeScreen: React.FC = () => {
           errorMessage = '🔧 Server error - try again later';
         }
       }
-      
+
       // Create a realistic mock health response for demo mode
       setHealth({
         status: 'error',
@@ -92,11 +92,11 @@ const HomeScreen: React.FC = () => {
       setLoading(true);
       setConnectionStatus('checking');
       console.log('🔄 Testing connection...');
-      
+
       // Test connection by calling health check
       const response = await PayvoAPI.getHealthCheck();
       console.log('✅ Connection test successful:', response);
-      
+
       // Handle the wrapped response format: {success: true, data: {...}, message: "..."}
       if (response && response.success && response.data) {
         setHealth(response.data);
@@ -113,7 +113,7 @@ const HomeScreen: React.FC = () => {
     } catch (error) {
       console.error('❌ Connection test failed:', error);
       setConnectionStatus('disconnected');
-      
+
       let errorMessage = '❌ Connection failed';
       if (error instanceof Error) {
         if (error.message.includes('Network request failed')) {
@@ -124,7 +124,7 @@ const HomeScreen: React.FC = () => {
           errorMessage = `🔧 Server error: ${error.message}`;
         }
       }
-      
+
       showNotification(errorMessage, 'error', 4000);
     } finally {
       setLoading(false);
@@ -163,9 +163,9 @@ const HomeScreen: React.FC = () => {
   };
 
   const getHealthPercentage = () => {
-    if (!health) return '0%';
-    if (health.status === 'healthy') return '100%';
-    if (health.status === 'error') return '0%';
+    if (!health) {return '0%';}
+    if (health.status === 'healthy') {return '100%';}
+    if (health.status === 'error') {return '0%';}
     return '50%';
   };
 
@@ -180,11 +180,11 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
-        style={styles.container} 
+      <ScrollView
+        style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
-        
+
         {/* Stats Section */}
         <View style={styles.statsSection}>
           <View style={styles.statsGrid}>
@@ -246,7 +246,7 @@ const HomeScreen: React.FC = () => {
             <Card.Content style={styles.cardContent}>
               <Text style={styles.cardTitle}>System Health</Text>
               <Text style={styles.cardSubtitle}>Status: {health.version}</Text>
-              
+
               <View style={styles.healthGrid}>
                 <View style={styles.healthItem}>
                   <Text style={styles.healthLabel}>Overall</Text>
@@ -288,10 +288,10 @@ const HomeScreen: React.FC = () => {
           <Card.Content style={styles.cardContent}>
             <Text style={styles.cardTitle}>System Components</Text>
             <Text style={styles.cardSubtitle}>Understanding your middleware health</Text>
-            
+
             <View style={styles.infoSection}>
               <Text style={styles.infoSectionTitle}>Components</Text>
-              
+
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Database</Text>
                 <Text style={styles.infoDescription}>
@@ -316,24 +316,24 @@ const HomeScreen: React.FC = () => {
 
             <View style={styles.infoSection}>
               <Text style={styles.infoSectionTitle}>Health Status</Text>
-              
+
               <View style={styles.statusExplanation}>
                 <View style={styles.statusRow}>
-                  <View style={[styles.statusDot, { backgroundColor: '#4CAF50' }]} />
+                  <View style={[styles.statusDot, styles.statusDotGreen]} />
                   <Text style={styles.statusText}>
                     <Text style={styles.statusLabel}>Healthy/Up:</Text> Component is running normally
                   </Text>
                 </View>
 
                 <View style={styles.statusRow}>
-                  <View style={[styles.statusDot, { backgroundColor: '#F44336' }]} />
+                  <View style={[styles.statusDot, styles.statusDotRed]} />
                   <Text style={styles.statusText}>
                     <Text style={styles.statusLabel}>Error/Down:</Text> Component is offline or failing
                   </Text>
                 </View>
 
                 <View style={styles.statusRow}>
-                  <View style={[styles.statusDot, { backgroundColor: '#FF9800' }]} />
+                  <View style={[styles.statusDot, styles.statusDotOrange]} />
                   <Text style={styles.statusText}>
                     <Text style={styles.statusLabel}>Unknown:</Text> Status cannot be determined
                   </Text>
@@ -518,22 +518,30 @@ const styles = StyleSheet.create({
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   statusDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    marginRight: 8,
+    marginRight: 10,
+  },
+  statusDotGreen: {
+    backgroundColor: '#4CAF50',
+  },
+  statusDotRed: {
+    backgroundColor: '#F44336',
+  },
+  statusDotOrange: {
+    backgroundColor: '#FF9800',
   },
   statusText: {
-    fontSize: 12,
-    color: '#64748b',
+    fontSize: 13,
+    color: '#374151',
+    flex: 1,
   },
   statusLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#374151',
+    fontWeight: '600',
   },
 });
 

@@ -61,7 +61,7 @@ const Stack = createStackNavigator();
 // Tab Navigator with Safe Area handling
 const SafeTabNavigator: React.FC = () => {
   const insets = useSafeAreaInsets();
-  
+
   return (
     <Tab.Navigator
       id={undefined}
