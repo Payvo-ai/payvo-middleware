@@ -179,9 +179,21 @@ class SupabaseClient:
             return []
         
         try:
+            # Handle user_id - resolve email to UUID if needed
+            resolved_user_id = user_id
+            
+            if user_id and "@" in user_id:
+                logger.info(f"📧 Resolving email to user UUID for transaction history: {user_id}")
+                resolved_user_id = await self.get_user_id_by_email(user_id)
+                if resolved_user_id:
+                    logger.info(f"✅ Email resolved to user ID: {resolved_user_id}")
+                else:
+                    logger.warning(f"⚠️ Could not resolve email to user ID, returning empty transaction history: {user_id}")
+                    return []
+            
             result = self.client.table("transaction_feedback")\
                 .select("*")\
-                .eq("user_id", user_id)\
+                .eq("user_id", resolved_user_id)\
                 .order("created_at", desc=True)\
                 .limit(limit)\
                 .execute()
