@@ -685,7 +685,7 @@ class PayvoAPIService {
   }
 
   async submitTransactionFeedback(feedback: TransactionFeedbackRequest): Promise<TransactionFeedbackResponse> {
-    const response = await this.makeRequest('/transaction-feedback', {
+    const response = await this.makeRequest('/feedback/transaction', {
       method: 'POST',
       body: JSON.stringify(feedback),
     });

@@ -7,6 +7,7 @@ import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 import asyncio
+import hashlib
 
 from supabase import create_client, Client
 from app.core.config import settings
@@ -51,7 +52,24 @@ class SupabaseClient:
             return False
         
         try:
-            # Prepare data for Supabase
+            logger.info(f"📝 Received feedback data: {feedback_data}")
+            
+            # Extract location data if provided
+            location_lat = None
+            location_lng = None
+            location_hash = None
+            
+            if feedback_data.get("location"):
+                location = feedback_data["location"]
+                if isinstance(location, dict):
+                    location_lat = location.get("latitude")
+                    location_lng = location.get("longitude")
+                    if location_lat and location_lng:
+                        # Create location hash for caching
+                        location_string = f"{round(location_lat, 4)},{round(location_lng, 4)}"
+                        location_hash = hashlib.md5(location_string.encode()).hexdigest()[:12]
+            
+            # Prepare data for Supabase with proper field mapping
             data = {
                 "session_id": feedback_data.get("session_id"),
                 "user_id": feedback_data.get("user_id"),
@@ -63,12 +81,25 @@ class SupabaseClient:
                 "network_used": feedback_data.get("network_used"),
                 "transaction_success": feedback_data.get("transaction_success"),
                 "rewards_earned": feedback_data.get("rewards_earned"),
-                "merchant_name": feedback_data.get("merchant_name"),
                 "transaction_amount": feedback_data.get("transaction_amount"),
-                "location_lat": feedback_data.get("location_lat"),
-                "location_lng": feedback_data.get("location_lng"),
-                "created_at": datetime.utcnow().isoformat()
+                "currency": "USD",  # Default currency
+                "merchant_name": feedback_data.get("merchant_name"),
+                "merchant_category": feedback_data.get("merchant_category"),
+                "terminal_id": feedback_data.get("terminal_id"),
+                "location_lat": location_lat,
+                "location_lng": location_lng,
+                "location_hash": location_hash,
+                "location_accuracy": feedback_data.get("location", {}).get("accuracy") if feedback_data.get("location") else None,
+                "wifi_fingerprint": feedback_data.get("wifi_fingerprint"),
+                "ble_fingerprint": feedback_data.get("ble_fingerprint"),
+                "context_features": feedback_data.get("additional_data", {}),
+                "transaction_timestamp": feedback_data.get("timestamp"),
+                "created_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.utcnow().isoformat()
             }
+            
+            # Remove None values to avoid database errors
+            data = {k: v for k, v in data.items() if v is not None}
             
             result = self.client.table("transaction_feedback").insert(data).execute()
             

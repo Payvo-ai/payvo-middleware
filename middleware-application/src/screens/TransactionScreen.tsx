@@ -11,7 +11,7 @@ import {
   Chip,
   TextInput,
 } from 'react-native-paper';
-import {PayvoAPI, RoutingSessionResponse} from '../services/PayvoAPI';
+import {PayvoAPI, RoutingSessionResponse, TransactionFeedbackRequest} from '../services/PayvoAPI';
 import {useLocation} from '../hooks/useLocation';
 import { useNotification } from '../components/NotificationProvider';
 import { useAuth } from '../contexts/AuthContext';
@@ -287,8 +287,48 @@ const TransactionScreen: React.FC = () => {
 
       await PayvoAPI.completeRouting(currentSession);
 
-      // Show success notification
-      showNotification('Transaction completed successfully!', 'success', 3000);
+      // Prepare and submit transaction feedback
+      console.log('🔍 Debug values:');
+      console.log('- currentSession:', currentSession);
+      console.log('- userId:', userId);
+      console.log('- amount:', amount, 'parsed:', parseFloat(amount));
+      console.log('- getPredictedMcc():', getPredictedMcc());
+      console.log('- getConfidence():', getConfidence());
+      console.log('- getMerchantInfo():', getMerchantInfo());
+      console.log('- selectedWallet:', selectedWallet);
+      console.log('- location:', location);
+
+      const feedbackData: TransactionFeedbackRequest = {
+        session_id: currentSession,
+        user_id: userId || 'iman@payvo.ai', // Ensure we always have a user_id
+        transaction_amount: parseFloat(amount) || 0,
+        predicted_mcc: getPredictedMcc() || '5999',
+        actual_mcc: getPredictedMcc() || '5999', // For now, assuming the prediction is correct
+        merchant_name: getMerchantInfo()?.name || 'Unknown Merchant',
+        transaction_success: true, // Since we reached completion, assume success
+        prediction_confidence: getConfidence() || 0.2,
+        network_used: (getRecommendedCard() as any)?.network || getRecommendedCard()?.card_type || selectedWallet.replace('_pay', ''),
+        wallet_type: selectedWallet,
+        location: location || undefined,
+        terminal_id: 'mobile_app_terminal',
+        timestamp: new Date().toISOString(),
+        additional_data: {
+          analysis_details: getAnalysisDetails(),
+          platform: 'ios',
+          app_version: '1.0.0',
+        },
+      };
+
+      console.log('📝 Submitting transaction feedback:', feedbackData);
+
+      try {
+        const feedbackResponse = await PayvoAPI.submitTransactionFeedback(feedbackData);
+        console.log('✅ Transaction feedback submitted successfully:', feedbackResponse);
+        showNotification('Transaction completed and logged successfully!', 'success', 3000);
+      } catch (feedbackError) {
+        console.error('❌ Failed to submit transaction feedback:', feedbackError);
+        showNotification('Transaction completed but feedback logging failed', 'warning', 3000);
+      }
 
       // Reset state for new transaction after a brief delay
       setTimeout(() => {
