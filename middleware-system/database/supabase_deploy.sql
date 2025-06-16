@@ -155,17 +155,28 @@ CREATE INDEX IF NOT EXISTS idx_user_profiles_is_active ON user_profiles(is_activ
 CREATE INDEX IF NOT EXISTS idx_user_profiles_created_at ON user_profiles(created_at);
 
 -- Add updated_at trigger
+DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON user_profiles;
 CREATE TRIGGER update_user_profiles_updated_at 
     BEFORE UPDATE ON user_profiles 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Add constraint for username format
-ALTER TABLE user_profiles ADD CONSTRAINT username_format 
-    CHECK (username ~ '^[a-zA-Z0-9_-]{2,50}$');
+DO $$
+BEGIN
+    ALTER TABLE user_profiles ADD CONSTRAINT username_format 
+        CHECK (username ~ '^[a-zA-Z0-9_-]{2,50}$');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Add constraint for phone format (basic validation)
-ALTER TABLE user_profiles ADD CONSTRAINT phone_format 
-    CHECK (phone IS NULL OR phone ~ '^\+?[1-9]\d{1,14}$');
+DO $$
+BEGIN
+    ALTER TABLE user_profiles ADD CONSTRAINT phone_format 
+        CHECK (phone IS NULL OR phone ~ '^\+?[1-9]\d{1,14}$');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- User Sessions Table
 CREATE TABLE IF NOT EXISTS user_sessions (
@@ -223,13 +234,19 @@ CREATE INDEX IF NOT EXISTS idx_user_sessions_expires_at ON user_sessions(expires
 CREATE INDEX IF NOT EXISTS idx_user_sessions_ip_address ON user_sessions(ip_address);
 
 -- Add updated_at trigger
+DROP TRIGGER IF EXISTS update_user_sessions_updated_at ON user_sessions;
 CREATE TRIGGER update_user_sessions_updated_at 
     BEFORE UPDATE ON user_sessions 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Add constraint for risk score
-ALTER TABLE user_sessions ADD CONSTRAINT risk_score_range 
-    CHECK (risk_score >= 0 AND risk_score <= 100);
+DO $$
+BEGIN
+    ALTER TABLE user_sessions ADD CONSTRAINT risk_score_range 
+        CHECK (risk_score >= 0 AND risk_score <= 100);
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- User Activity Logs Table
 CREATE TABLE IF NOT EXISTS user_activity_logs (
@@ -285,44 +302,32 @@ CREATE INDEX IF NOT EXISTS idx_activity_logs_resource_date ON user_activity_logs
 
 -- Transaction Feedback Table
 CREATE TABLE IF NOT EXISTS transaction_feedback (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     session_id VARCHAR(255) NOT NULL,
-    
-    -- MCC Prediction Data
+    user_id UUID REFERENCES auth.users(id),
     predicted_mcc VARCHAR(4),
     actual_mcc VARCHAR(4),
-    prediction_confidence DECIMAL(3,2),
-    prediction_method VARCHAR(50),
-    
-    -- Card and Payment Data
+    prediction_confidence DECIMAL(5,4),
+    prediction_method VARCHAR(100),
     selected_card_id VARCHAR(255),
-    network_used VARCHAR(20), -- 'visa', 'mastercard', 'amex', 'discover'
+    network_used VARCHAR(50),
     transaction_success BOOLEAN,
     rewards_earned DECIMAL(10,2),
     transaction_amount DECIMAL(10,2),
     currency VARCHAR(3) DEFAULT 'USD',
-    
-    -- Merchant Information
     merchant_name VARCHAR(255),
-    merchant_category VARCHAR(100),
+    merchant_category VARCHAR(255),
     terminal_id VARCHAR(255),
-    
-    -- Location Data
     location_lat DECIMAL(10,8),
     location_lng DECIMAL(11,8),
-    location_hash VARCHAR(50),
-    location_accuracy DECIMAL(8,2),
-    
-    -- Context Data
+    location_hash VARCHAR(255),
+    location_accuracy DECIMAL(10,2),
     wifi_fingerprint TEXT,
     ble_fingerprint TEXT,
-    context_features JSONB DEFAULT '{}'::jsonb,
-    
-    -- Timing
-    transaction_timestamp TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    context_features JSONB DEFAULT '{}',
+    transaction_timestamp TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Enable RLS
@@ -331,91 +336,167 @@ ALTER TABLE transaction_feedback ENABLE ROW LEVEL SECURITY;
 -- Add indexes
 CREATE INDEX IF NOT EXISTS idx_transaction_feedback_user_id ON transaction_feedback(user_id);
 CREATE INDEX IF NOT EXISTS idx_transaction_feedback_session_id ON transaction_feedback(session_id);
-CREATE INDEX IF NOT EXISTS idx_transaction_feedback_created_at ON transaction_feedback(created_at);
 CREATE INDEX IF NOT EXISTS idx_transaction_feedback_actual_mcc ON transaction_feedback(actual_mcc);
-CREATE INDEX IF NOT EXISTS idx_transaction_feedback_predicted_mcc ON transaction_feedback(predicted_mcc);
-CREATE INDEX IF NOT EXISTS idx_transaction_feedback_terminal_id ON transaction_feedback(terminal_id);
-CREATE INDEX IF NOT EXISTS idx_transaction_feedback_location_hash ON transaction_feedback(location_hash);
-CREATE INDEX IF NOT EXISTS idx_transaction_feedback_merchant_name ON transaction_feedback(merchant_name);
-CREATE INDEX IF NOT EXISTS idx_transaction_feedback_network_used ON transaction_feedback(network_used);
-CREATE INDEX IF NOT EXISTS idx_transaction_feedback_transaction_success ON transaction_feedback(transaction_success);
-
--- Composite indexes for analytics
-CREATE INDEX IF NOT EXISTS idx_transaction_feedback_mcc_comparison ON transaction_feedback(predicted_mcc, actual_mcc, prediction_confidence);
-CREATE INDEX IF NOT EXISTS idx_transaction_feedback_location_analysis ON transaction_feedback(location_hash, actual_mcc, created_at);
-CREATE INDEX IF NOT EXISTS idx_transaction_feedback_user_patterns ON transaction_feedback(user_id, actual_mcc, created_at);
+CREATE INDEX IF NOT EXISTS idx_transaction_feedback_created_at ON transaction_feedback(created_at);
+CREATE INDEX IF NOT EXISTS idx_transaction_feedback_location ON transaction_feedback(location_lat, location_lng);
 
 -- Add updated_at trigger
+DROP TRIGGER IF EXISTS update_transaction_feedback_updated_at ON transaction_feedback;
 CREATE TRIGGER update_transaction_feedback_updated_at 
     BEFORE UPDATE ON transaction_feedback 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Background Location Sessions Table
-CREATE TABLE IF NOT EXISTS background_location_sessions (
-    session_id VARCHAR(255) PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    
-    -- Session Configuration
-    session_duration_minutes INTEGER DEFAULT 30,
-    update_interval_seconds INTEGER DEFAULT 30,
-    min_distance_filter_meters DECIMAL(8,2) DEFAULT 10.0,
-    
-    -- Session Status
-    status VARCHAR(20) DEFAULT 'active', -- 'active', 'paused', 'completed', 'expired', 'cancelled'
-    is_active BOOLEAN DEFAULT TRUE,
-    
-    -- Timing
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    last_update TIMESTAMP WITH TIME ZONE NOT NULL,
-    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    completed_at TIMESTAMP WITH TIME ZONE,
-    
-    -- Statistics
-    location_count INTEGER DEFAULT 0,
-    prediction_count INTEGER DEFAULT 0,
-    total_distance_meters DECIMAL(10,2) DEFAULT 0,
-    
-    -- Configuration and Metadata
-    metadata JSONB DEFAULT '{
-        "device_info": {},
-        "app_version": null,
-        "settings": {}
-    }'::jsonb,
-    
-    -- Audit
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- MCC Predictions Table
+CREATE TABLE IF NOT EXISTS mcc_predictions (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    session_id VARCHAR(255) NOT NULL,
+    terminal_id VARCHAR(255),
+    location_hash VARCHAR(255),
+    wifi_fingerprint VARCHAR(255),
+    ble_fingerprint VARCHAR(255),
+    predicted_mcc VARCHAR(4) NOT NULL,
+    confidence DECIMAL(5,4) NOT NULL,
+    method_used VARCHAR(100) NOT NULL,
+    context_features JSONB,
+    location_lat DECIMAL(10,8),
+    location_lng DECIMAL(11,8),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Add indexes
+CREATE INDEX IF NOT EXISTS idx_mcc_predictions_session_id ON mcc_predictions(session_id);
+CREATE INDEX IF NOT EXISTS idx_mcc_predictions_terminal_id ON mcc_predictions(terminal_id);
+CREATE INDEX IF NOT EXISTS idx_mcc_predictions_location_hash ON mcc_predictions(location_hash);
+CREATE INDEX IF NOT EXISTS idx_mcc_predictions_created_at ON mcc_predictions(created_at);
+
+-- Card Performance Table
+CREATE TABLE IF NOT EXISTS card_performance (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    card_id VARCHAR(255) NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
+    mcc VARCHAR(4),
+    network VARCHAR(50),
+    transaction_success BOOLEAN NOT NULL,
+    rewards_earned DECIMAL(10,2),
+    transaction_amount DECIMAL(10,2),
+    currency VARCHAR(3) DEFAULT 'USD',
+    merchant_category VARCHAR(255),
+    location_hash VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Enable RLS
-ALTER TABLE background_location_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE card_performance ENABLE ROW LEVEL SECURITY;
 
 -- Add indexes
-CREATE INDEX IF NOT EXISTS idx_bg_sessions_user_id ON background_location_sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_bg_sessions_status ON background_location_sessions(status);
-CREATE INDEX IF NOT EXISTS idx_bg_sessions_is_active ON background_location_sessions(is_active);
-CREATE INDEX IF NOT EXISTS idx_bg_sessions_expires_at ON background_location_sessions(expires_at);
-CREATE INDEX IF NOT EXISTS idx_bg_sessions_start_time ON background_location_sessions(start_time);
-CREATE INDEX IF NOT EXISTS idx_bg_sessions_last_update ON background_location_sessions(last_update);
+CREATE INDEX IF NOT EXISTS idx_card_performance_user_id ON card_performance(user_id);
+CREATE INDEX IF NOT EXISTS idx_card_performance_card_id ON card_performance(card_id);
+CREATE INDEX IF NOT EXISTS idx_card_performance_mcc ON card_performance(mcc);
+CREATE INDEX IF NOT EXISTS idx_card_performance_created_at ON card_performance(created_at);
 
--- Composite indexes
-CREATE INDEX IF NOT EXISTS idx_bg_sessions_user_active ON background_location_sessions(user_id, is_active, expires_at);
-CREATE INDEX IF NOT EXISTS idx_bg_sessions_cleanup ON background_location_sessions(status, expires_at) WHERE status IN ('expired', 'completed');
+-- User Preferences Table
+CREATE TABLE IF NOT EXISTS user_preferences (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id VARCHAR(255) UNIQUE NOT NULL,
+    preferred_cards JSONB DEFAULT '[]',
+    mcc_preferences JSONB DEFAULT '{}',
+    network_preferences JSONB DEFAULT '{}',
+    rewards_priority VARCHAR(50) DEFAULT 'cashback',
+    risk_tolerance VARCHAR(50) DEFAULT 'medium',
+    auto_routing BOOLEAN DEFAULT true,
+    notification_preferences JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Add indexes
+CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id);
 
 -- Add updated_at trigger
-CREATE TRIGGER update_bg_sessions_updated_at 
-    BEFORE UPDATE ON background_location_sessions 
+DROP TRIGGER IF EXISTS update_user_preferences_updated_at ON user_preferences;
+CREATE TRIGGER update_user_preferences_updated_at 
+    BEFORE UPDATE ON user_preferences 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Add constraints
-ALTER TABLE background_location_sessions ADD CONSTRAINT session_duration_positive 
-    CHECK (session_duration_minutes > 0 AND session_duration_minutes <= 1440); -- Max 24 hours
+-- Enable RLS
+ALTER TABLE user_preferences ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE background_location_sessions ADD CONSTRAINT update_interval_positive 
-    CHECK (update_interval_seconds > 0 AND update_interval_seconds <= 3600); -- Max 1 hour
+-- Location Intelligence Table
+CREATE TABLE IF NOT EXISTS location_intelligence (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    location_hash VARCHAR(255) UNIQUE NOT NULL,
+    location_lat DECIMAL(10,8) NOT NULL,
+    location_lng DECIMAL(11,8) NOT NULL,
+    dominant_mcc VARCHAR(4),
+    mcc_distribution JSONB DEFAULT '{}',
+    merchant_count INTEGER DEFAULT 0,
+    confidence_score DECIMAL(5,4),
+    last_updated TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-ALTER TABLE background_location_sessions ADD CONSTRAINT distance_filter_positive 
-    CHECK (min_distance_filter_meters >= 0 AND min_distance_filter_meters <= 1000); -- Max 1km
+-- Add indexes
+CREATE INDEX IF NOT EXISTS idx_location_intelligence_hash ON location_intelligence(location_hash);
+CREATE INDEX IF NOT EXISTS idx_location_intelligence_location ON location_intelligence(location_lat, location_lng);
+
+-- Terminal Intelligence Table
+CREATE TABLE IF NOT EXISTS terminal_intelligence (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    terminal_id VARCHAR(255) UNIQUE NOT NULL,
+    confirmed_mcc VARCHAR(4),
+    confidence_score DECIMAL(5,4),
+    transaction_count INTEGER DEFAULT 0,
+    location_hash VARCHAR(255),
+    wifi_fingerprint VARCHAR(255),
+    ble_fingerprint VARCHAR(255),
+    last_seen TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Add indexes
+CREATE INDEX IF NOT EXISTS idx_terminal_intelligence_terminal_id ON terminal_intelligence(terminal_id);
+CREATE INDEX IF NOT EXISTS idx_terminal_intelligence_location_hash ON terminal_intelligence(location_hash);
+
+-- Session Analytics Table
+CREATE TABLE IF NOT EXISTS session_analytics (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    session_id VARCHAR(255) UNIQUE NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
+    platform VARCHAR(50),
+    wallet_type VARCHAR(50),
+    prediction_method VARCHAR(100),
+    prediction_confidence DECIMAL(5,4),
+    prediction_accuracy BOOLEAN,
+    processing_time_ms INTEGER,
+    data_sources_used JSONB DEFAULT '[]',
+    location_precision VARCHAR(50),
+    success BOOLEAN NOT NULL,
+    error_type VARCHAR(100),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE session_analytics ENABLE ROW LEVEL SECURITY;
+
+-- Add indexes
+CREATE INDEX IF NOT EXISTS idx_session_analytics_user_id ON session_analytics(user_id);
+CREATE INDEX IF NOT EXISTS idx_session_analytics_session_id ON session_analytics(session_id);
+CREATE INDEX IF NOT EXISTS idx_session_analytics_created_at ON session_analytics(created_at);
+
+-- System Analytics Table
+CREATE TABLE IF NOT EXISTS system_analytics (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    metric_name VARCHAR(100) NOT NULL,
+    metric_value DECIMAL(10,4),
+    metric_unit VARCHAR(50),
+    time_period VARCHAR(50),
+    metadata JSONB DEFAULT '{}',
+    recorded_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Add indexes
+CREATE INDEX IF NOT EXISTS idx_system_analytics_metric_name ON system_analytics(metric_name);
+CREATE INDEX IF NOT EXISTS idx_system_analytics_time_period ON system_analytics(time_period);
 
 -- =====================================================
 -- 4. Cache Tables
@@ -478,19 +559,35 @@ CREATE INDEX IF NOT EXISTS idx_terminal_cache_lookup ON terminal_cache(terminal_
 CREATE INDEX IF NOT EXISTS idx_terminal_cache_cleanup ON terminal_cache(last_seen, transaction_count) WHERE transaction_count < 5;
 
 -- Add updated_at trigger
+DROP TRIGGER IF EXISTS update_terminal_cache_updated_at ON terminal_cache;
 CREATE TRIGGER update_terminal_cache_updated_at 
     BEFORE UPDATE ON terminal_cache 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Add constraints
-ALTER TABLE terminal_cache ADD CONSTRAINT confidence_range 
-    CHECK (confidence >= 0.0 AND confidence <= 1.0);
+DO $$
+BEGIN
+    ALTER TABLE terminal_cache ADD CONSTRAINT confidence_range 
+        CHECK (confidence >= 0.0 AND confidence <= 1.0);
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE terminal_cache ADD CONSTRAINT transaction_count_positive 
-    CHECK (transaction_count >= 0);
+DO $$
+BEGIN
+    ALTER TABLE terminal_cache ADD CONSTRAINT transaction_count_positive 
+        CHECK (transaction_count >= 0);
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE terminal_cache ADD CONSTRAINT hit_count_positive 
-    CHECK (hit_count >= 0);
+DO $$
+BEGIN
+    ALTER TABLE terminal_cache ADD CONSTRAINT hit_count_positive 
+        CHECK (hit_count >= 0);
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Location Cache Table
 CREATE TABLE IF NOT EXISTS location_cache (
@@ -561,28 +658,59 @@ CREATE INDEX IF NOT EXISTS idx_location_cache_cleanup ON location_cache(last_upd
     WHERE prediction_count < 3;
 
 -- Add updated_at trigger
+DROP TRIGGER IF EXISTS update_location_cache_updated_at ON location_cache;
 CREATE TRIGGER update_location_cache_updated_at 
     BEFORE UPDATE ON location_cache 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Add constraints
-ALTER TABLE location_cache ADD CONSTRAINT confidence_range_location 
-    CHECK (confidence >= 0.0 AND confidence <= 1.0);
+DO $$
+BEGIN
+    ALTER TABLE location_cache ADD CONSTRAINT confidence_range_location 
+        CHECK (confidence >= 0.0 AND confidence <= 1.0);
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE location_cache ADD CONSTRAINT accuracy_rate_range 
-    CHECK (accuracy_rate >= 0.0 AND accuracy_rate <= 1.0);
+DO $$
+BEGIN
+    ALTER TABLE location_cache ADD CONSTRAINT accuracy_rate_range 
+        CHECK (accuracy_rate >= 0.0 AND accuracy_rate <= 1.0);
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE location_cache ADD CONSTRAINT prediction_count_positive 
-    CHECK (prediction_count >= 0);
+DO $$
+BEGIN
+    ALTER TABLE location_cache ADD CONSTRAINT prediction_count_positive 
+        CHECK (prediction_count >= 0);
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE location_cache ADD CONSTRAINT hit_count_positive_location 
-    CHECK (hit_count >= 0);
+DO $$
+BEGIN
+    ALTER TABLE location_cache ADD CONSTRAINT hit_count_positive_location 
+        CHECK (hit_count >= 0);
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE location_cache ADD CONSTRAINT precision_level_valid 
-    CHECK (precision_level >= 1 AND precision_level <= 12);
+DO $$
+BEGIN
+    ALTER TABLE location_cache ADD CONSTRAINT precision_level_valid 
+        CHECK (precision_level >= 1 AND precision_level <= 12);
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE location_cache ADD CONSTRAINT radius_positive 
-    CHECK (radius_meters > 0);
+DO $$
+BEGIN
+    ALTER TABLE location_cache ADD CONSTRAINT radius_positive 
+        CHECK (radius_meters > 0);
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- =====================================================
 -- 5. Database Functions
@@ -716,58 +844,127 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- =====================================================
 
 -- User Profiles Policies
+DROP POLICY IF EXISTS "Users can view own profile" ON user_profiles;
 CREATE POLICY "Users can view own profile" ON user_profiles
     FOR SELECT USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update own profile" ON user_profiles;
 CREATE POLICY "Users can update own profile" ON user_profiles
     FOR UPDATE USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can insert own profile" ON user_profiles;
 CREATE POLICY "Users can insert own profile" ON user_profiles
     FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- User Sessions Policies
+DROP POLICY IF EXISTS "Users can view own sessions" ON user_sessions;
 CREATE POLICY "Users can view own sessions" ON user_sessions
     FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own sessions" ON user_sessions;
 CREATE POLICY "Users can insert own sessions" ON user_sessions
     FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own sessions" ON user_sessions;
 CREATE POLICY "Users can update own sessions" ON user_sessions
     FOR UPDATE USING (auth.uid() = user_id);
 
 -- User Activity Logs Policies
+DROP POLICY IF EXISTS "Users can view own activity" ON user_activity_logs;
 CREATE POLICY "Users can view own activity" ON user_activity_logs
     FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "System can insert activity logs" ON user_activity_logs;
 CREATE POLICY "System can insert activity logs" ON user_activity_logs
     FOR INSERT WITH CHECK (true);
 
--- Transaction Feedback Policies
+-- Transaction Feedback Policies - Updated for middleware compatibility
+DROP POLICY IF EXISTS "Users can view own transaction feedback" ON transaction_feedback;
 CREATE POLICY "Users can view own transaction feedback" ON transaction_feedback
-    FOR SELECT USING (auth.uid() = user_id);
+    FOR SELECT USING (auth.uid() = user_id OR auth.uid() IS NULL);
 
+DROP POLICY IF EXISTS "Users can insert own transaction feedback" ON transaction_feedback;
 CREATE POLICY "Users can insert own transaction feedback" ON transaction_feedback
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
+    FOR INSERT WITH CHECK (auth.uid() = user_id OR auth.uid() IS NULL);
 
+DROP POLICY IF EXISTS "System can insert transaction feedback" ON transaction_feedback;
+CREATE POLICY "System can insert transaction feedback" ON transaction_feedback
+    FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users can update own transaction feedback" ON transaction_feedback;
 CREATE POLICY "Users can update own transaction feedback" ON transaction_feedback
-    FOR UPDATE USING (auth.uid() = user_id);
+    FOR UPDATE USING (auth.uid() = user_id OR auth.uid() IS NULL);
 
--- Background Location Sessions Policies
-CREATE POLICY "Users can view own location sessions" ON background_location_sessions
-    FOR SELECT USING (auth.uid() = user_id);
+-- User Preferences Policies
+DROP POLICY IF EXISTS "Users can view own preferences" ON user_preferences;
+CREATE POLICY "Users can view own preferences" ON user_preferences
+    FOR SELECT USING (auth.uid()::text = user_id);
 
-CREATE POLICY "Users can insert own location sessions" ON background_location_sessions
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own preferences" ON user_preferences;
+CREATE POLICY "Users can insert own preferences" ON user_preferences
+    FOR INSERT WITH CHECK (auth.uid()::text = user_id);
 
-CREATE POLICY "Users can update own location sessions" ON background_location_sessions
-    FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own preferences" ON user_preferences;
+CREATE POLICY "Users can update own preferences" ON user_preferences
+    FOR UPDATE USING (auth.uid()::text = user_id);
+
+-- Card Performance Policies
+DROP POLICY IF EXISTS "Users can view own card performance" ON card_performance;
+CREATE POLICY "Users can view own card performance" ON card_performance
+    FOR SELECT USING (auth.uid()::text = user_id);
+
+DROP POLICY IF EXISTS "Service can insert card performance" ON card_performance;
+CREATE POLICY "Service can insert card performance" ON card_performance
+    FOR INSERT WITH CHECK (true);
+
+-- Session Analytics Policies
+DROP POLICY IF EXISTS "Users can view own session analytics" ON session_analytics;
+CREATE POLICY "Users can view own session analytics" ON session_analytics
+    FOR SELECT USING (auth.uid()::text = user_id);
+
+DROP POLICY IF EXISTS "Service can insert session analytics" ON session_analytics;
+CREATE POLICY "Service can insert session analytics" ON session_analytics
+    FOR INSERT WITH CHECK (true);
+
+-- MCC Predictions Policies
+DROP POLICY IF EXISTS "System can manage predictions" ON mcc_predictions;
+CREATE POLICY "System can manage predictions" ON mcc_predictions
+    FOR ALL USING (true);
+
+-- Background Location Sessions Policies (Skip if table doesn't exist)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'background_location_sessions') THEN
+        DROP POLICY IF EXISTS "Users can view own location sessions" ON background_location_sessions;
+        CREATE POLICY "Users can view own location sessions" ON background_location_sessions
+            FOR SELECT USING (auth.uid() = user_id);
+
+        DROP POLICY IF EXISTS "Users can insert own location sessions" ON background_location_sessions;
+        CREATE POLICY "Users can insert own location sessions" ON background_location_sessions
+            FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+        DROP POLICY IF EXISTS "Users can update own location sessions" ON background_location_sessions;
+        CREATE POLICY "Users can update own location sessions" ON background_location_sessions
+            FOR UPDATE USING (auth.uid() = user_id);
+    END IF;
+END $$;
 
 -- Cache Tables Policies
+DROP POLICY IF EXISTS "Authenticated users can read terminal cache" ON terminal_cache;
 CREATE POLICY "Authenticated users can read terminal cache" ON terminal_cache
-    FOR SELECT USING (auth.uid() IS NOT NULL);
+    FOR SELECT USING (auth.uid() IS NOT NULL OR auth.uid() IS NULL);
 
+DROP POLICY IF EXISTS "System can manage terminal cache" ON terminal_cache;
+CREATE POLICY "System can manage terminal cache" ON terminal_cache
+    FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can read location cache" ON location_cache;
 CREATE POLICY "Authenticated users can read location cache" ON location_cache
-    FOR SELECT USING (auth.uid() IS NOT NULL);
+    FOR SELECT USING (auth.uid() IS NOT NULL OR auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "System can manage location cache" ON location_cache;
+CREATE POLICY "System can manage location cache" ON location_cache
+    FOR ALL USING (true);
 
 -- =====================================================
 -- 7. Triggers and Automation
@@ -790,27 +987,71 @@ CREATE TRIGGER on_auth_user_created
 
 -- Authentication & User Management Tables
 -- User profiles - for profile updates, status changes, role modifications
-ALTER PUBLICATION supabase_realtime ADD TABLE user_profiles;
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE user_profiles;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+    WHEN undefined_table THEN NULL;
+END $$;
 
 -- User sessions - for login/logout status, session management, security monitoring
-ALTER PUBLICATION supabase_realtime ADD TABLE user_sessions;
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE user_sessions;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+    WHEN undefined_table THEN NULL;
+END $$;
 
 -- User activity logs - for live activity monitoring, security alerts, audit trails
-ALTER PUBLICATION supabase_realtime ADD TABLE user_activity_logs;
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE user_activity_logs;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+    WHEN undefined_table THEN NULL;
+END $$;
 
 -- Core Business Logic Tables
 -- Transaction feedback - for live transaction monitoring, real-time analytics
-ALTER PUBLICATION supabase_realtime ADD TABLE transaction_feedback;
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE transaction_feedback;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+    WHEN undefined_table THEN NULL;
+END $$;
 
 -- Background location sessions - for real-time location tracking status, session updates
-ALTER PUBLICATION supabase_realtime ADD TABLE background_location_sessions;
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'background_location_sessions') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE background_location_sessions;
+    END IF;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+    WHEN undefined_table THEN NULL;
+END $$;
 
 -- Cache Tables - for live cache updates, performance monitoring
 -- Terminal cache - for real-time terminal data updates, MCC predictions
-ALTER PUBLICATION supabase_realtime ADD TABLE terminal_cache;
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE terminal_cache;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+    WHEN undefined_table THEN NULL;
+END $$;
 
 -- Location cache - for live location-based predictions, spatial data updates
-ALTER PUBLICATION supabase_realtime ADD TABLE location_cache;
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE location_cache;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+    WHEN undefined_table THEN NULL;
+END $$;
 
 -- =====================================================
 -- Realtime Benefits by Table:
