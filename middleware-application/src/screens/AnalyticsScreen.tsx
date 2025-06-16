@@ -9,7 +9,6 @@ import {
   Text,
   ActivityIndicator,
   Chip,
-  ProgressBar,
 } from 'react-native-paper';
 import {PayvoAPI, TransactionHistoryItem} from '../services/PayvoAPI';
 import { useNotification } from '../components/NotificationProvider';
@@ -286,31 +285,17 @@ const AnalyticsScreen: React.FC = () => {
           <View style={styles.cardContainer}>
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>🎯 MCC Prediction Performance</Text>
+                <Text style={styles.cardTitle}>MCC Prediction Performance</Text>
                 <Text style={styles.cardSubtitle}>Machine learning prediction accuracy and confidence metrics</Text>
               </View>
               <View style={styles.cardContent}>
                 <View style={styles.metricRow}>
                   <Text style={styles.metricLabel}>Prediction Accuracy</Text>
-                  <View style={styles.metricValueContainer}>
-                    <Text style={styles.metricValue}>{formatPercentage(analyticsData.mccAccuracy)}</Text>
-                    <ProgressBar
-                      progress={analyticsData.mccAccuracy}
-                      color="#28a745"
-                      style={styles.progressBar}
-                    />
-                  </View>
+                  <Text style={styles.metricValue}>{formatPercentage(analyticsData.mccAccuracy)}</Text>
                 </View>
                 <View style={styles.metricRow}>
                   <Text style={styles.metricLabel}>Average Confidence</Text>
-                  <View style={styles.metricValueContainer}>
-                    <Text style={styles.metricValue}>{formatPercentage(analyticsData.averageConfidence)}</Text>
-                    <ProgressBar
-                      progress={analyticsData.averageConfidence}
-                      color="#2742d5"
-                      style={styles.progressBar}
-                    />
-                  </View>
+                  <Text style={styles.metricValue}>{formatPercentage(analyticsData.averageConfidence)}</Text>
                 </View>
                 <View style={styles.metricRow}>
                   <Text style={styles.metricLabel}>Transactions with Predictions</Text>
@@ -327,7 +312,7 @@ const AnalyticsScreen: React.FC = () => {
             <View style={styles.cardContainer}>
               <View style={styles.card}>
                 <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>🏪 Top Merchant Categories</Text>
+                  <Text style={styles.cardTitle}>Top Merchant Categories</Text>
                   <Text style={styles.cardSubtitle}>Your most frequent transaction categories</Text>
                 </View>
                 <View style={styles.cardContent}>
@@ -339,11 +324,6 @@ const AnalyticsScreen: React.FC = () => {
                       </View>
                       <View style={styles.categoryStats}>
                         <Text style={styles.categoryCount}>{category.count} transactions</Text>
-                        <ProgressBar
-                          progress={category.count / analyticsData.totalTransactions}
-                          color="#2742d5"
-                          style={styles.categoryProgressBar}
-                        />
                       </View>
                     </View>
                   ))}
@@ -357,7 +337,7 @@ const AnalyticsScreen: React.FC = () => {
             <View style={styles.cardContainer}>
               <View style={styles.card}>
                 <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>💳 Payment Network Performance</Text>
+                  <Text style={styles.cardTitle}>Payment Network Performance</Text>
                   <Text style={styles.cardSubtitle}>Success rates by payment network</Text>
                 </View>
                 <View style={styles.cardContent}>
@@ -369,11 +349,6 @@ const AnalyticsScreen: React.FC = () => {
                       </View>
                       <View style={styles.networkPerformanceStats}>
                         <Text style={styles.networkSuccessRate}>{formatPercentage(network.successRate)}</Text>
-                        <ProgressBar
-                          progress={network.successRate}
-                          color={network.successRate > 0.9 ? '#28a745' : network.successRate > 0.7 ? '#ffc107' : '#dc3545'}
-                          style={styles.networkProgressBar}
-                        />
                       </View>
                     </View>
                   ))}
@@ -387,7 +362,7 @@ const AnalyticsScreen: React.FC = () => {
             <View style={styles.cardContainer}>
               <View style={styles.card}>
                 <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>📈 Monthly Trends</Text>
+                  <Text style={styles.cardTitle}>Monthly Trends</Text>
                   <Text style={styles.cardSubtitle}>Transaction volume over time</Text>
                 </View>
                 <View style={styles.cardContent}>
@@ -396,11 +371,6 @@ const AnalyticsScreen: React.FC = () => {
                       <Text style={styles.trendMonth}>{month.month}</Text>
                       <View style={styles.trendStats}>
                         <Text style={styles.trendTransactions}>{month.transactions} transactions</Text>
-                        <ProgressBar
-                          progress={month.transactions / Math.max(...analyticsData.monthlyTrends.map(m => m.transactions))}
-                          color="#2742d5"
-                          style={styles.trendProgressBar}
-                        />
                       </View>
                     </View>
                   ))}
@@ -415,7 +385,7 @@ const AnalyticsScreen: React.FC = () => {
       <View style={styles.cardContainer}>
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>📊 Recent Transaction Details</Text>
+            <Text style={styles.cardTitle}>Recent Transaction Details</Text>
             <Text style={styles.cardSubtitle}>Detailed transaction history with feedback data</Text>
           </View>
           <View style={styles.cardContent}>
@@ -692,12 +662,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     marginRight: 8,
   },
-  progressBar: {
-    height: 6,
-    borderRadius: 3,
-    marginLeft: 8,
-    flex: 1,
-  },
   networksContainer: {
     gap: 16,
   },
@@ -880,6 +844,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 16,
+    gap: 12,
   },
   overviewCard: {
     flex: 1,
@@ -887,6 +852,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
+    shadowColor: '#afafaf',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
   },
   overviewNumber: {
     fontSize: 18,
@@ -903,23 +873,19 @@ const styles = StyleSheet.create({
   metricRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 8,
-  },
-  metricValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
   },
   metricLabel: {
     fontSize: 12,
     color: '#676767',
     fontFamily: 'Inter',
     fontWeight: '500',
-    marginRight: 8,
   },
   categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
   },
   categoryInfo: {
@@ -938,7 +904,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   categoryStats: {
-    flex: 1,
     alignItems: 'flex-end',
   },
   categoryCount: {
@@ -948,14 +913,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 4,
   },
-  categoryProgressBar: {
-    width: 80,
-    height: 4,
-    borderRadius: 2,
-  },
   networkRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
   },
   networkCount: {
@@ -965,7 +926,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   networkPerformanceStats: {
-    flex: 1,
     alignItems: 'flex-end',
   },
   networkSuccessRate: {
@@ -975,14 +935,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 4,
   },
-  networkProgressBar: {
-    width: 80,
-    height: 4,
-    borderRadius: 2,
-  },
   trendRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
   },
   trendMonth: {
@@ -993,7 +949,6 @@ const styles = StyleSheet.create({
     width: 60,
   },
   trendStats: {
-    flex: 1,
     alignItems: 'flex-end',
   },
   trendTransactions: {
@@ -1001,11 +956,6 @@ const styles = StyleSheet.create({
     color: '#676767',
     fontFamily: 'Inter',
     marginBottom: 4,
-  },
-  trendProgressBar: {
-    width: 100,
-    height: 4,
-    borderRadius: 2,
   },
   correctPrediction: {
     color: '#28a745',

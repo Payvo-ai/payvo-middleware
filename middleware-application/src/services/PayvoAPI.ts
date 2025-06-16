@@ -385,6 +385,30 @@ export interface TransactionHistoryResponse {
   error?: string;
 }
 
+export interface TransactionFeedbackRequest {
+  session_id: string;
+  user_id: string;
+  transaction_amount: number;
+  predicted_mcc?: string;
+  actual_mcc?: string;
+  merchant_name?: string;
+  transaction_success: boolean;
+  prediction_confidence?: number;
+  network_used?: string;
+  wallet_type?: string;
+  location?: LocationData;
+  terminal_id?: string;
+  timestamp?: string;
+  additional_data?: any;
+}
+
+export interface TransactionFeedbackResponse {
+  success: boolean;
+  feedback_id?: string;
+  message: string;
+  data?: any;
+}
+
 class PayvoAPIService {
   private baseURL: string;
   private apiKey?: string;
@@ -658,6 +682,15 @@ class PayvoAPIService {
       console.error('❌ Get user transaction history failed:', error);
       throw error;
     }
+  }
+
+  async submitTransactionFeedback(feedback: TransactionFeedbackRequest): Promise<TransactionFeedbackResponse> {
+    const response = await this.makeRequest('/transaction-feedback', {
+      method: 'POST',
+      body: JSON.stringify(feedback),
+    });
+
+    return response as TransactionFeedbackResponse;
   }
 }
 
