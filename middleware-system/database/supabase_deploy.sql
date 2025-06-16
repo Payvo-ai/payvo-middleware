@@ -845,11 +845,11 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION get_user_by_email(email_param text)
 RETURNS TABLE (
     id uuid,
-    username text,
-    full_name text,
+    username varchar(50),
+    full_name varchar(255),
     is_verified boolean,
-    role text,
-    department text,
+    role varchar(100),
+    department varchar(100),
     created_at timestamp with time zone,
     updated_at timestamp with time zone
 ) 

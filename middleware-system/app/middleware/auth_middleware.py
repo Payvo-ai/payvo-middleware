@@ -42,7 +42,9 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         self.excluded_paths = [
             "/docs", "/redoc", "/openapi.json",
             "/health", "/status",
-            "/api/v1/auth/login", "/api/v1/auth/register"
+            "/api/v1/auth/login", "/api/v1/auth/register",
+            "/api/v1/predict-mcc", "/api/v1/prediction",
+            "/api/v1/feedback", "/api/v1/transaction-feedback"
         ]
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
