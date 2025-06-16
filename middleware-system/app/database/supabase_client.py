@@ -54,25 +54,48 @@ class SupabaseClient:
         try:
             logger.info(f"📝 Received feedback data: {feedback_data}")
             
+            # Convert email to UUID if needed
+            user_uuid = None
+            if feedback_data.get("user_id"):
+                user_email = feedback_data.get("user_id")
+                if "@" in user_email:  # It's an email, need to convert to UUID
+                    try:
+                        # Query auth.users table to get UUID for this email
+                        auth_result = self.client.from_("auth.users").select("id").eq("email", user_email).execute()
+                        if auth_result.data:
+                            user_uuid = auth_result.data[0]["id"]
+                            logger.info(f"✅ Converted email {user_email} to UUID {user_uuid}")
+                        else:
+                            logger.warning(f"⚠️ No user found for email {user_email}")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Failed to convert email to UUID: {e}, using email as fallback")
+                        user_uuid = user_email  # Use email as fallback
+                else:
+                    user_uuid = user_email  # Already a UUID
+            
             # Extract location data if provided
             location_lat = None
             location_lng = None
             location_hash = None
+            location_accuracy = None
             
             if feedback_data.get("location"):
                 location = feedback_data["location"]
+                logger.info(f"🗺️ Processing location data: {location}")
                 if isinstance(location, dict):
                     location_lat = location.get("latitude")
                     location_lng = location.get("longitude")
+                    location_accuracy = location.get("accuracy")
                     if location_lat and location_lng:
                         # Create location hash for caching
                         location_string = f"{round(location_lat, 4)},{round(location_lng, 4)}"
                         location_hash = hashlib.md5(location_string.encode()).hexdigest()[:12]
+                        logger.info(f"🎯 Generated location hash: {location_hash}")
             
             # Prepare data for Supabase with proper field mapping
             data = {
                 "session_id": feedback_data.get("session_id"),
-                "user_id": feedback_data.get("user_id"),
+                "user_id": user_uuid,
                 "predicted_mcc": feedback_data.get("predicted_mcc"),
                 "actual_mcc": feedback_data.get("actual_mcc"),
                 "prediction_confidence": feedback_data.get("prediction_confidence"),
@@ -89,7 +112,7 @@ class SupabaseClient:
                 "location_lat": location_lat,
                 "location_lng": location_lng,
                 "location_hash": location_hash,
-                "location_accuracy": feedback_data.get("location", {}).get("accuracy") if feedback_data.get("location") else None,
+                "location_accuracy": location_accuracy,
                 "wifi_fingerprint": feedback_data.get("wifi_fingerprint"),
                 "ble_fingerprint": feedback_data.get("ble_fingerprint"),
                 "context_features": feedback_data.get("additional_data", {}),
@@ -98,20 +121,33 @@ class SupabaseClient:
                 "updated_at": datetime.utcnow().isoformat()
             }
             
-            # Remove None values to avoid database errors
-            data = {k: v for k, v in data.items() if v is not None}
+            # Log data before filtering
+            logger.info(f"🔍 Data before filtering: {data}")
             
-            result = self.client.table("transaction_feedback").insert(data).execute()
+            # Remove None values to avoid database errors - but keep empty dicts/arrays
+            filtered_data = {}
+            for k, v in data.items():
+                if v is not None and v != "":
+                    filtered_data[k] = v
+                elif k in ["context_features"] and v == {}:
+                    filtered_data[k] = v  # Keep empty context_features
+            
+            logger.info(f"💾 Final data to insert: {filtered_data}")
+            
+            result = self.client.table("transaction_feedback").insert(filtered_data).execute()
             
             if result.data:
-                logger.info(f"Transaction feedback stored for session {feedback_data.get('session_id')}")
+                logger.info(f"✅ Transaction feedback stored successfully for session {feedback_data.get('session_id')}")
+                logger.info(f"📊 Stored record: {result.data[0]}")
                 return True
             else:
-                logger.error("Failed to store transaction feedback")
+                logger.error("❌ Failed to store transaction feedback - no data returned")
                 return False
                 
         except Exception as e:
-            logger.error(f"Error storing transaction feedback: {e}")
+            logger.error(f"❌ Error storing transaction feedback: {e}")
+            import traceback
+            logger.error(f"📋 Full traceback: {traceback.format_exc()}")
             return False
     
     async def get_user_transaction_history(self, user_id: str, limit: int = 100) -> List[Dict]:
