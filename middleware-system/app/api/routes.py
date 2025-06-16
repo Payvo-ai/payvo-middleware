@@ -2,7 +2,7 @@
 FastAPI routes for Payvo middleware
 """
 
-from fastapi import APIRouter, HTTPException, Query, Body
+from fastapi import APIRouter, HTTPException, Query, Body, Request
 from typing import Optional, Dict, List, Any
 import logging
 from datetime import datetime
@@ -12,10 +12,14 @@ from app.models.schemas import (
 )
 from app.services.routing_orchestrator import routing_orchestrator
 from app.api.route_modules.background_location import router as background_location_router
+from app.api.route_modules.auth import router as auth_router
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Include authentication routes
+router.include_router(auth_router, prefix="/api/v1")
 
 # Include background location routes
 router.include_router(background_location_router, prefix="/api/v1")
@@ -23,6 +27,7 @@ router.include_router(background_location_router, prefix="/api/v1")
 
 @router.post("/routing/initiate", response_model=APIResponse)
 async def initiate_card_routing(
+    request: Request,
     user_id: str = Body(..., description="User identifier"),
     platform: str = Body(default="unknown", description="Platform (ios/android/web)"),
     wallet_type: str = Body(default="unknown", description="Wallet type (apple_pay/google_pay/samsung_pay)"),
@@ -41,6 +46,29 @@ async def initiate_card_routing(
     Returns routing decision with session ID for tracking
     """
     try:
+        # Get authentication context (may be None for unauthenticated users)
+        from app.middleware.auth_middleware import get_auth_context
+        auth_context = get_auth_context(request)
+        
+        # If user is authenticated, verify the user_id matches
+        if auth_context.is_authenticated and auth_context.user_email != user_id:
+            logger.warning(f"User ID mismatch: authenticated user {auth_context.user_email} attempting to use {user_id}")
+            # Allow it but log the discrepancy - for now use the authenticated user's email
+            user_id = auth_context.user_email
+        
+        # Log the routing initiation
+        if auth_context.is_authenticated:
+            await auth_context.log_activity(
+                action="routing_initiation_requested",
+                resource="payment_routing",
+                metadata={
+                    "platform": platform,
+                    "wallet_type": wallet_type,
+                    "device_id": device_id,
+                    "transaction_amount": transaction_amount
+                }
+            )
+        
         response = await routing_orchestrator.initiate_routing(
             user_id=user_id,
             platform=platform,

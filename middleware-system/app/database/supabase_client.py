@@ -83,7 +83,7 @@ class SupabaseClient:
             # Prepare data for Supabase with proper field mapping
             data = {
                 "session_id": feedback_data.get("session_id"),
-                "user_id": user_id_value or "anonymous",  # Use email as user_id, fallback to "anonymous"
+                "user_id": None,  # Set to None since schema expects UUID from auth.users, but we only have email
                 "predicted_mcc": feedback_data.get("predicted_mcc"),
                 "actual_mcc": feedback_data.get("actual_mcc"),
                 "prediction_confidence": feedback_data.get("prediction_confidence"),
@@ -109,9 +109,10 @@ class SupabaseClient:
                 "updated_at": datetime.utcnow().isoformat()
             }
             
-            # Store email in context_features for reference as well
+            # Always store email in context_features for user identification
             if user_id_value:
                 data["context_features"]["user_email"] = user_id_value
+                logger.info(f"🏷️ Stored user email in context_features: {user_id_value}")
             
             # Log data before filtering
             logger.info(f"🔍 Data before filtering: {data}")

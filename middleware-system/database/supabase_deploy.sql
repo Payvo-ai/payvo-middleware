@@ -839,6 +839,45 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Function to get user by email address
+-- This function joins auth.users with user_profiles to get complete user information
+-- Used by the middleware auth service for user validation
+CREATE OR REPLACE FUNCTION get_user_by_email(email_param text)
+RETURNS TABLE (
+    id uuid,
+    username text,
+    full_name text,
+    is_verified boolean,
+    role text,
+    department text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+) 
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        up.id,
+        up.username,
+        up.full_name,
+        up.is_verified,
+        up.role,
+        up.department,
+        up.created_at,
+        up.updated_at
+    FROM user_profiles up
+    INNER JOIN auth.users au ON up.id = au.id
+    WHERE au.email = email_param
+    AND au.email_confirmed_at IS NOT NULL; -- Only return confirmed users
+END;
+$$;
+
+-- Grant execution permission to authenticated users
+GRANT EXECUTE ON FUNCTION get_user_by_email(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_user_by_email(text) TO service_role;
+
 -- =====================================================
 -- 6. Row Level Security Policies
 -- =====================================================

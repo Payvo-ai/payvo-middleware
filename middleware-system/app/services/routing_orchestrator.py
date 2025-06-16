@@ -982,14 +982,21 @@ class RoutingOrchestrator:
     async def initiate_routing(self, user_id: str, platform: str = "unknown", 
                               wallet_type: str = "unknown", device_id: str = None,
                               transaction_amount: float = None) -> Dict[str, Any]:
-        """Initiate a new routing session"""
+        """Initiate a new routing session with user authentication context"""
         try:
             session_id = self._generate_session_id()
             
-            # Create session data
+            # Create user context for this transaction
+            from app.middleware.auth_middleware import create_transaction_context
+            user_context = await create_transaction_context(user_id)
+            
+            logger.info(f"🔐 User authentication context: {user_context['user_role']} user ({user_context['is_authenticated']})")
+            
+            # Create session data with user context
             session_data = {
                 "session_id": session_id,
                 "user_id": user_id,
+                "user_context": user_context,  # Include auth context
                 "platform": platform,
                 "wallet_type": wallet_type,
                 "device_id": device_id,
@@ -1006,6 +1013,22 @@ class RoutingOrchestrator:
             
             self.active_sessions[session_id] = session_data
             
+            # Log user activity if authenticated
+            if user_context["is_authenticated"]:
+                from app.services.auth_service import get_auth_service
+                auth_service = get_auth_service()
+                await auth_service.log_user_activity(
+                    user_id=user_context["user_id"],
+                    action="transaction_initiated",
+                    resource="payment_routing",
+                    metadata={
+                        "session_id": session_id,
+                        "platform": platform,
+                        "wallet_type": wallet_type,
+                        "amount": transaction_amount
+                    }
+                )
+            
             logger.info(f"Routing session {session_id} initiated for user {user_id}")
             
             return {
@@ -1014,6 +1037,11 @@ class RoutingOrchestrator:
                     "session_id": session_id,
                     "status": "initiated",
                     "processing_time_ms": 50,  # Mock processing time
+                    "user_context": {
+                        "is_authenticated": user_context["is_authenticated"],
+                        "user_role": user_context["user_role"],
+                        "user_id": user_context["user_id"]
+                    },
                     "message": "Routing session initiated successfully"
                 },
                 "message": "Session initiated successfully"
@@ -1180,7 +1208,7 @@ class RoutingOrchestrator:
             }
 
     async def complete_transaction(self, session_id: str, feedback: Any = None) -> Dict[str, Any]:
-        """Complete a transaction"""
+        """Complete a transaction with user activity logging"""
         try:
             if not hasattr(self, 'active_sessions') or session_id not in self.active_sessions:
                 return {
@@ -1190,6 +1218,7 @@ class RoutingOrchestrator:
                 }
             
             session = self.active_sessions[session_id]
+            user_context = session.get("user_context", {})
             
             # Update session
             session.update({
@@ -1210,9 +1239,14 @@ class RoutingOrchestrator:
                     else:
                         feedback_data = feedback
                     
-                    # Ensure session_id is included in feedback
+                    # Ensure session_id and user context are included in feedback
                     feedback_data['session_id'] = session_id
                     feedback_data['user_id'] = session.get('user_id')
+                    
+                    # Add user context to feedback metadata
+                    if not feedback_data.get('additional_data'):
+                        feedback_data['additional_data'] = {}
+                    feedback_data['additional_data']['user_context'] = user_context
                     
                     # Process the feedback
                     feedback_result = await self.process_transaction_feedback(feedback_data)
@@ -1226,12 +1260,40 @@ class RoutingOrchestrator:
                 except Exception as e:
                     logger.error(f"Error processing feedback for session {session_id}: {str(e)}")
             
+            # Log transaction completion activity
+            if user_context.get("is_authenticated"):
+                try:
+                    from app.services.auth_service import get_auth_service
+                    auth_service = get_auth_service()
+                    await auth_service.log_user_activity(
+                        user_id=user_context["user_id"],
+                        action="transaction_completed",
+                        resource="payment_routing",
+                        metadata={
+                            "session_id": session_id,
+                            "platform": session.get("platform"),
+                            "wallet_type": session.get("wallet_type"),
+                            "amount": session.get("transaction_amount"),
+                            "predicted_mcc": session.get("mcc_prediction", {}).get("mcc"),
+                            "confidence": session.get("mcc_prediction", {}).get("confidence"),
+                            "selected_card": session.get("selected_card", {}).get("card_type"),
+                            "feedback_provided": feedback is not None,
+                            "feedback_processed": feedback_processed
+                        }
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to log user activity: {e}")
+            
             logger.info(f"Transaction completed for session {session_id}")
             
             response_data = {
                 "session_id": session_id,
                 "status": "completed",
                 "processing_time_ms": 75,
+                "user_context": {
+                    "is_authenticated": user_context.get("is_authenticated", False),
+                    "user_role": user_context.get("user_role", "anonymous")
+                }
             }
             
             # Include feedback processing status if feedback was provided

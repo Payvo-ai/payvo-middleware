@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router as routes_router
 from app.api.route_modules.mcc_prediction import router as mcc_router
+from app.middleware.auth_middleware import AuthenticationMiddleware
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -114,6 +115,19 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# Add Authentication Middleware
+app.add_middleware(
+    AuthenticationMiddleware,
+    protected_paths=[
+        "/api/v1/transactions",
+        "/api/v1/balance",
+        "/api/v1/history", 
+        "/api/v1/user",
+        "/api/v1/accounts",
+        "/api/v1/profile"
+    ]
 )
 
 # Add Railway-specific health check endpoint BEFORE including routers
