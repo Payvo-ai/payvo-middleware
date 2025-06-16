@@ -134,11 +134,19 @@ class RoutingDecision(BaseModel):
 
 class TransactionFeedback(BaseModel):
     session_id: str
+    user_id: Optional[str] = None
+    transaction_amount: Optional[float] = None
+    predicted_mcc: Optional[str] = None
     actual_mcc: Optional[str] = None
+    merchant_name: Optional[str] = None
     transaction_success: bool
-    actual_merchant_name: Optional[str] = None
-    actual_location: Optional[LocationData] = None
+    prediction_confidence: Optional[float] = None
     network_used: Optional[NetworkType] = None
+    wallet_type: Optional[str] = None
+    location: Optional[LocationData] = None
+    terminal_id: Optional[str] = None
+    timestamp: Optional[str] = None
+    additional_data: Optional[Dict[str, Any]] = None
     rewards_earned: Optional[float] = None
 
 
