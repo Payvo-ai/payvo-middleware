@@ -1197,15 +1197,49 @@ class RoutingOrchestrator:
                 "updated_at": datetime.now().isoformat()
             })
             
+            # Process feedback if provided
+            feedback_processed = False
+            if feedback:
+                try:
+                    # Convert feedback to dict if it's a Pydantic model
+                    if hasattr(feedback, 'dict'):
+                        feedback_data = feedback.dict()
+                    elif hasattr(feedback, 'model_dump'):
+                        feedback_data = feedback.model_dump()
+                    else:
+                        feedback_data = feedback
+                    
+                    # Ensure session_id is included in feedback
+                    feedback_data['session_id'] = session_id
+                    feedback_data['user_id'] = session.get('user_id')
+                    
+                    # Process the feedback
+                    feedback_result = await self.process_transaction_feedback(feedback_data)
+                    feedback_processed = feedback_result.get("status") == "success"
+                    
+                    if feedback_processed:
+                        logger.info(f"Transaction feedback processed for session {session_id}")
+                    else:
+                        logger.warning(f"Failed to process feedback for session {session_id}: {feedback_result.get('message')}")
+                        
+                except Exception as e:
+                    logger.error(f"Error processing feedback for session {session_id}: {str(e)}")
+            
             logger.info(f"Transaction completed for session {session_id}")
+            
+            response_data = {
+                "session_id": session_id,
+                "status": "completed",
+                "processing_time_ms": 75,
+            }
+            
+            # Include feedback processing status if feedback was provided
+            if feedback:
+                response_data["feedback_processed"] = feedback_processed
             
             return {
                 "success": True,
-                "data": {
-                    "session_id": session_id,
-                    "status": "completed",
-                    "processing_time_ms": 75,
-                },
+                "data": response_data,
                 "message": "Transaction completed successfully"
             }
             

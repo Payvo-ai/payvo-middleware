@@ -139,7 +139,7 @@ async def activate_payment_token(
 @router.post("/routing/{session_id}/complete", response_model=APIResponse)
 async def complete_transaction(
     session_id: str,
-    feedback: Optional[TransactionFeedback] = None
+    feedback: Optional[TransactionFeedback] = Body(default=None, description="Transaction feedback for learning")
 ):
     """
     Complete transaction and provide feedback for learning
@@ -165,6 +165,48 @@ async def complete_transaction(
         
     except Exception as e:
         logger.error(f"Transaction completion failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/feedback/transaction", response_model=APIResponse)
+async def submit_transaction_feedback(feedback: TransactionFeedback):
+    """
+    Submit transaction feedback for machine learning improvement
+    
+    This endpoint allows submitting feedback about completed transactions
+    to improve future MCC predictions and card recommendations.
+    
+    The feedback includes:
+    - Actual MCC code observed
+    - Transaction success/failure
+    - Merchant information
+    - Location data
+    - Performance metrics
+    """
+    try:
+        # Convert feedback to dict
+        feedback_data = feedback.model_dump()
+        
+        # Process the feedback through the routing orchestrator
+        response = await routing_orchestrator.process_transaction_feedback(feedback_data)
+        
+        if response.get("status") != "success":
+            raise HTTPException(status_code=400, detail=response.get("message", "Failed to process feedback"))
+        
+        return APIResponse(
+            success=True,
+            data={
+                "feedback_id": feedback_data.get("session_id"),
+                "processed_at": response.get("timestamp"),
+                "status": "processed"
+            },
+            message="Transaction feedback processed successfully"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Transaction feedback submission failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -547,4 +589,77 @@ async def test_payment_with_gps(
         logger.error(f"Exception args: {e.args}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/users/{user_id}/transactions", response_model=APIResponse)
+async def get_user_transactions(
+    user_id: str,
+    limit: int = Query(default=50, description="Maximum number of transactions to return"),
+    offset: int = Query(default=0, description="Number of transactions to skip")
+):
+    """
+    Get transaction history for a specific user including location data
+    
+    Returns:
+    - List of user's transaction feedback records
+    - Transaction details including MCC predictions, amounts, merchants, locations
+    - Pagination support via limit and offset
+    """
+    try:
+        from app.database.connection_manager import connection_manager
+        
+        # Get user transaction history
+        transactions = await connection_manager.get_user_transaction_history(
+            user_id=user_id, 
+            limit=limit
+        )
+        
+        # Apply offset if specified
+        if offset > 0:
+            transactions = transactions[offset:]
+        
+        # Format the response with location data
+        formatted_transactions = []
+        for tx in transactions:
+            formatted_tx = {
+                "id": tx.get("id"),
+                "session_id": tx.get("session_id"),
+                "merchant_name": tx.get("merchant_name"),
+                "predicted_mcc": tx.get("predicted_mcc"),
+                "actual_mcc": tx.get("actual_mcc"),
+                "transaction_amount": tx.get("transaction_amount"),
+                "transaction_success": tx.get("transaction_success"),
+                "prediction_confidence": tx.get("prediction_confidence"),
+                "network_used": tx.get("network_used"),
+                "terminal_id": tx.get("terminal_id"),
+                "location_hash": tx.get("location_hash"),
+                "created_at": tx.get("created_at"),
+                "transaction_timestamp": tx.get("transaction_timestamp"),
+                # Add location information
+                "location": {
+                    "latitude": tx.get("latitude"),
+                    "longitude": tx.get("longitude"),
+                    "address": tx.get("address"),
+                    "city": tx.get("city"),
+                    "state": tx.get("state"),
+                    "country": tx.get("country"),
+                    "postal_code": tx.get("postal_code")
+                }
+            }
+            formatted_transactions.append(formatted_tx)
+        
+        return APIResponse(
+            success=True,
+            data={
+                "transactions": formatted_transactions,
+                "total_count": len(transactions),
+                "limit": limit,
+                "offset": offset,
+                "user_id": user_id
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch user transactions: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 
