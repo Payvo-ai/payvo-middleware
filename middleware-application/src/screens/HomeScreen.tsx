@@ -9,8 +9,8 @@ import {
   Chip,
   Text,
   ActivityIndicator,
+  Card,
 } from 'react-native-paper';
-import {SafeAreaView} from 'react-native-safe-area-context';
 import {PayvoAPI, HealthCheckResponse} from '../services/PayvoAPI';
 import { useNotification } from '../components/NotificationProvider';
 
@@ -23,42 +23,45 @@ const HomeScreen: React.FC = () => {
   const loadHealthData = React.useCallback(async () => {
     try {
       setConnectionStatus('checking');
-      const healthData = await PayvoAPI.getHealthCheck();
+      console.log('🔍 Attempting to connect to middleware...');
+      
+      const response = await PayvoAPI.getHealthCheck();
+      console.log('✅ Health check successful:', response);
 
-      if (healthData) {
-        setHealth(healthData);
+      // Handle the wrapped response format: {success: true, data: {...}, message: "..."}
+      if (response && response.success && response.data) {
+        setHealth(response.data);
         setConnectionStatus('connected');
+        showNotification('✅ Connected to middleware', 'success', 2000);
+      } else if (response && (response as any).status) {
+        // Handle direct response format (fallback)
+        setHealth(response as any);
+        setConnectionStatus('connected');
+        showNotification('✅ Connected to middleware', 'success', 2000);
       } else {
-        // Create a mock health response for error state
-        setHealth({
-          status: 'error',
-          version: 'unknown',
-          timestamp: new Date().toISOString(),
-          components: {
-            database: 'down',
-            routing_orchestrator: 'down',
-            supabase: 'down',
-          },
-          cache_stats: {
-            mcc_cache_size: 0,
-            location_cache_size: 0,
-            terminal_cache_size: 0,
-            wifi_cache_size: 0,
-            ble_cache_size: 0,
-          },
-          system_info: {
-            active_sessions: 0,
-            background_tasks: 0,
-          },
-        });
-        setConnectionStatus('disconnected');
+        throw new Error('Invalid health response format');
       }
     } catch (error) {
-      console.error('Health check failed:', error);
-      // Create a mock health response for error state with proper structure
+      console.error('❌ Health check failed:', error);
+      
+      // Determine error type for better user feedback
+      let errorMessage = '⚠️ Middleware offline - using demo mode';
+      if (error instanceof Error) {
+        if (error.message.includes('Network request failed') || error.message.includes('fetch')) {
+          errorMessage = '🌐 Network error - check your connection';
+        } else if (error.message.includes('timeout') || error.message.includes('AbortError')) {
+          errorMessage = '⏱️ Connection timeout - server may be slow';
+        } else if (error.message.includes('HTTP 404')) {
+          errorMessage = '🔍 API endpoint not found';
+        } else if (error.message.includes('HTTP 500')) {
+          errorMessage = '🔧 Server error - try again later';
+        }
+      }
+      
+      // Create a realistic mock health response for demo mode
       setHealth({
         status: 'error',
-        version: 'unknown',
+        version: 'v1.0.0',
         timestamp: new Date().toISOString(),
         components: {
           database: 'down',
@@ -78,21 +81,51 @@ const HomeScreen: React.FC = () => {
         },
       });
       setConnectionStatus('disconnected');
+      showNotification(errorMessage, 'warning', 4000);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showNotification]);
 
   const testConnection = async () => {
     try {
       setLoading(true);
+      setConnectionStatus('checking');
+      console.log('🔄 Testing connection...');
+      
       // Test connection by calling health check
-      await PayvoAPI.getHealthCheck();
-      setConnectionStatus('connected');
-      showNotification('✅ Connection successful!', 'success', 2000);
+      const response = await PayvoAPI.getHealthCheck();
+      console.log('✅ Connection test successful:', response);
+      
+      // Handle the wrapped response format: {success: true, data: {...}, message: "..."}
+      if (response && response.success && response.data) {
+        setHealth(response.data);
+        setConnectionStatus('connected');
+        showNotification('✅ Connection successful!', 'success', 2000);
+      } else if (response && (response as any).status) {
+        // Handle direct response format (fallback)
+        setHealth(response as any);
+        setConnectionStatus('connected');
+        showNotification('✅ Connection successful!', 'success', 2000);
+      } else {
+        throw new Error('Invalid response format from server');
+      }
     } catch (error) {
+      console.error('❌ Connection test failed:', error);
       setConnectionStatus('disconnected');
-      showNotification('❌ Connection failed', 'error', 3000);
+      
+      let errorMessage = '❌ Connection failed';
+      if (error instanceof Error) {
+        if (error.message.includes('Network request failed')) {
+          errorMessage = '🌐 Network error - check internet connection';
+        } else if (error.message.includes('timeout') || error.message.includes('AbortError')) {
+          errorMessage = '⏱️ Connection timeout - server unreachable';
+        } else if (error.message.includes('HTTP')) {
+          errorMessage = `🔧 Server error: ${error.message}`;
+        }
+      }
+      
+      showNotification(errorMessage, 'error', 4000);
     } finally {
       setLoading(false);
     }
@@ -129,6 +162,13 @@ const HomeScreen: React.FC = () => {
     }
   };
 
+  const getHealthPercentage = () => {
+    if (!health) return '0%';
+    if (health.status === 'healthy') return '100%';
+    if (health.status === 'error') return '0%';
+    return '50%';
+  };
+
   if (loading && !health) {
     return (
       <View style={styles.loadingContainer}>
@@ -139,24 +179,28 @@ const HomeScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}>
+        
         {/* Stats Section */}
         <View style={styles.statsSection}>
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
-              <View style={styles.statIconContainer}>
-                <Text style={styles.statValue}>
-                  {connectionStatus === 'connected' ? '✓' : '✗'}
+              <View style={[styles.statIconContainer, { backgroundColor: getConnectionChipColor() + '20' }]}>
+                <Text style={[styles.statIcon, { color: getConnectionChipColor() }]}>
+                  {connectionStatus === 'connected' ? '✓' : connectionStatus === 'disconnected' ? '✗' : '?'}
                 </Text>
               </View>
               <Text style={styles.statLabel}>Connection</Text>
             </View>
 
             <View style={styles.statCard}>
-              <View style={styles.statIconContainer}>
-                <Text style={styles.statValue}>
-                  {health ? health.status === 'healthy' ? '100%' : '0%' : '...'}
+              <View style={[styles.statIconContainer, { backgroundColor: getStatusColor(health?.status || 'unknown') + '20' }]}>
+                <Text style={[styles.statValue, { color: getStatusColor(health?.status || 'unknown') }]}>
+                  {getHealthPercentage()}
                 </Text>
               </View>
               <Text style={styles.statLabel}>Health</Text>
@@ -165,7 +209,7 @@ const HomeScreen: React.FC = () => {
             <View style={styles.statCard}>
               <View style={styles.statIconContainer}>
                 <Text style={styles.statValue}>
-                  {health ? health.version : '...'}
+                  {health?.version || 'v1.0'}
                 </Text>
               </View>
               <Text style={styles.statLabel}>Version</Text>
@@ -174,125 +218,143 @@ const HomeScreen: React.FC = () => {
         </View>
 
         {/* Connection Status Card */}
-        <View style={styles.cardContainer}>
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Connection Status</Text>
+        <Card style={styles.card}>
+          <Card.Content style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Connection Status</Text>
+            <View style={styles.statusContainer}>
+              <Chip
+                style={[styles.statusChip, {backgroundColor: getConnectionChipColor()}]}
+                textStyle={styles.chipText}>
+                {connectionStatus === 'connected' ? 'Connected' :
+                 connectionStatus === 'disconnected' ? 'Disconnected' : 'Checking...'}
+              </Chip>
             </View>
-            <View style={styles.cardContent}>
-              <View style={styles.statusContainer}>
-                <Chip
-                  style={[styles.statusChip, {backgroundColor: getConnectionChipColor()}]}
-                  textStyle={styles.chipText}>
-                  {connectionStatus === 'connected' ? 'Connected' :
-                   connectionStatus === 'disconnected' ? 'Disconnected' : 'Unknown'}
-                </Chip>
-              </View>
-              <Button
-                mode="contained"
-                onPress={testConnection}
-                style={styles.primaryButton}
-                labelStyle={styles.buttonText}
-                loading={loading}>
-                Test Connection
-              </Button>
-            </View>
-          </View>
-        </View>
+            <Button
+              mode="contained"
+              onPress={testConnection}
+              style={styles.primaryButton}
+              labelStyle={styles.buttonText}
+              loading={loading && connectionStatus === 'checking'}>
+              Test Connection
+            </Button>
+          </Card.Content>
+        </Card>
 
         {/* Health Status Card */}
         {health && (
-          <View style={styles.cardContainer}>
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>System Health</Text>
-                <Text style={styles.cardSubtitle}>Middleware Status: v{health.version}</Text>
-              </View>
-              <View style={styles.cardContent}>
-                <View style={styles.healthGrid}>
-                  <View style={styles.healthItem}>
-                    <Text style={styles.healthLabel}>Overall Status</Text>
-                    <Chip
-                      style={[styles.healthChip, {backgroundColor: getStatusColor(health.status)}]}
-                      textStyle={styles.chipText}>
-                      {health.status}
-                    </Chip>
-                  </View>
-
-                  <View style={styles.healthItem}>
-                    <Text style={styles.healthLabel}>Database</Text>
-                    <Chip
-                      style={[styles.healthChip, {backgroundColor: getStatusColor(health.components?.database || 'unknown')}]}
-                      textStyle={styles.chipText}>
-                      {health.components?.database || 'unknown'}
-                    </Chip>
-                  </View>
-
-                  <View style={styles.healthItem}>
-                    <Text style={styles.healthLabel}>Routing Service</Text>
-                    <Chip
-                      style={[styles.healthChip, {backgroundColor: getStatusColor(health.components?.routing_orchestrator || 'unknown')}]}
-                      textStyle={styles.chipText}>
-                      {health.components?.routing_orchestrator || 'unknown'}
-                    </Chip>
-                  </View>
-
-                  <View style={styles.healthItem}>
-                    <Text style={styles.healthLabel}>Supabase</Text>
-                    <Chip
-                      style={[styles.healthChip, {backgroundColor: getStatusColor(health.components?.supabase || 'unknown')}]}
-                      textStyle={styles.chipText}>
-                      {health.components?.supabase || 'unknown'}
-                    </Chip>
-                  </View>
+          <Card style={styles.card}>
+            <Card.Content style={styles.cardContent}>
+              <Text style={styles.cardTitle}>System Health</Text>
+              <Text style={styles.cardSubtitle}>Status: {health.version}</Text>
+              
+              <View style={styles.healthGrid}>
+                <View style={styles.healthItem}>
+                  <Text style={styles.healthLabel}>Overall</Text>
+                  <Chip
+                    style={[styles.healthChip, {backgroundColor: getStatusColor(health.status)}]}
+                    textStyle={styles.chipText}>
+                    {health.status}
+                  </Chip>
                 </View>
 
-                <Text style={styles.timestamp}>
-                  Last updated: {health.timestamp ? new Date(health.timestamp).toLocaleString() : 'Invalid Date'}
+                <View style={styles.healthItem}>
+                  <Text style={styles.healthLabel}>Database</Text>
+                  <Chip
+                    style={[styles.healthChip, {backgroundColor: getStatusColor(health.components?.database || 'unknown')}]}
+                    textStyle={styles.chipText}>
+                    {health.components?.database || 'unknown'}
+                  </Chip>
+                </View>
+
+                <View style={styles.healthItem}>
+                  <Text style={styles.healthLabel}>Routing</Text>
+                  <Chip
+                    style={[styles.healthChip, {backgroundColor: getStatusColor(health.components?.routing_orchestrator || 'unknown')}]}
+                    textStyle={styles.chipText}>
+                    {health.components?.routing_orchestrator || 'unknown'}
+                  </Chip>
+                </View>
+              </View>
+
+              <Text style={styles.timestamp}>
+                Updated: {health.timestamp ? new Date(health.timestamp).toLocaleTimeString() : 'Just now'}
+              </Text>
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* System Components Information */}
+        <Card style={styles.card}>
+          <Card.Content style={styles.cardContent}>
+            <Text style={styles.cardTitle}>System Components</Text>
+            <Text style={styles.cardSubtitle}>Understanding your middleware health</Text>
+            
+            <View style={styles.infoSection}>
+              <Text style={styles.infoSectionTitle}>Components</Text>
+              
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Database</Text>
+                <Text style={styles.infoDescription}>
+                  Core data storage for transactions, user data, and system configuration
+                </Text>
+              </View>
+
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Routing Orchestrator</Text>
+                <Text style={styles.infoDescription}>
+                  Manages payment routing logic and transaction flow between processors
+                </Text>
+              </View>
+
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Supabase</Text>
+                <Text style={styles.infoDescription}>
+                  Authentication and real-time data synchronization service
                 </Text>
               </View>
             </View>
-          </View>
-        )}
 
-        {/* Service Information Card */}
-        <View style={styles.cardContainer}>
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Service Information</Text>
-              <Text style={styles.cardSubtitle}>Available Features & Capabilities</Text>
-            </View>
-            <View style={styles.cardContent}>
-              <View style={styles.featureList}>
-                <Text style={styles.featureItem}>• MCC Prediction Engine</Text>
-                <Text style={styles.featureItem}>• Card Routing Optimization</Text>
-                <Text style={styles.featureItem}>• Transaction Analytics</Text>
-                <Text style={styles.featureItem}>• Real-time Performance Monitoring</Text>
+            <View style={styles.infoSection}>
+              <Text style={styles.infoSectionTitle}>Health Status</Text>
+              
+              <View style={styles.statusExplanation}>
+                <View style={styles.statusRow}>
+                  <View style={[styles.statusDot, { backgroundColor: '#4CAF50' }]} />
+                  <Text style={styles.statusText}>
+                    <Text style={styles.statusLabel}>Healthy/Up:</Text> Component is running normally
+                  </Text>
+                </View>
+
+                <View style={styles.statusRow}>
+                  <View style={[styles.statusDot, { backgroundColor: '#F44336' }]} />
+                  <Text style={styles.statusText}>
+                    <Text style={styles.statusLabel}>Error/Down:</Text> Component is offline or failing
+                  </Text>
+                </View>
+
+                <View style={styles.statusRow}>
+                  <View style={[styles.statusDot, { backgroundColor: '#FF9800' }]} />
+                  <Text style={styles.statusText}>
+                    <Text style={styles.statusLabel}>Unknown:</Text> Status cannot be determined
+                  </Text>
+                </View>
               </View>
-
-              <Button
-                mode="outlined"
-                onPress={() => showNotification('Visit http://localhost:8000/docs for complete API documentation', 'info', 4000)}
-                style={styles.secondaryButton}
-                labelStyle={styles.secondaryButtonText}>
-                View API Docs
-              </Button>
             </View>
-          </View>
-        </View>
+          </Card.Content>
+        </Card>
+
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -304,158 +366,174 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#64748b',
-    fontFamily: 'Inter',
+    textAlign: 'center',
   },
   statsSection: {
     paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 10,
   },
   statCard: {
     flex: 1,
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+    minHeight: 85,
   },
   statIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#f1f5f9',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
-  statValue: {
+  statIcon: {
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  statValue: {
+    fontSize: 12,
     fontWeight: '600',
     color: '#2742d5',
-    fontFamily: 'Inter',
   },
   statLabel: {
     fontSize: 12,
     color: '#64748b',
-    fontFamily: 'Inter',
     textAlign: 'center',
-  },
-  cardContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    fontWeight: '500',
   },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    elevation: 2,
   },
-  cardHeader: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+  cardContent: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1e293b',
-    fontFamily: 'Inter',
     marginBottom: 4,
   },
   cardSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748b',
-    fontFamily: 'Inter',
-  },
-  cardContent: {
-    padding: 20,
+    marginBottom: 16,
   },
   statusContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   statusChip: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   chipText: {
     color: '#ffffff',
-    fontWeight: '500',
-    fontFamily: 'Inter',
+    fontWeight: '600',
+    fontSize: 13,
   },
   healthGrid: {
-    gap: 12,
-    marginBottom: 20,
+    marginTop: 12,
+    marginBottom: 16,
   },
   healthItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     backgroundColor: '#f8fafc',
-    borderRadius: 12,
+    borderRadius: 8,
+    marginBottom: 6,
   },
   healthLabel: {
     fontSize: 14,
     color: '#374151',
-    fontFamily: 'Inter',
     fontWeight: '500',
+    flex: 1,
   },
   healthChip: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
+    borderRadius: 12,
   },
   timestamp: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#9ca3af',
-    fontFamily: 'Inter',
     textAlign: 'center',
     fontStyle: 'italic',
   },
-  featureList: {
-    marginBottom: 20,
-  },
-  featureItem: {
-    fontSize: 14,
-    color: '#374151',
-    fontFamily: 'Inter',
-    marginBottom: 8,
-    lineHeight: 20,
-  },
   primaryButton: {
     backgroundColor: '#2742d5',
-    borderRadius: 12,
+    borderRadius: 8,
     paddingVertical: 4,
   },
   buttonText: {
     color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  infoSection: {
+    marginBottom: 16,
+  },
+  infoSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Inter',
+    color: '#1e293b',
+    marginBottom: 8,
   },
-  secondaryButton: {
-    borderColor: '#2742d5',
-    borderRadius: 12,
-    paddingVertical: 4,
+  infoItem: {
+    marginBottom: 8,
   },
-  secondaryButtonText: {
-    color: '#2742d5',
-    fontSize: 16,
+  infoLabel: {
+    fontSize: 14,
     fontWeight: '500',
-    fontFamily: 'Inter',
+    color: '#374151',
+  },
+  infoDescription: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  statusExplanation: {
+    marginBottom: 16,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  statusLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#374151',
   },
 });
 

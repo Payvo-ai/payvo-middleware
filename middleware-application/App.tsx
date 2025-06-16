@@ -10,7 +10,7 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createStackNavigator} from '@react-navigation/stack';
 import {MD3LightTheme, PaperProvider} from 'react-native-paper';
-import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {SafeAreaProvider, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {StatusBar, View, Text, StyleSheet, Image, ActivityIndicator} from 'react-native';
 import { HomeIcon, CreditCardIcon, AnalyticsIcon, SettingsIcon } from './src/components/TabIcons';
 import { NotificationProvider } from './src/components/NotificationProvider';
@@ -22,7 +22,6 @@ import TransactionScreen from './src/screens/TransactionScreen';
 import AnalyticsScreen from './src/screens/AnalyticsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SignInScreen from './src/screens/SignInScreen';
-import PasswordChangeScreen from './src/screens/PasswordChangeScreen';
 
 // Custom theme with Payvo primary blue
 const PayvoTheme = {
@@ -59,7 +58,10 @@ const LoadingScreen: React.FC = () => {
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-const MainAppTabs: React.FC = () => {
+// Tab Navigator with Safe Area handling
+const SafeTabNavigator: React.FC = () => {
+  const insets = useSafeAreaInsets();
+  
   return (
     <Tab.Navigator
       id={undefined}
@@ -70,59 +72,105 @@ const MainAppTabs: React.FC = () => {
           backgroundColor: '#ffffff',
           borderTopColor: '#e2e8f0',
           borderTopWidth: 1,
-          paddingTop: 8,
-          paddingBottom: 8,
-          height: 70,
+          paddingTop: 4,
+          paddingBottom: Math.max(insets.bottom, 4),
+          height: 48 + Math.max(insets.bottom, 4),
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: '600',
-          marginTop: 4,
+          marginTop: 1,
+          marginBottom: 2,
+        },
+        tabBarIconStyle: {
+          marginTop: 2,
         },
         headerShown: true,
-        header: () => (
-          <View style={styles.headerContainer}>
-            <View style={styles.headerContent}>
-              <Image
-                source={require('./images/logo.png')}
-                style={styles.headerLogo}
-                resizeMode="contain"
-              />
-              <Text style={styles.logoSubtitle}>Payvo Middleware</Text>
-            </View>
+        headerStyle: {
+          backgroundColor: '#2742d5',
+          borderBottomColor: '#1e40af',
+          borderBottomWidth: 1,
+          elevation: 4,
+          shadowOpacity: 0.1,
+          shadowOffset: { width: 0, height: 2 },
+          shadowRadius: 4,
+        },
+        headerTitleStyle: {
+          fontSize: 18,
+          fontWeight: '600',
+          color: '#ffffff',
+        },
+        headerTitleAlign: 'left',
+        headerLeft: () => (
+          <View style={styles.headerLeft}>
+            <Image
+              source={require('./images/logo.png')}
+              style={styles.headerLogo}
+              resizeMode="contain"
+            />
           </View>
         ),
+        headerRight: () => null,
+        headerTitle: () => null,
       }}>
       <Tab.Screen
         name="Home"
         component={HomeScreen}
         options={{
+          title: 'Dashboard',
           tabBarIcon: ({color, size}) => <HomeIcon color={color} size={size} />,
+          headerRight: () => (
+            <View style={styles.headerRight}>
+              <Text style={styles.headerTitle}>Dashboard</Text>
+            </View>
+          ),
         }}
       />
       <Tab.Screen
         name="Transaction"
         component={TransactionScreen}
         options={{
+          title: 'Transactions',
           tabBarIcon: ({color, size}) => <CreditCardIcon color={color} size={size} />,
+          headerRight: () => (
+            <View style={styles.headerRight}>
+              <Text style={styles.headerTitle}>Transactions</Text>
+            </View>
+          ),
         }}
       />
       <Tab.Screen
         name="Analytics"
         component={AnalyticsScreen}
         options={{
+          title: 'Analytics',
           tabBarIcon: ({color, size}) => <AnalyticsIcon color={color} size={size} />,
+          headerRight: () => (
+            <View style={styles.headerRight}>
+              <Text style={styles.headerTitle}>Analytics</Text>
+            </View>
+          ),
         }}
       />
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
         options={{
+          title: 'Settings',
           tabBarIcon: ({color, size}) => <SettingsIcon color={color} size={size} />,
+          headerRight: () => (
+            <View style={styles.headerRight}>
+              <Text style={styles.headerTitle}>Settings</Text>
+            </View>
+          ),
         }}
       />
     </Tab.Navigator>
   );
+};
+
+const MainAppTabs: React.FC = () => {
+  return <SafeTabNavigator />;
 };
 
 // Auth Stack Navigator
@@ -141,7 +189,7 @@ const AuthStack: React.FC = () => {
 
 // App Navigator (handles authentication flow)
 const AppNavigator: React.FC = () => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -149,32 +197,6 @@ const AppNavigator: React.FC = () => {
 
   if (!isAuthenticated) {
     return <AuthStack />;
-  }
-
-  // Check if user needs to change password
-  if (user?.password_change_required) {
-    return (
-      <Stack.Navigator
-        id={undefined}
-        screenOptions={{
-          headerShown: true,
-          header: () => (
-            <View style={styles.headerContainer}>
-              <View style={styles.headerContent}>
-                <Image
-                  source={require('./images/logo.png')}
-                  style={styles.headerLogo}
-                  resizeMode="contain"
-                />
-                <Text style={styles.logoSubtitle}>Payvo Middleware</Text>
-              </View>
-            </View>
-          ),
-        }}
-      >
-        <Stack.Screen name="PasswordChange" component={PasswordChangeScreen} />
-      </Stack.Navigator>
-    );
   }
 
   return <MainAppTabs />;
@@ -203,27 +225,12 @@ const App: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  headerContainer: {
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    paddingTop: 12,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerLeft: {
+    paddingLeft: 16,
   },
   headerLogo: {
-    width: 32,
-    height: 32,
-    marginRight: 12,
-  },
-  logoSubtitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
+    width: 60,
+    height: 60,
   },
   loadingContainer: {
     flex: 1,
@@ -243,7 +250,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#ffffff',
     fontWeight: '500',
-    fontFamily: 'Inter',
+  },
+  headerRight: {
+    paddingRight: 16,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ffffff',
   },
 });
 

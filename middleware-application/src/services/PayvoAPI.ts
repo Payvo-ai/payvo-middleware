@@ -187,6 +187,12 @@ export interface HealthCheckResponse {
   };
 }
 
+export interface HealthCheckAPIResponse {
+  success: boolean;
+  data: HealthCheckResponse;
+  message: string;
+}
+
 export interface PaymentRequest {
   user_id: string;
   amount: number;
@@ -342,6 +348,43 @@ export interface RoutingActivateRequest {
   context_info?: any;
 }
 
+export interface TransactionHistoryItem {
+  id: string;
+  session_id: string;
+  merchant_name?: string;
+  predicted_mcc?: string;
+  actual_mcc?: string;
+  transaction_amount?: number;
+  transaction_success?: boolean;
+  prediction_confidence?: number;
+  network_used?: string;
+  terminal_id?: string;
+  location_hash?: string;
+  created_at: string;
+  transaction_timestamp?: string;
+  location?: {
+    latitude?: number;
+    longitude?: number;
+    address?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postal_code?: string;
+  };
+}
+
+export interface TransactionHistoryResponse {
+  success: boolean;
+  data: {
+    transactions: TransactionHistoryItem[];
+    total_count: number;
+    limit: number;
+    offset: number;
+    user_id: string;
+  };
+  error?: string;
+}
+
 class PayvoAPIService {
   private baseURL: string;
   private apiKey?: string;
@@ -364,30 +407,42 @@ class PayvoAPIService {
 
   private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
     const url = `${this.baseURL}${endpoint}`;
-    const apiKey = await this.loadApiKey();
+    await this.loadApiKey();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...options.headers as Record<string, string>,
     };
 
-    if (apiKey !== undefined) {
-      headers.Authorization = `Bearer ${apiKey}`;
+    if (this.apiKey) {
+      headers.Authorization = `Bearer ${this.apiKey}`;
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...headers,
-        ...options.headers,
-      },
-    });
+    try {
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...headers,
+          ...options.headers,
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error(`API Request failed for ${endpoint}:`, error);
+      throw error;
     }
-
-    return response.json();
   }
 
   // Routing API Methods
@@ -527,9 +582,9 @@ class PayvoAPIService {
   }
 
   // Utility Methods
-  async getHealthCheck(): Promise<HealthCheckResponse> {
+  async getHealthCheck(): Promise<HealthCheckAPIResponse> {
     const response = await this.makeRequest('/health');
-    return response as HealthCheckResponse;
+    return response as HealthCheckAPIResponse;
   }
 
   async getMetrics(): Promise<any> {
@@ -583,6 +638,26 @@ class PayvoAPIService {
 
   getCurrentSessionId(): string | null {
     return this.currentSessionId;
+  }
+
+  async getUserTransactionHistory(
+    userId: string, 
+    limit: number = 50, 
+    offset: number = 0
+  ): Promise<TransactionHistoryResponse> {
+    try {
+      const response = await this.makeRequest(
+        `/users/${encodeURIComponent(userId)}/transactions?limit=${limit}&offset=${offset}`,
+        {
+          method: 'GET',
+        }
+      );
+
+      return response;
+    } catch (error) {
+      console.error('❌ Get user transaction history failed:', error);
+      throw error;
+    }
   }
 }
 

@@ -285,12 +285,19 @@ const TransactionScreen: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await PayvoAPI.completeRouting(currentSession);
-      setSessionData(response);
-      setStatus('completed');
-
-      // Show success notification instead of popup
+      await PayvoAPI.completeRouting(currentSession);
+      
+      // Show success notification
       showNotification('Transaction completed successfully!', 'success', 3000);
+      
+      // Reset state for new transaction after a brief delay
+      setTimeout(() => {
+        setCurrentSession(null);
+        setSessionData(null);
+        setStatus('idle');
+        setAmount('');
+      }, 1500);
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to complete payment');
       setStatus('failed');
@@ -326,12 +333,6 @@ const TransactionScreen: React.FC = () => {
     }
   };
 
-  const clearSession = () => {
-    setCurrentSession(null);
-    setSessionData(null);
-    setAmount('');
-  };
-
   if (isLocationLoading) {
     return (
       <View style={styles.container}>
@@ -354,6 +355,20 @@ const TransactionScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Brief Notification at Top */}
+      {loading && (
+        <View style={styles.topNotification}>
+          <ActivityIndicator size="small" color="#2742d5" style={styles.notificationIcon} />
+          <Text style={styles.notificationText}>Processing Transaction...</Text>
+        </View>
+      )}
+      
+      {error && (
+        <View style={[styles.topNotification, styles.errorNotification]}>
+          <Text style={styles.errorNotificationText}>Error: {error}</Text>
+        </View>
+      )}
+
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Transaction Setup Card */}
         <View style={styles.card}>
@@ -383,21 +398,17 @@ const TransactionScreen: React.FC = () => {
               <Text style={styles.inputLabel}>Email (User ID)</Text>
               <TextInput
                 value={userId}
-                onChangeText={() => {}}
-                style={[styles.textInput, styles.readOnlyInput]}
-                mode="flat"
-                placeholder="Loading email..."
+                onChangeText={setUserId}
+                mode="outlined"
+                style={styles.readOnlyInput}
+                editable={false}
+                outlineColor="transparent"
+                activeOutlineColor="transparent"
                 underlineColor="transparent"
                 activeUnderlineColor="transparent"
-                editable={false}
-                right={
-                  <TextInput.Icon
-                    icon="email-check"
-                  />
-                }
               />
               <Text style={styles.helperText}>
-                ✓ Automatically set from your authenticated email address
+                Automatically set from your authenticated email address
               </Text>
             </View>
 
@@ -469,11 +480,17 @@ const TransactionScreen: React.FC = () => {
             {status === 'activated' && (
               <View style={styles.actionGroup}>
                 <View style={styles.successIndicator}>
-                  <View style={styles.successIcon}>
-                    <Text style={styles.successIconText}>✓</Text>
-                  </View>
                   <Text style={styles.successText}>Payment Activated</Text>
                 </View>
+                <Button
+                  mode="contained"
+                  onPress={handleCompletePayment}
+                  loading={loading}
+                  disabled={loading}
+                  style={styles.primaryButton}
+                  labelStyle={styles.primaryButtonText}>
+                  Complete Transaction
+                </Button>
                 <Button
                   mode="outlined"
                   onPress={handleCancelPayment}
@@ -485,15 +502,24 @@ const TransactionScreen: React.FC = () => {
               </View>
             )}
 
-            <Button
-              mode="contained"
-              onPress={handleCompletePayment}
-              loading={loading}
-              disabled={!currentSession || status === 'idle'}
-              style={[styles.primaryButton, (!currentSession || status === 'idle') && styles.disabledButton]}
-              labelStyle={styles.primaryButtonText}>
-              Complete Transaction
-            </Button>
+            {status === 'completed' && (
+              <View style={styles.successIndicator}>
+                <Text style={styles.successText}>✅ Transaction Completed Successfully!</Text>
+              </View>
+            )}
+
+            {status === 'failed' && (
+              <View style={styles.actionGroup}>
+                <Text style={styles.errorText}>Transaction failed. Please try again.</Text>
+                <Button
+                  mode="contained"
+                  onPress={() => setStatus('idle')}
+                  style={styles.primaryButton}
+                  labelStyle={styles.primaryButtonText}>
+                  Start New Transaction
+                </Button>
+              </View>
+            )}
           </View>
         </View>
 
@@ -610,59 +636,7 @@ const TransactionScreen: React.FC = () => {
             </View>
           </View>
         )}
-
-        {/* Info Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>How It Works</Text>
-          </View>
-          <View style={styles.cardContent}>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoNumber}>1</Text>
-              <Text style={styles.infoText}>Initialize payment session with transaction details</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoNumber}>2</Text>
-              <Text style={styles.infoText}>AI detects merchant location and category in real-time</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoNumber}>3</Text>
-              <Text style={styles.infoText}>System selects optimal card for maximum rewards</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoNumber}>4</Text>
-              <Text style={styles.infoText}>Complete transaction with intelligent routing</Text>
-            </View>
-          </View>
-        </View>
       </ScrollView>
-
-      {/* Loading Overlay */}
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <View style={styles.loadingCard}>
-            <ActivityIndicator size="large" color="#2742d5" />
-            <Text style={styles.loadingText}>Processing Transaction...</Text>
-          </View>
-        </View>
-      )}
-
-      {/* Error Overlay */}
-      {error && (
-        <View style={styles.errorOverlay}>
-          <View style={styles.errorCard}>
-            <Text style={styles.errorTitle}>Transaction Error</Text>
-            <Text style={styles.errorMessage}>{error}</Text>
-            <Button
-              mode="contained"
-              onPress={clearSession}
-              style={styles.errorButton}
-              labelStyle={styles.errorButtonText}>
-              Try Again
-            </Button>
-          </View>
-        </View>
-      )}
     </View>
   );
 };
@@ -671,6 +645,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+    paddingTop: 16,
   },
   card: {
     backgroundColor: '#ffffff',
@@ -808,20 +783,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
   },
-  successIcon: {
-    backgroundColor: '#22c55e',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  successIconText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
   successText: {
     fontSize: 16,
     fontWeight: '600',
@@ -904,92 +865,60 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
   },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  infoNumber: {
+  sectionSubtitle: {
     fontSize: 16,
     fontWeight: '700',
     color: '#3b82f6',
-    backgroundColor: '#eff6ff',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    textAlign: 'center',
-    lineHeight: 32,
-    marginRight: 16,
+    marginBottom: 16,
   },
-  infoText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#64748b',
-    lineHeight: 20,
+  serviceSection: {
+    marginBottom: 20,
   },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingCard: {
-    backgroundColor: '#ffffff',
-    padding: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    margin: 20,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#64748b',
-    fontWeight: '600',
-  },
-  errorOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorCard: {
-    backgroundColor: '#ffffff',
-    padding: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    margin: 20,
-  },
-  errorTitle: {
+  serviceSectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#ef4444',
+    color: '#1e293b',
     marginBottom: 12,
-    textAlign: 'center',
   },
-  errorMessage: {
+  serviceItem: {
+    marginBottom: 12,
+  },
+  serviceLabel: {
     fontSize: 14,
-    color: '#64748b',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  errorButton: {
-    backgroundColor: '#ef4444',
-    borderRadius: 12,
-  },
-  errorButtonText: {
-    color: '#ffffff',
     fontWeight: '600',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  serviceDescription: {
+    fontSize: 12,
+    color: '#64748b',
+    lineHeight: 18,
+  },
+  topNotification: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  notificationIcon: {
+    marginRight: 8,
+  },
+  notificationText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  errorNotification: {
+    backgroundColor: '#fef2f2',
+  },
+  errorNotificationText: {
+    fontSize: 14,
+    color: '#ef4444',
   },
   text: {
     fontSize: 16,
@@ -1007,7 +936,7 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 12,
     color: '#64748b',
-    textAlign: 'right',
+    textAlign: 'left',
   },
 });
 

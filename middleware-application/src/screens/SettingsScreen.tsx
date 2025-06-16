@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   ScrollView,
@@ -9,12 +9,11 @@ import {
   Switch,
   TextInput,
   Divider,
-  Chip,
   Text,
 } from 'react-native-paper';
-import {PayvoAPI} from '../services/PayvoAPI';
 import { useNotification } from '../components/NotificationProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import AuthService from '../services/AuthService';
 
 // Separate components to avoid nested component warnings
 const NotificationSwitch: React.FC<{value: boolean; onValueChange: (value: boolean) => void}> = ({value, onValueChange}) => (
@@ -25,104 +24,79 @@ const DebugModeSwitch: React.FC<{value: boolean; onValueChange: (value: boolean)
   <Switch value={value} onValueChange={onValueChange} />
 );
 
-const MockDataSwitch: React.FC<{value: boolean; onValueChange: (value: boolean) => void}> = ({value, onValueChange}) => (
-  <Switch value={value} onValueChange={onValueChange} />
-);
-
 const AutoRefreshSwitch: React.FC<{value: boolean; onValueChange: (value: boolean) => void}> = ({value, onValueChange}) => (
   <Switch value={value} onValueChange={onValueChange} />
 );
 
 const SettingsScreen: React.FC = () => {
-  const [apiUrl, setApiUrl] = useState('https://payvo-middleware-production.up.railway.app');
-  const [apiKey, setApiKey] = useState('');
   const [enableNotifications, setEnableNotifications] = useState(true);
   const [enableDebugMode, setEnableDebugMode] = useState(false);
-  const [enableMockData, setEnableMockData] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState('30');
   const { showNotification } = useNotification();
 
-  const handleSaveSettings = async () => {
+  // Auto-save settings when they change
+  useEffect(() => {
+    const saveSettings = async () => {
+      try {
+        await AsyncStorage.setItem('enableNotifications', JSON.stringify(enableNotifications));
+        await AsyncStorage.setItem('enableDebugMode', JSON.stringify(enableDebugMode));
+        await AsyncStorage.setItem('autoRefresh', JSON.stringify(autoRefresh));
+        await AsyncStorage.setItem('refreshInterval', refreshInterval);
+      } catch (error) {
+        console.error('Failed to save settings:', error);
+      }
+    };
+    saveSettings();
+  }, [enableNotifications, enableDebugMode, autoRefresh, refreshInterval]);
+
+  // Load settings on component mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const savedNotifications = await AsyncStorage.getItem('enableNotifications');
+        const savedDebugMode = await AsyncStorage.getItem('enableDebugMode');
+        const savedAutoRefresh = await AsyncStorage.getItem('autoRefresh');
+        const savedRefreshInterval = await AsyncStorage.getItem('refreshInterval');
+
+        if (savedNotifications !== null) {
+          setEnableNotifications(JSON.parse(savedNotifications));
+        }
+        if (savedDebugMode !== null) {
+          setEnableDebugMode(JSON.parse(savedDebugMode));
+        }
+        if (savedAutoRefresh !== null) {
+          setAutoRefresh(JSON.parse(savedAutoRefresh));
+        }
+        if (savedRefreshInterval !== null) {
+          setRefreshInterval(savedRefreshInterval);
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  const handleLogout = async () => {
     try {
-      await AsyncStorage.setItem('apiUrl', apiUrl);
-      await AsyncStorage.setItem('apiKey', apiKey);
-
-      showNotification('Settings saved successfully! Please restart the app for changes to take effect.', 'success');
+      await AuthService.signOut();
+      showNotification('Logged out successfully', 'success', 2000);
     } catch (error) {
-      console.error('Failed to save settings:', error);
-      showNotification('Failed to save settings', 'error');
-    }
-  };
-
-  const handleResetSettings = async () => {
-    try {
-      await AsyncStorage.removeItem('apiUrl');
-      await AsyncStorage.removeItem('apiKey');
-
-      setApiUrl('http://localhost:8000');
-      setApiKey('');
-
-      showNotification('Settings reset to defaults! Please restart the app for changes to take effect.', 'success');
-    } catch (error) {
-      console.error('Failed to reset settings:', error);
-      showNotification('Failed to reset settings', 'error');
-    }
-  };
-
-  const handleTestConnection = async () => {
-    try {
-      // Save the URL first
-      await AsyncStorage.setItem('payvo_api_url', apiUrl);
-      // Test connection by calling health check
-      await PayvoAPI.getHealthCheck();
-      showNotification('✅ Connection successful!', 'success', 2000);
-    } catch (error) {
-      showNotification('❌ Connection failed', 'error', 3000);
+      console.error('Logout error:', error);
+      showNotification('Failed to logout', 'error', 2000);
     }
   };
 
   return (
     <View style={styles.container}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* API Configuration Card */}
-        <View style={styles.cardContainer}>
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>API Configuration</Text>
-              <Text style={styles.cardSubtitle}>Configure connection to Payvo Middleware</Text>
-            </View>
-            <View style={styles.cardContent}>
-              <TextInput
-                label="API Base URL"
-                value={apiUrl}
-                onChangeText={setApiUrl}
-                style={styles.input}
-                mode="outlined"
-                placeholder="http://localhost:8000"
-                outlineColor="#e0e0e0"
-                activeOutlineColor="#2742d5"
-              />
-
-              <View style={styles.buttonRow}>
-                <Button
-                  mode="outlined"
-                  onPress={handleTestConnection}
-                  style={styles.secondaryButton}
-                  labelStyle={styles.secondaryButtonText}>
-                  Test Connection
-                </Button>
-              </View>
-            </View>
-          </View>
-        </View>
-
         {/* App Preferences Card */}
         <View style={styles.cardContainer}>
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>App Preferences</Text>
-              <Text style={styles.cardSubtitle}>Customize your app behavior</Text>
+              <Text style={styles.cardSubtitle}>Settings are saved automatically</Text>
             </View>
             <View style={styles.cardContent}>
               <View style={styles.settingItem}>
@@ -141,16 +115,6 @@ const SettingsScreen: React.FC = () => {
                   <Text style={styles.settingDescription}>Show detailed logs and debug information</Text>
                 </View>
                 <DebugModeSwitch value={enableDebugMode} onValueChange={setEnableDebugMode} />
-              </View>
-
-              <Divider style={styles.divider} />
-
-              <View style={styles.settingItem}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>Use Mock Data</Text>
-                  <Text style={styles.settingDescription}>Use sample data when API is unavailable</Text>
-                </View>
-                <MockDataSwitch value={enableMockData} onValueChange={setEnableMockData} />
               </View>
 
               <Divider style={styles.divider} />
@@ -182,66 +146,17 @@ const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Testing Tools Card */}
-        <View style={styles.cardContainer}>
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Testing Tools</Text>
-              <Text style={styles.cardSubtitle}>Quick access to testing utilities</Text>
-            </View>
-            <View style={styles.cardContent}>
-              <View style={styles.chipContainer}>
-                <Chip
-                  mode="outlined"
-                  onPress={() => showNotification('Clear all cached data', 'info', 2000)}
-                  style={styles.toolChip}
-                  textStyle={styles.chipTextStyle}>
-                  Clear Cache
-                </Chip>
-                <Chip
-                  mode="outlined"
-                  onPress={() => showNotification('Reset all preferences', 'info', 2000)}
-                  style={styles.toolChip}
-                  textStyle={styles.chipTextStyle}>
-                  Reset Preferences
-                </Chip>
-                <Chip
-                  mode="outlined"
-                  onPress={() => showNotification('Export configuration', 'info', 2000)}
-                  style={styles.toolChip}
-                  textStyle={styles.chipTextStyle}>
-                  Export Config
-                </Chip>
-                <Chip
-                  mode="outlined"
-                  onPress={() => showNotification('Import configuration', 'info', 2000)}
-                  style={styles.toolChip}
-                  textStyle={styles.chipTextStyle}>
-                  Import Config
-                </Chip>
-              </View>
-            </View>
-          </View>
-        </View>
-
         {/* Action Buttons Card */}
         <View style={styles.cardContainer}>
           <View style={styles.card}>
             <View style={styles.cardContent}>
               <View style={styles.actionButtons}>
                 <Button
-                  mode="contained"
-                  onPress={handleSaveSettings}
-                  style={styles.primaryButton}
-                  labelStyle={styles.buttonText}>
-                  Save Settings
-                </Button>
-                <Button
                   mode="outlined"
-                  onPress={handleResetSettings}
+                  onPress={handleLogout}
                   style={styles.secondaryButton}
                   labelStyle={styles.secondaryButtonText}>
-                  Reset to Defaults
+                  Logout
                 </Button>
               </View>
             </View>
@@ -256,6 +171,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+    paddingTop: 16,
   },
   cardContainer: {
     paddingHorizontal: 16,
@@ -339,19 +255,6 @@ const styles = StyleSheet.create({
   },
   intervalInput: {
     backgroundColor: '#ffffff',
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  toolChip: {
-    borderColor: '#2742d5',
-    backgroundColor: '#ffffff',
-  },
-  chipTextStyle: {
-    color: '#2742d5',
-    fontFamily: 'Inter',
   },
   actionButtons: {
     gap: 12,
