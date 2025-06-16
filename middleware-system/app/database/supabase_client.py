@@ -41,8 +41,29 @@ class SupabaseClient:
     
     @property
     def is_available(self) -> bool:
-        """Check if Supabase client is available"""
+        """Check if Supabase client is available and configured"""
         return self.client is not None
+    
+    async def get_user_id_by_email(self, email: str) -> str:
+        """Get user UUID by email using the get_user_by_email database function"""
+        if not self.is_available or not email:
+            return None
+        
+        try:
+            # Call our custom database function
+            result = self.client.rpc('get_user_by_email', {'email_param': email}).execute()
+            
+            if result.data and len(result.data) > 0:
+                user_data = result.data[0]
+                logger.info(f"🔍 Found user for email {email}: {user_data.get('id')}")
+                return str(user_data.get('id'))
+            else:
+                logger.warning(f"⚠️ No user found for email: {email}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ Error looking up user by email {email}: {e}")
+            return None
     
     # Transaction History Operations
     
@@ -54,12 +75,17 @@ class SupabaseClient:
         try:
             logger.info(f"📝 Received feedback data: {feedback_data}")
             
-            # Handle user_id - for now, use email directly since auth.users isn't accessible
+            # Handle user_id - resolve email to UUID using our database function
             user_id_value = feedback_data.get("user_id")
+            resolved_user_id = None
+            
             if user_id_value and "@" in user_id_value:
-                # For now, let's store the email as a string since we can't access auth.users
-                # In production, you'd want to have a user mapping table or use Supabase auth properly
-                logger.info(f"📧 Using email as user identifier: {user_id_value}")
+                logger.info(f"📧 Resolving email to user UUID: {user_id_value}")
+                resolved_user_id = await self.get_user_id_by_email(user_id_value)
+                if resolved_user_id:
+                    logger.info(f"✅ Email resolved to user ID: {resolved_user_id}")
+                else:
+                    logger.warning(f"⚠️ Could not resolve email to user ID, storing email in context: {user_id_value}")
             
             # Extract location data if provided
             location_lat = None
@@ -83,7 +109,7 @@ class SupabaseClient:
             # Prepare data for Supabase with proper field mapping
             data = {
                 "session_id": feedback_data.get("session_id"),
-                "user_id": None,  # Set to None since schema expects UUID from auth.users, but we only have email
+                "user_id": resolved_user_id,  # Use resolved UUID or None if not found
                 "predicted_mcc": feedback_data.get("predicted_mcc"),
                 "actual_mcc": feedback_data.get("actual_mcc"),
                 "prediction_confidence": feedback_data.get("prediction_confidence"),
@@ -109,7 +135,7 @@ class SupabaseClient:
                 "updated_at": datetime.utcnow().isoformat()
             }
             
-            # Always store email in context_features for user identification
+            # Always store email in context_features for backup user identification
             if user_id_value:
                 data["context_features"]["user_email"] = user_id_value
                 logger.info(f"🏷️ Stored user email in context_features: {user_id_value}")
