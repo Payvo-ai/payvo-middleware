@@ -1,8 +1,8 @@
-# 🔐 **Payvo Middleware System - Complete Backend API**
+# **Payvo Middleware System - Complete Backend API**
 
 A high-performance FastAPI middleware for intelligent payment routing with GPS-first MCC prediction, enhanced location-based merchant categorization, continuous background location tracking, and comprehensive user authentication system.
 
-## 🚀 **Core Features**
+## **Core Features**
 
 ### **Payment Intelligence**
 - **GPS-First MCC Prediction** - Advanced merchant category prediction using location data
@@ -82,7 +82,7 @@ middleware-system/
 
 ---
 
-## 🛠️ **Installation & Setup**
+## **Installation & Setup**
 
 ### **Prerequisites**
 - Python 3.11+
@@ -199,7 +199,7 @@ BLE_WEIGHT=0.10
 
 ---
 
-## 🔐 **Authentication System**
+## **Authentication System**
 
 ### **Architecture Components**
 
@@ -248,7 +248,7 @@ async def admin_dashboard(user: AuthUser = Depends(require_role(["admin", "manag
 
 ---
 
-## 📊 **API Documentation**
+## **API Documentation**
 
 ### **Authentication Endpoints**
 
@@ -417,7 +417,7 @@ Authorization: Bearer your_token_here
 
 ---
 
-## 📱 **Mobile App Integration**
+## **Mobile App Integration**
 
 ### **Authentication Headers**
 
@@ -505,7 +505,7 @@ const activation = await fetch(`/api/v1/routing/${sessionId}/activate`, {
 
 ---
 
-## 🔄 **Integration Flow**
+## **Integration Flow**
 
 ### **Mobile App → Middleware Authentication**
 
@@ -557,38 +557,7 @@ async def initiate_routing(self, user_id: str, ...):
 
 ---
 
-## 🔒 **Security Features**
-
-### **Activity Logging**
-
-All user actions are logged:
-- **API access** with request details
-- **Transaction initiation** and completion
-- **Profile access** and modifications
-- **Session management** activities
-
-### **Backward Compatibility**
-
-The system maintains full backward compatibility:
-
-#### **Email-based User Lookup**
-```python
-# Looks up user by email, creates anonymous context if not found
-user = await authenticate_user_by_email("user@example.com")
-
-# Creates transaction context with user information
-context = await create_transaction_context("user@example.com")
-```
-
-#### **Anonymous Transactions**
-```python
-# Creates anonymous user context
-anon_user = await auth_service.create_anonymous_user_context("user@example.com")
-```
-
----
-
-## 🧪 **Testing & Validation**
+## **Testing & Validation**
 
 ### **Health Check with Auth Status**
 ```bash
@@ -632,7 +601,7 @@ curl -X POST http://localhost:8000/api/v1/test/gps-payment \
 
 ---
 
-## 📊 **Monitoring & Analytics**
+## **Monitoring & Analytics**
 
 ### **Activity Logs Query**
 ```sql
@@ -660,31 +629,7 @@ AND expires_at > NOW();
 
 ---
 
-## 🚀 **Deployment**
-
-### **Environment Setup**
-Required environment variables for production:
-
-```bash
-# Supabase Configuration
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-
-# Security
-PAYVO_SECRET_KEY=your_secret_key_for_jwt_signing
-SECRET_KEY=your_application_secret_key
-```
-
-### **Database Setup**
-```sql
--- Execute the user lookup function
-\i database-functions/user_lookup.sql
-```
-
----
-
-## 📈 **Future Enhancements**
+## **Future Enhancements**
 
 1. **Multi-factor Authentication (MFA)**
 2. **OAuth integration** (Google, Apple, etc.)
@@ -699,19 +644,17 @@ SECRET_KEY=your_application_secret_key
 
 ---
 
-## 🎯 **Integration Summary**
+## **Integration Summary**
 
-✅ **Complete authentication system** integrated with mobile app  
-✅ **User context** in all transaction processing  
-✅ **Activity logging** and audit trails  
-✅ **Backward compatibility** maintained  
-✅ **Role-based access control** implemented  
-✅ **Session management** with Supabase integration  
-✅ **API endpoints** for mobile app integration  
-✅ **Security middleware** protecting sensitive routes  
-✅ **GPS-first MCC prediction** with enhanced accuracy  
-✅ **Background location tracking** with intelligent intervals  
-✅ **Real-time payment routing** with context awareness  
-✅ **Comprehensive monitoring** and analytics  
-
-The Payvo Middleware provides enterprise-grade authentication and payment intelligence while maintaining seamless integration with the React Native mobile application.
+**Complete authentication system** integrated with mobile app  
+**User context** in all transaction processing  
+**Activity logging** and audit trails  
+**Backward compatibility** maintained  
+**Role-based access control** implemented  
+**Session management** with Supabase integration  
+**API endpoints** for mobile app integration  
+**Security middleware** protecting sensitive routes  
+**GPS-first MCC prediction** with enhanced accuracy  
+**Background location tracking** with intelligent intervals  
+**Real-time payment routing** with context awareness  
+**Comprehensive monitoring** and analytics
