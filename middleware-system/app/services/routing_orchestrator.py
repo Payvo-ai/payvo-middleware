@@ -31,6 +31,7 @@ class RoutingOrchestrator:
     def __init__(self):
         self.mcc_cache = {}
         self.location_cache = {}
+        self.terminal_cache = {}
         
         # Core services only
         self.location_service = None
