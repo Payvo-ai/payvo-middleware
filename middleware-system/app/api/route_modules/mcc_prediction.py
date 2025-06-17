@@ -17,6 +17,8 @@ from ...services.terminal_service import TerminalService
 from ...services.fingerprint_service import FingerprintService
 from ...services.historical_service import HistoricalService
 from ...services.llm_service import LLMService
+from ...services.prediction_service import prediction_service  # NEW: Enhanced prediction service
+from ...services.pos_terminal_service import pos_terminal_service  # NEW: POS terminal service
 # from ...core.cache import get_redis  # Commented out - module doesn't exist
 from ...core.config import settings
 
@@ -25,6 +27,21 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/mcc", tags=["MCC Prediction"])
 
 # Request/Response Models
+class WiFiNetwork(BaseModel):
+    """WiFi network information"""
+    ssid: str = Field(..., description="Network SSID")
+    bssid: Optional[str] = Field(None, description="Network BSSID/MAC address")
+    rssi: Optional[int] = Field(None, description="Signal strength (RSSI)")
+    frequency: Optional[int] = Field(None, description="Frequency in MHz")
+
+class BLEBeacon(BaseModel):
+    """Bluetooth Low Energy beacon information"""
+    uuid: str = Field(..., description="Beacon UUID")
+    major: Optional[int] = Field(None, description="Major ID")
+    minor: Optional[int] = Field(None, description="Minor ID")
+    rssi: Optional[int] = Field(None, description="Signal strength (RSSI)")
+    name: Optional[str] = Field(None, description="Device name")
+
 class MCCPredictionRequest(BaseModel):
     """Request model for MCC prediction"""
     latitude: float = Field(..., ge=-90, le=90, description="Latitude coordinate")
@@ -33,11 +50,20 @@ class MCCPredictionRequest(BaseModel):
     terminal_id: Optional[str] = Field(None, description="Terminal ID if available")
     transaction_amount: Optional[float] = Field(None, description="Transaction amount")
     transaction_time: Optional[str] = Field(None, description="Transaction timestamp")
-    wifi_ssids: Optional[List[str]] = Field(None, description="Available WiFi SSIDs")
-    bluetooth_devices: Optional[List[str]] = Field(None, description="Available Bluetooth devices")
+    
+    # Enhanced WiFi and BLE data structures
+    wifi_networks: Optional[List[WiFiNetwork]] = Field(None, description="Detected WiFi networks")
+    ble_beacons: Optional[List[BLEBeacon]] = Field(None, description="Detected BLE beacons")
+    
+    # Legacy support (deprecated but maintained for backward compatibility)
+    wifi_ssids: Optional[List[str]] = Field(None, description="Available WiFi SSIDs (deprecated)")
+    bluetooth_devices: Optional[List[str]] = Field(None, description="Available Bluetooth devices (deprecated)")
+    
     radius: Optional[int] = Field(None, ge=1, le=1000, description="Search radius in meters (defaults to adaptive radius starting at 1m)")
     include_alternatives: Optional[bool] = Field(True, description="Include alternative predictions")
     use_llm_enhancement: Optional[bool] = Field(True, description="Use LLM for enhanced analysis")
+    user_id: Optional[str] = Field(None, description="User identifier for analytics")
+    session_id: Optional[str] = Field(None, description="Session identifier for tracking")
 
 class MCCPredictionResponse(BaseModel):
     """Response model for MCC prediction"""
@@ -77,6 +103,8 @@ class MCCOrchestrator:
                 fingerprint_service.initialize(),
                 historical_service.initialize(),
                 llm_service.initialize(),
+                prediction_service.initialize(),  # NEW: Enhanced prediction service
+                pos_terminal_service.initialize(),  # NEW: POS terminal service
                 return_exceptions=True
             )
             
@@ -385,18 +413,207 @@ orchestrator = MCCOrchestrator()
 @router.post("/predict", response_model=MCCPredictionResponse)
 async def predict_mcc(request: MCCPredictionRequest):
     """
-    Predict Merchant Category Code using comprehensive analysis
-    
-    This endpoint combines multiple prediction methods:
-    - Real-time location analysis (Google Places, Foursquare)
-    - Terminal ID pattern analysis
-    - WiFi/Bluetooth fingerprinting
-    - Historical transaction patterns
-    - LLM-enhanced reasoning (optional)
-    
-    Returns the most accurate MCC prediction with confidence scoring.
+    Comprehensive MCC prediction using all available methods
     """
-    return await orchestrator.predict_mcc(request)
+    try:
+        return await orchestrator.predict_mcc(request)
+    except Exception as e:
+        logger.error(f"MCC prediction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/predict/enhanced", response_model=MCCPredictionResponse)
+async def predict_mcc_enhanced(request: MCCPredictionRequest):
+    """
+    Enhanced MCC prediction using the new prediction service with POS terminal detection
+    """
+    try:
+        # Initialize prediction service
+        await prediction_service.initialize()
+        
+        # Convert request data to prediction service format
+        prediction_data = {
+            'wifi_data': [],
+            'ble_data': [],
+            'location_data': {
+                'latitude': request.latitude,
+                'longitude': request.longitude,
+                'merchant_name': request.merchant_name,
+                'radius': request.radius or 200,
+                'venue_type': None  # Could be inferred from location service
+            },
+            'user_id': request.user_id,
+            'session_id': request.session_id
+        }
+        
+        # Process WiFi data
+        if request.wifi_networks:
+            # Use structured WiFi data
+            prediction_data['wifi_data'] = [
+                {
+                    'ssid': wifi.ssid,
+                    'bssid': wifi.bssid or '',
+                    'rssi': wifi.rssi or -100,
+                    'frequency': wifi.frequency or 2400
+                }
+                for wifi in request.wifi_networks
+            ]
+        elif request.wifi_ssids:
+            # Convert legacy WiFi SSIDs
+            prediction_data['wifi_data'] = [
+                {'ssid': ssid, 'bssid': '', 'rssi': -70, 'frequency': 2400}
+                for ssid in request.wifi_ssids
+            ]
+        
+        # Process BLE data
+        if request.ble_beacons:
+            # Use structured BLE data
+            prediction_data['ble_data'] = [
+                {
+                    'uuid': beacon.uuid.lower(),
+                    'major': beacon.major or 0,
+                    'minor': beacon.minor or 0,
+                    'rssi': beacon.rssi or -70,
+                    'name': beacon.name or ''
+                }
+                for beacon in request.ble_beacons
+            ]
+        elif request.bluetooth_devices:
+            # Convert legacy Bluetooth device names (limited functionality)
+            prediction_data['ble_data'] = [
+                {
+                    'uuid': '00000000-0000-0000-0000-000000000000',  # Placeholder
+                    'major': 0,
+                    'minor': 0,
+                    'rssi': -70,
+                    'name': device.lower()
+                }
+                for device in request.bluetooth_devices
+            ]
+        
+        # Add terminal information if available
+        if request.terminal_id:
+            prediction_data['location_data']['terminal_id'] = request.terminal_id
+        
+        # Add transaction context
+        if request.transaction_amount:
+            prediction_data['location_data']['transaction_amount'] = request.transaction_amount
+        if request.transaction_time:
+            prediction_data['location_data']['transaction_time'] = request.transaction_time
+        
+        # Call enhanced prediction service
+        result = await prediction_service.predict_mcc(prediction_data)
+        
+        # Convert result to API response format
+        if result.get('detected', False):
+            # Prepare prediction sources
+            prediction_sources = []
+            
+            # Add main prediction
+            prediction_sources.append({
+                'method': result.get('method', 'unknown'),
+                'confidence': result.get('confidence', 0.0),
+                'mcc': result.get('mcc'),
+                'source': result.get('source', 'enhanced_prediction'),
+                'pos_influenced': result.get('pos_influenced', False),
+                'pos_type': result.get('pos_type'),
+                'reasoning': result.get('reasoning')
+            })
+            
+            # Add alternative predictions if available
+            alternatives = []
+            if result.get('all_predictions') and request.include_alternatives:
+                for pred in result['all_predictions'][1:]:  # Skip first (main) prediction
+                    alternatives.append({
+                        'mcc': pred.get('mcc'),
+                        'confidence': pred.get('confidence', 0.0),
+                        'method': pred.get('method', 'unknown'),
+                        'source': pred.get('source', 'unknown')
+                    })
+            
+            # Apply LLM enhancement if requested
+            llm_analysis = None
+            enhancement_applied = False
+            if request.use_llm_enhancement:
+                # TODO: Integrate with LLM service for additional enhancement
+                pass
+            
+            return MCCPredictionResponse(
+                predicted_mcc=result['mcc'],
+                confidence=result['confidence'],
+                method=result['method'],
+                prediction_sources=prediction_sources,
+                consensus_score=result.get('consensus_boost', False) and 0.9 or result['confidence'],
+                processing_time_ms=50,  # Actual timing would be measured
+                alternatives=alternatives if alternatives else None,
+                llm_analysis=llm_analysis,
+                enhancement_applied=enhancement_applied
+            )
+        else:
+            # No prediction found
+            return MCCPredictionResponse(
+                predicted_mcc='5999',  # Default miscellaneous
+                confidence=0.1,
+                method='default_fallback',
+                prediction_sources=[{
+                    'method': 'fallback',
+                    'confidence': 0.1,
+                    'mcc': '5999',
+                    'source': 'default',
+                    'reasoning': result.get('reason', 'No patterns detected')
+                }],
+                consensus_score=0.0,
+                processing_time_ms=25,
+                alternatives=None,
+                llm_analysis=None,
+                enhancement_applied=False
+            )
+            
+    except Exception as e:
+        logger.error(f"Enhanced MCC prediction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Enhanced prediction failed: {str(e)}")
+
+@router.post("/detect/pos-terminals")
+async def detect_pos_terminals(
+    ble_beacons: List[BLEBeacon] = Body(..., description="BLE beacons to analyze"),
+    location_data: Optional[Dict[str, Any]] = Body(None, description="Optional location context")
+):
+    """
+    Direct POS terminal detection from BLE beacon data
+    """
+    try:
+        # Initialize POS terminal service
+        await pos_terminal_service.initialize()
+        
+        # Convert BLE beacon data
+        ble_data = [
+            {
+                'uuid': beacon.uuid.lower(),
+                'major': beacon.major or 0,
+                'minor': beacon.minor or 0,
+                'rssi': beacon.rssi or -70,
+                'name': beacon.name or ''
+            }
+            for beacon in ble_beacons
+        ]
+        
+        # Detect POS terminals
+        result = await pos_terminal_service.detect_pos_terminals(ble_data, location_data)
+        
+        return {
+            'detected': result.get('detected', False),
+            'pos_type': result.get('pos_type'),
+            'confidence': result.get('confidence', 0.0),
+            'mcc': result.get('mcc'),
+            'mcc_candidates': result.get('mcc_candidates', []),
+            'reasoning': result.get('reasoning'),
+            'device_info': result.get('device_info'),
+            'method': result.get('method'),
+            'metadata': result.get('metadata', {})
+        }
+        
+    except Exception as e:
+        logger.error(f"POS terminal detection failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"POS detection failed: {str(e)}")
 
 @router.get("/predict/simple")
 async def predict_mcc_simple(

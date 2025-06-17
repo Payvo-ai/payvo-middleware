@@ -167,6 +167,23 @@ CREATE TABLE IF NOT EXISTS ble_cache (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- POS Terminal Mappings Table
+-- Stores learned BLE signature to MCC mappings for POS terminals
+CREATE TABLE IF NOT EXISTS pos_terminal_mappings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ble_signature VARCHAR(32) UNIQUE NOT NULL,
+    mcc VARCHAR(4) NOT NULL,
+    confidence DECIMAL(3,2) DEFAULT 1.0,
+    confirmation_count INTEGER DEFAULT 1,
+    device_name VARCHAR(255),
+    device_uuid VARCHAR(255),
+    location_hash VARCHAR(12),
+    first_seen TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_confirmed TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- =====================================================
 -- PERFORMANCE INDEXES
 -- =====================================================
@@ -210,6 +227,15 @@ CREATE INDEX IF NOT EXISTS idx_terminal_cache_terminal_id ON terminal_cache(term
 CREATE INDEX IF NOT EXISTS idx_location_cache_location_hash ON location_cache(location_hash);
 CREATE INDEX IF NOT EXISTS idx_wifi_cache_wifi_hash ON wifi_cache(wifi_hash);
 CREATE INDEX IF NOT EXISTS idx_ble_cache_ble_hash ON ble_cache(ble_hash);
+CREATE INDEX IF NOT EXISTS idx_ble_cache_mcc ON ble_cache(mcc);
+CREATE INDEX IF NOT EXISTS idx_ble_cache_confidence ON ble_cache(confidence);
+
+-- POS Terminal Mappings Indexes
+CREATE INDEX IF NOT EXISTS idx_pos_terminal_mappings_signature ON pos_terminal_mappings(ble_signature);
+CREATE INDEX IF NOT EXISTS idx_pos_terminal_mappings_mcc ON pos_terminal_mappings(mcc);
+CREATE INDEX IF NOT EXISTS idx_pos_terminal_mappings_confidence ON pos_terminal_mappings(confidence);
+CREATE INDEX IF NOT EXISTS idx_pos_terminal_mappings_confirmation_count ON pos_terminal_mappings(confirmation_count);
+CREATE INDEX IF NOT EXISTS idx_pos_terminal_mappings_location_hash ON pos_terminal_mappings(location_hash);
 
 -- =====================================================
 -- ROW LEVEL SECURITY (RLS) SETUP
@@ -226,6 +252,7 @@ ALTER TABLE terminal_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE location_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wifi_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ble_cache ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pos_terminal_mappings ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================
 -- RLS POLICIES FOR SERVICE ROLE ACCESS
@@ -260,6 +287,9 @@ CREATE POLICY "Service role full access wifi_cache" ON wifi_cache
     FOR ALL USING (auth.role() = 'service_role');
 
 CREATE POLICY "Service role full access ble_cache" ON ble_cache
+    FOR ALL USING (auth.role() = 'service_role');
+
+CREATE POLICY "Service role full access pos_terminal_mappings" ON pos_terminal_mappings
     FOR ALL USING (auth.role() = 'service_role');
 
 -- =====================================================
@@ -332,6 +362,10 @@ CREATE TRIGGER update_wifi_cache_updated_at
 
 CREATE TRIGGER update_ble_cache_updated_at 
     BEFORE UPDATE ON ble_cache 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_pos_terminal_mappings_updated_at 
+    BEFORE UPDATE ON pos_terminal_mappings 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- =====================================================
@@ -410,13 +444,13 @@ BEGIN
         'transaction_feedback', 'mcc_predictions', 'card_performance', 
         'user_preferences', 'background_location_sessions', 
         'background_location_predictions', 'terminal_cache', 
-        'location_cache', 'wifi_cache', 'ble_cache'
+        'location_cache', 'wifi_cache', 'ble_cache', 'pos_terminal_mappings'
     );
     
-    IF table_count = 10 THEN
-        RAISE NOTICE '✅ All 10 Payvo Middleware tables created successfully!';
+    IF table_count = 11 THEN
+        RAISE NOTICE '✅ All 11 Payvo Middleware tables created successfully!';
     ELSE
-        RAISE NOTICE '⚠️ Expected 10 tables, found %', table_count;
+        RAISE NOTICE '⚠️ Expected 11 tables, found %', table_count;
     END IF;
 END $$;
 

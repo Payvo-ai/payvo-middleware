@@ -62,13 +62,13 @@ middleware-system/
 │   └── services/
 │       ├── auth_service.py        # Authentication service
 │       ├── ai_inference.py        # AI/ML inference engine
-│       ├── card_routing.py        # Card routing logic
-│       ├── context_collector.py   # Context collection service
-│       ├── learning_engine.py     # Machine learning engine
+│       ├── fingerprint_service.py # WiFi/BLE fingerprint analysis
+│       ├── historical_service.py  # Historical transaction patterns
+│       ├── llm_service.py         # LLM integration for enhanced analysis
 │       ├── location_service.py    # Location processing service
 │       ├── mcc_prediction.py      # MCC prediction service
 │       ├── routing_orchestrator.py # Main routing orchestrator
-│       └── token_provisioning.py  # Token provisioning service
+│       └── terminal_service.py    # Terminal-based MCC prediction
 ├── database-functions/
 │   └── user_lookup.sql            # Supabase database functions
 ├── requirements.txt               # Python dependencies

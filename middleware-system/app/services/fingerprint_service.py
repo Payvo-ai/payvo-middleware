@@ -21,6 +21,7 @@ from geopy.distance import geodesic
 
 from ..core.config import settings
 from ..database.supabase_client import get_supabase_client
+from .pos_terminal_service import pos_terminal_service
 
 logger = logging.getLogger(__name__)
 
@@ -241,9 +242,16 @@ class FingerprintService:
             # Historical fingerprint lookup
             historical_match = await self._lookup_historical_wifi_fingerprint(wifi_features)
             
+            # Check for concurrent BLE POS context if location data suggests retail environment
+            pos_context = None
+            if location_data and location_data.get('venue_type') in ['retail', 'restaurant', 'store']:
+                logger.info("Retail environment detected, checking for POS context")
+                # This would be set by concurrent BLE analysis in the main prediction flow
+                pos_context = location_data.get('pos_context', {})
+            
             # Combine all analyses
             combined_result = self._combine_wifi_analyses(
-                brand_detection, venue_match, pattern_analysis, historical_match, wifi_features
+                brand_detection, venue_match, pattern_analysis, historical_match, wifi_features, pos_context
             )
             
             # Store fingerprint for future use
@@ -274,6 +282,9 @@ class FingerprintService:
             # Extract BLE features
             ble_features = self._extract_ble_features(ble_data)
             
+            # NEW: POS terminal detection (highest priority)
+            pos_detection = await pos_terminal_service.detect_pos_terminals(ble_data, location_data)
+            
             # Brand/beacon detection
             beacon_detection = await self._detect_brand_from_ble(ble_data)
             
@@ -286,9 +297,9 @@ class FingerprintService:
             # Historical fingerprint lookup
             historical_match = await self._lookup_historical_ble_fingerprint(ble_features)
             
-            # Combine all analyses
-            combined_result = self._combine_ble_analyses(
-                beacon_detection, venue_match, proximity_analysis, historical_match, ble_features
+            # Combine all analyses with POS detection having highest priority
+            combined_result = self._combine_ble_analyses_with_pos(
+                pos_detection, beacon_detection, venue_match, proximity_analysis, historical_match, ble_features
             )
             
             # Store fingerprint for future use
@@ -743,7 +754,7 @@ class FingerprintService:
     
     def _combine_wifi_analyses(self, brand_detection: Dict, venue_match: Dict, 
                              pattern_analysis: Dict, historical_match: Dict, 
-                             features: Dict) -> Dict[str, Any]:
+                             features: Dict, pos_context: Dict = None) -> Dict[str, Any]:
         """Combine all WiFi analysis results"""
         
         predictions = []
@@ -797,7 +808,8 @@ class FingerprintService:
                     'venue_match': venue_match,
                     'pattern_analysis': pattern_analysis,
                     'historical_match': historical_match
-                }
+                },
+                'pos_context': pos_context
             }
         
         # No predictions found
@@ -810,7 +822,8 @@ class FingerprintService:
                 'venue_match': venue_match,
                 'pattern_analysis': pattern_analysis,
                 'historical_match': historical_match
-            }
+            },
+            'pos_context': pos_context
         }
     
     def _combine_ble_analyses(self, beacon_detection: Dict, venue_match: Dict, 
@@ -857,33 +870,138 @@ class FingerprintService:
         # Select best prediction
         if predictions:
             best_prediction = max(predictions, key=lambda x: x['confidence'])
+            
             return {
-                'predicted': True,
+                'detected': True,
                 'mcc': best_prediction['mcc'],
                 'confidence': best_prediction['confidence'],
                 'method': best_prediction['method'],
+                'source': best_prediction.get('source', 'pattern_analysis'),
                 'all_predictions': predictions,
-                'fingerprint_features': features,
-                'analysis_details': {
-                    'beacon_detection': beacon_detection,
-                    'venue_match': venue_match,
-                    'proximity_analysis': proximity_analysis,
-                    'historical_match': historical_match
-                }
+                'beacon_count': features['beacon_count'],
+                'avg_rssi': features['avg_rssi'],
+                'fingerprint_hash': features['fingerprint_hash']
             }
         
-        # No predictions found
-        return {
-            'predicted': False,
-            'confidence': 0.0,
-            'fingerprint_features': features,
-            'analysis_details': {
-                'beacon_detection': beacon_detection,
-                'venue_match': venue_match,
-                'proximity_analysis': proximity_analysis,
-                'historical_match': historical_match
+        return self._get_empty_ble_result()
+    
+    def _combine_ble_analyses_with_pos(self, pos_detection: Dict, beacon_detection: Dict, venue_match: Dict, 
+                                     proximity_analysis: Dict, historical_match: Dict, 
+                                     features: Dict) -> Dict[str, Any]:
+        """Combine all BLE analysis results including POS detection with proper prioritization"""
+        
+        predictions = []
+        
+        # POS terminal detection (HIGHEST priority - overrides other methods)
+        if pos_detection.get('detected', False) and pos_detection.get('confidence', 0) > 0.7:
+            return {
+                'detected': True,
+                'mcc': pos_detection['mcc'],
+                'confidence': pos_detection['confidence'],
+                'method': pos_detection['method'],
+                'source': 'pos_terminal_detection',
+                'pos_type': pos_detection.get('pos_type'),
+                'reasoning': pos_detection.get('reasoning'),
+                'device_info': pos_detection.get('device_info'),
+                'beacon_count': features['beacon_count'],
+                'avg_rssi': features['avg_rssi'],
+                'fingerprint_hash': features['fingerprint_hash'],
+                'pos_detection_metadata': pos_detection.get('metadata', {})
             }
-        }
+        
+        # If POS detection has moderate confidence, add it to predictions
+        if pos_detection.get('detected', False):
+            predictions.append({
+                'mcc': pos_detection.get('mcc', pos_detection.get('mcc_candidates', ['5999'])[0]),
+                'confidence': pos_detection['confidence'],
+                'method': pos_detection['method'],
+                'source': 'pos_terminal_detection',
+                'pos_type': pos_detection.get('pos_type'),
+                'reasoning': pos_detection.get('reasoning')
+            })
+        
+        # Beacon/brand detection (high priority)
+        if beacon_detection.get('detected', False):
+            predictions.append({
+                'mcc': beacon_detection['mcc'],
+                'confidence': beacon_detection['confidence'],
+                'method': 'ble_beacon_detection',
+                'source': 'beacon_patterns'
+            })
+        
+        # Historical fingerprint match
+        if historical_match.get('found', False):
+            predictions.append({
+                'mcc': historical_match['mcc'],
+                'confidence': historical_match['confidence'],
+                'method': 'ble_historical_match',
+                'source': 'historical_data'
+            })
+        
+        # Venue fingerprint match
+        if venue_match.get('matched', False):
+            predictions.append({
+                'mcc': venue_match['mcc'],
+                'confidence': venue_match['confidence'],
+                'method': 'ble_venue_match',
+                'source': 'venue_fingerprints'
+            })
+        
+        # Proximity-based inference
+        deployment_pattern = proximity_analysis.get('deployment_pattern', 'unknown')
+        if deployment_pattern != 'unknown':
+            pattern_mcc = self._infer_mcc_from_ble_deployment(deployment_pattern)
+            if pattern_mcc:
+                predictions.append(pattern_mcc)
+        
+        # Select best prediction with weighted confidence
+        if predictions:
+            # Apply confidence weights based on method reliability
+            method_weights = {
+                'pos_terminal_detection': 1.0,          # Highest weight
+                'specialized_pos_detection': 1.0,       # Same as POS
+                'learned_terminal_mapping': 0.95,       # Very high
+                'ble_beacon_detection': 0.8,            # High
+                'ble_historical_match': 0.7,            # Medium-high
+                'ble_venue_match': 0.6,                 # Medium
+                'ble_deployment_pattern': 0.5           # Lower
+            }
+            
+            # Calculate weighted confidence scores
+            for prediction in predictions:
+                method = prediction['method']
+                weight = method_weights.get(method, 0.5)
+                prediction['weighted_confidence'] = prediction['confidence'] * weight
+            
+            best_prediction = max(predictions, key=lambda x: x.get('weighted_confidence', x['confidence']))
+            
+            # Determine if POS detection influenced the result
+            pos_influenced = any(p.get('source') == 'pos_terminal_detection' for p in predictions)
+            
+            result = {
+                'detected': True,
+                'mcc': best_prediction['mcc'],
+                'confidence': best_prediction['confidence'],
+                'method': best_prediction['method'],
+                'source': best_prediction.get('source', 'pattern_analysis'),
+                'all_predictions': predictions,
+                'beacon_count': features['beacon_count'],
+                'avg_rssi': features['avg_rssi'],
+                'fingerprint_hash': features['fingerprint_hash'],
+                'pos_influenced': pos_influenced
+            }
+            
+            # Add POS-specific metadata if applicable
+            if best_prediction.get('source') == 'pos_terminal_detection':
+                result.update({
+                    'pos_type': best_prediction.get('pos_type'),
+                    'reasoning': best_prediction.get('reasoning'),
+                    'pos_detection_metadata': pos_detection.get('metadata', {})
+                })
+            
+            return result
+        
+        return self._get_empty_ble_result()
     
     def _infer_mcc_from_wifi_patterns(self, business_indicators: Dict[str, float]) -> Optional[Dict[str, Any]]:
         """Infer MCC from WiFi pattern analysis"""

@@ -1115,7 +1115,7 @@ if (!isValid) {
 ```
 
 **Biometric Not Working**
-```bash
+   ```bash
 # iOS: Check Face ID settings
 Settings > Face ID & Passcode > Other Apps > Payvo
 
@@ -1135,18 +1135,18 @@ if (!hasPermission) {
 ```
 
 **Background Tracking Stops**
-```bash
+   ```bash
 # iOS: Enable background app refresh
 Settings > General > Background App Refresh > Payvo
-
+   
 # Android: Disable battery optimization
 Settings > Apps > Payvo > Battery > Don't optimize
-```
+   ```
 
 #### **3. API Connection Issues**
 
 **Network Connectivity**
-```typescript
+   ```typescript
 // Test API connectivity
 const healthCheck = await payvoAPI.healthCheck();
 console.log('API Status:', healthCheck.status);
@@ -1158,8 +1158,8 @@ console.log('API Status:', healthCheck.status);
 const developmentConfig = {
   trustInvalidCerts: __DEV__,
   timeout: 30000
-};
-```
+   };
+   ```
 
 ### **Debug Tools & Utilities**
 

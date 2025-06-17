@@ -90,13 +90,13 @@ Payvo-Middleware-Testing/
 ### **Quick Setup for Testing**
 
 1. **Clone the Testing Platform:**
-   ```bash
+```bash
    git clone https://github.com/Payvo-ai/payvo-middleware.git
-   cd payvo-middleware
-   ```
+cd payvo-middleware
+```
 
 2. **Start Middleware Backend:**
-   ```bash
+```bash
    cd middleware-system
    pip install -r requirements.txt
    cp .env.example .env
@@ -105,7 +105,7 @@ Payvo-Middleware-Testing/
    ```
 
 3. **Launch Testing App:**
-   ```bash
+```bash
    cd middleware-application
    npm install
    cd ios && pod install && cd ..  # iOS
@@ -113,7 +113,7 @@ Payvo-Middleware-Testing/
    ```
 
 4. **Docker Testing Environment:**
-   ```bash
+```bash
    docker-compose up -d  # Full stack testing
    ```
 
