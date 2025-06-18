@@ -1,9 +1,7 @@
 {
-  "name": "PayvoMiddleware",
-  "displayName": "Payvo Middleware",
   "expo": {
     "name": "Payvo Middleware",
-    "slug": "payvo-middleware-system",
+    "slug": "payvo-middleware",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./images/icon.png",
@@ -44,11 +42,11 @@
         }
       ]
     ],
+    "owner": "payvo-ai",
     "extra": {
       "eas": {
-        "projectId": "0522256b-e26f-46b4-b99a-01b9bb0f863e"
+        "projectId": "1ddab57f-3fcf-4b02-89f5-28f727703330"
       }
-    },
-    "owner": "imanpayvo"
+    }
   }
 }
