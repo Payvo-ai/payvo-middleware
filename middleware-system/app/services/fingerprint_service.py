@@ -1151,4 +1151,8 @@ class FingerprintService:
             'method': 'ble_fingerprint',
             'fingerprint_features': {},
             'analysis_details': {}
-        } 
+        }
+
+
+# Create global instance
+fingerprint_service = FingerprintService() 

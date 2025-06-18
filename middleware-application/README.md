@@ -4,6 +4,375 @@
 
 A comprehensive React Native mobile application designed specifically for Payvo AI team members to test, validate, and demonstrate the **Payvo Middleware** system. This app provides a complete testing environment for **GPS-based merchant detection**, **real-time MCC prediction**, **intelligent payment routing**, **background location tracking**, and **authentication integration** with the middleware backend.
 
+## **📱 Production Deployment Guide**
+
+This section provides comprehensive instructions for deploying the Payvo Middleware React Native application to production environments (iOS App Store and Google Play Store).
+
+### **🚀 Quick Deploy Options**
+
+#### **Option 1: EAS Build (Recommended)**
+Use Expo Application Services for the easiest cloud-based builds:
+
+```bash
+# Install EAS CLI
+npm install -g @expo/eas-cli
+
+# Login to Expo
+eas login
+
+# Configure project
+eas build:configure
+
+# Build for both platforms
+eas build --platform all
+
+# Submit to stores
+eas submit --platform all
+```
+
+#### **Option 2: GitHub Actions (Automated)**
+Automatic builds and deployments on every push to main:
+
+```bash
+# Set up GitHub secrets
+EXPO_TOKEN=your_expo_access_token
+APPLE_ID=your_apple_developer_id
+GOOGLE_PLAY_SERVICE_ACCOUNT=your_service_account_json
+```
+
+#### **Option 3: Manual Native Builds**
+Traditional React Native CLI builds:
+
+```bash
+# iOS
+cd ios && xcodebuild -workspace PayvoMiddleware.xcworkspace -scheme PayvoMiddleware archive
+
+# Android
+cd android && ./gradlew assembleRelease
+```
+
+### **🛠️ Pre-Deployment Setup**
+
+#### **1. Environment Configuration**
+Update your production environment variables:
+
+```bash
+# .env.production
+API_BASE_URL=https://your-middleware-api.com
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_anon_key
+ENVIRONMENT=production
+SENTRY_DSN=your_sentry_dsn
+```
+
+#### **2. App Store Assets**
+Ensure you have all required assets in the `images/` directory:
+- `icon.png` (1024x1024) - App icon
+- `splash.png` (1242x2208) - Splash screen
+- `adaptive-icon.png` (1024x1024) - Android adaptive icon
+- `favicon.png` (32x32) - Web favicon
+
+#### **3. Bundle Identifiers**
+Configure your app identifiers in `app.json`:
+
+```json
+{
+  "expo": {
+    "ios": {
+      "bundleIdentifier": "ai.payvo.middleware"
+    },
+    "android": {
+      "package": "ai.payvo.middleware"
+    }
+  }
+}
+```
+
+### **📋 Deployment Steps**
+
+#### **Step 1: Install Dependencies**
+```bash
+cd middleware-application
+npm install
+npm install -g @expo/eas-cli
+```
+
+#### **Step 2: Configure EAS**
+```bash
+# Login to Expo
+eas login
+
+# Initialize EAS in your project
+eas build:configure
+
+# Verify configuration
+eas build:list
+```
+
+#### **Step 3: Build Applications**
+```bash
+# Build preview versions for testing
+eas build --platform all --profile preview
+
+# Build production versions
+eas build --platform all --profile production
+
+# Build specific platform
+eas build --platform ios --profile production
+eas build --platform android --profile production
+```
+
+#### **Step 4: Test Builds**
+```bash
+# Install preview build on device
+eas build:run --platform ios --latest
+eas build:run --platform android --latest
+
+# Or download from Expo dashboard
+open https://expo.dev/accounts/[username]/projects/payvo-middleware/builds
+```
+
+#### **Step 5: Submit to Stores**
+```bash
+# Submit to App Store (requires Apple Developer account)
+eas submit --platform ios --latest
+
+# Submit to Google Play (requires Google Play Console account)
+eas submit --platform android --latest
+
+# Submit both platforms
+eas submit --platform all --latest
+```
+
+### **🔧 Store Setup Requirements**
+
+#### **Apple App Store Setup**
+1. **Apple Developer Account** ($99/year)
+   - Sign up at [developer.apple.com](https://developer.apple.com)
+   - Complete team setup and agreements
+
+2. **App Store Connect**
+   - Create app record at [appstoreconnect.apple.com](https://appstoreconnect.apple.com)
+   - Configure app information, pricing, and availability
+   - Upload screenshots and metadata
+
+3. **Certificates & Provisioning**
+   ```bash
+   # EAS handles this automatically, but you can manage manually:
+   eas credentials:configure --platform ios
+   ```
+
+#### **Google Play Store Setup**
+1. **Google Play Console Account** ($25 one-time fee)
+   - Sign up at [play.google.com/console](https://play.google.com/console)
+   - Complete developer registration
+
+2. **Service Account Setup**
+   ```bash
+   # Create service account in Google Cloud Console
+   # Download JSON key file
+   # Configure in eas.json
+   ```
+
+3. **App Signing**
+   ```bash
+   # Google Play App Signing (recommended)
+   # Upload your app bundle and let Google manage signing
+   ```
+
+### **⚙️ Build Configurations**
+
+#### **Production Build Settings**
+The `eas.json` file contains three build profiles:
+
+```json
+{
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "ios": { "simulator": true }
+    },
+    "production": {
+      "android": { "buildType": "aab" },
+      "ios": { "resourceClass": "m-medium" }
+    }
+  }
+}
+```
+
+#### **Build Types Explained**
+- **Development**: For internal testing with Expo Go
+- **Preview**: Internal distribution (TestFlight/Internal Testing)
+- **Production**: Store distribution (App Store/Google Play)
+
+### **🔄 Automated Deployment (CI/CD)**
+
+#### **GitHub Actions Workflow**
+The included workflow (`.github/workflows/build-and-deploy.yml`) automatically:
+
+1. **Triggers on push to main branch**
+2. **Builds iOS and Android simultaneously**
+3. **Runs tests and quality checks**
+4. **Submits to stores automatically**
+5. **Notifies team of deployment status**
+
+#### **Setting Up Secrets**
+Add these secrets to your GitHub repository:
+
+```bash
+# Repository Settings > Secrets and Variables > Actions
+EXPO_TOKEN=your_expo_access_token
+APPLE_ID=your_apple_developer_email
+APPLE_APP_SPECIFIC_PASSWORD=your_app_specific_password
+GOOGLE_PLAY_SERVICE_ACCOUNT=your_service_account_json
+```
+
+#### **Manual Workflow Trigger**
+```bash
+# Trigger deployment manually
+gh workflow run "Build and Deploy Payvo Middleware" --ref main
+```
+
+### **📊 Monitoring & Analytics**
+
+#### **Build Monitoring**
+```bash
+# Check build status
+eas build:list --status=finished --platform=all
+
+# View build logs
+eas build:view [build-id]
+
+# Cancel running build
+eas build:cancel [build-id]
+```
+
+#### **Store Analytics**
+- **App Store Connect**: Revenue, downloads, crashes
+- **Google Play Console**: User acquisition, retention, performance
+- **Expo Analytics**: Build success rates, distribution metrics
+
+### **🐛 Troubleshooting Common Issues**
+
+#### **Build Failures**
+```bash
+# Clear build cache
+eas build --clear-cache --platform all
+
+# Check build logs
+eas build:view --json [build-id]
+
+# Local debugging
+npx expo run:ios --configuration Release
+npx expo run:android --variant release
+```
+
+#### **Submission Issues**
+```bash
+# Check app metadata
+eas submit:list --platform ios
+
+# Validate iOS build
+eas build:inspect [build-id]
+
+# Android validation
+eas submit --platform android --verbose
+```
+
+#### **Common Solutions**
+1. **Icon Issues**: Ensure all required icon sizes are present
+2. **Bundle ID Conflicts**: Check Apple/Google for existing apps
+3. **Permissions**: Verify all required permissions in app.json
+4. **Build Timeouts**: Use larger resource class in eas.json
+
+### **🔐 Security Considerations**
+
+#### **Production Security Checklist**
+- [ ] Remove debug logs and console statements
+- [ ] Validate all API endpoints use HTTPS
+- [ ] Implement certificate pinning
+- [ ] Enable code obfuscation (ProGuard/R8)
+- [ ] Use secure storage for sensitive data
+- [ ] Implement proper session management
+- [ ] Add crash reporting (Sentry/Crashlytics)
+
+#### **Environment Variables**
+```bash
+# Never commit sensitive data to version control
+# Use Expo Secrets for sensitive environment variables
+eas secret:create --scope project --name API_SECRET --value your_secret
+```
+
+### **📈 Performance Optimization**
+
+#### **Bundle Size Optimization**
+```bash
+# Analyze bundle size
+npx expo export --analyzer
+
+# Enable Hermes engine for Android
+# (automatically enabled in newer Expo SDK versions)
+```
+
+#### **Build Performance**
+```bash
+# Use larger build machines for faster builds
+# Configure in eas.json:
+{
+  "build": {
+    "production": {
+      "ios": { "resourceClass": "m-large" },
+      "android": { "resourceClass": "large" }
+    }
+  }
+}
+```
+
+### **🚀 Going Live Checklist**
+
+#### **Pre-Launch**
+- [ ] Test on physical devices (iOS and Android)
+- [ ] Verify all API endpoints work in production
+- [ ] Test payment flows end-to-end
+- [ ] Validate location services and permissions
+- [ ] Check app store metadata and screenshots
+- [ ] Set up crash reporting and analytics
+- [ ] Configure push notifications
+
+#### **Launch Day**
+- [ ] Submit final builds to stores
+- [ ] Monitor build processing status
+- [ ] Prepare rollback plan if needed
+- [ ] Watch for crashes and user feedback
+- [ ] Monitor backend performance
+- [ ] Check analytics and user behavior
+
+#### **Post-Launch**
+- [ ] Monitor app store reviews
+- [ ] Track key performance metrics
+- [ ] Plan first update/hotfix if needed
+- [ ] Gather user feedback
+- [ ] Optimize based on real usage data
+
+### **📞 Support & Resources**
+
+#### **Documentation**
+- [EAS Build Documentation](https://docs.expo.dev/build/introduction/)
+- [App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
+- [Google Play Policy](https://play.google.com/about/developer-content-policy/)
+
+#### **Community Support**
+- [Expo Discord](https://discord.gg/expo)
+- [React Native Community](https://reactnative.dev/community/overview)
+- [Stack Overflow](https://stackoverflow.com/questions/tagged/expo)
+
+---
+
 ## **Testing Application Purpose**
 
 This mobile application serves as an **internal testing platform** for Payvo AI employees to:

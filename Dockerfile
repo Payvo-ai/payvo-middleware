@@ -8,20 +8,21 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY middleware-system/requirements.txt .
+# Copy requirements first for better caching
+COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy middleware code
-COPY middleware-system/ .
+# Copy the entire project structure
+COPY . .
 
-# Make startup script executable
-RUN chmod +x run.py
+# Make sure main.py and run.py are executable
+RUN chmod +x main.py
+RUN chmod +x middleware-system/run.py
 
 # Expose port 8000 for the application
 EXPOSE 8000
 
-# Use the run.py script that exists in middleware-system
-CMD ["python", "run.py"] 
+# Use the main.py entry point
+CMD ["python", "main.py"] 

@@ -1,4 +1,48 @@
 {
   "name": "PayvoMiddleware",
-  "displayName": "Payvo Middleware"
+  "displayName": "Payvo Middleware",
+  "expo": {
+    "name": "Payvo Middleware",
+    "slug": "payvo-middleware",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./images/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ai.payvo.middleware",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./images/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "ai.payvo.middleware",
+      "versionCode": 1
+    },
+    "web": {
+      "favicon": "./images/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0"
+          },
+          "ios": {
+            "deploymentTarget": "13.0"
+          }
+        }
+      ]
+    ]
+  }
 }
