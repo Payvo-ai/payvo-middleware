@@ -3,7 +3,7 @@
   "displayName": "Payvo Middleware",
   "expo": {
     "name": "Payvo Middleware",
-    "slug": "payvo-middleware",
+    "slug": "payvo-middleware-system",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./images/icon.png",
@@ -39,10 +39,16 @@
             "buildToolsVersion": "34.0.0"
           },
           "ios": {
-            "deploymentTarget": "13.0"
+            "deploymentTarget": "15.1"
           }
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "0522256b-e26f-46b4-b99a-01b9bb0f863e"
+      }
+    },
+    "owner": "imanpayvo"
   }
 }

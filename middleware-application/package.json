@@ -18,6 +18,7 @@
     "@react-navigation/stack": "^7.1.1",
     "@supabase/supabase-js": "^2.50.0",
     "axios": "^1.9.0",
+    "expo-build-properties": "^0.14.6",
     "react": "19.0.0",
     "react-native": "0.79.3",
     "react-native-config": "^1.5.5",
