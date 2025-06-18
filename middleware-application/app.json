@@ -4,11 +4,11 @@
     "slug": "payvo-middleware",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./images/icon.png",
+    "icon": "./images/app_icon.png",
     "userInterfaceStyle": "light",
     "scheme": "ai.payvo.middleware",
     "splash": {
-      "image": "./images/splash.png",
+      "image": "./images/app_icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -19,14 +19,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./images/adaptive-icon.png",
+        "foregroundImage": "./images/app_icon.png",
         "backgroundColor": "#FFFFFF"
       },
       "package": "ai.payvo.middleware",
       "versionCode": 1
     },
     "web": {
-      "favicon": "./images/favicon.png"
+      "favicon": "./images/app_icon.png"
     },
     "plugins": [
       [
