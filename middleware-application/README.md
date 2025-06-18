@@ -1484,6 +1484,1851 @@ if (!isValid) {
 ```
 
 **Biometric Not Working**
+```bash
+# iOS: Check Face ID settings
+Settings > Face ID & Passcode > Other Apps > Payvo
+
+# Android: Check biometric settings
+Settings > Security > Biometrics
+```
+
+#### **2. Location Services Issues**
+
+**GPS Not Working**
+```typescript
+// Check location permissions
+const hasPermission = await LocationService.hasPermission();
+if (!hasPermission) {
+  await LocationService.requestPermission();
+}
+```
+
+**Background Tracking Stops**
+   ```bash
+# iOS: Enable background app refresh
+Settings > General > Background App Refresh > Payvo
+   
+# Android: Disable battery optimization
+Settings > Apps > Payvo > Battery > Don't optimize
+   ```
+
+#### **3. API Connection Issues**
+
+**Network Connectivity**
+```typescript
+// Test API connectivity
+const healthCheck = await payvoAPI.healthCheck();
+console.log('API Status:', healthCheck.status);
+```
+
+**SSL Certificate Issues**
+```typescript
+// For development only - disable SSL verification
+const developmentConfig = {
+  trustInvalidCerts: __DEV__,
+  timeout: 30000
+   };
+   ```
+
+### **Debug Tools & Utilities**
+
+#### **Debug Menu** (Development builds only)
+- **Shake device** → Access debug menu
+- **Network Inspector** → View API calls
+- **Location Simulator** → Test with fake GPS
+- **Token Inspector** → View current authentication state
+
+#### **Logging Configuration**
+```typescript
+// src/utils/logger.ts
+export const logger = {
+  debug: (message: string, data?: any) => {
+    if (__DEV__) {
+      console.log(`[DEBUG] ${message}`, data);
+    }
+  },
+  error: (message: string, error?: Error) => {
+    console.error(`[ERROR] ${message}`, error);
+    // Send to crash reporting service
+  }
+};
+```
+
+---
+
+## **Support & Documentation**
+
+### **Getting Help**
+
+- **In-App Support** - Access help via Settings → Support
+- **Documentation** - Comprehensive guides in the app
+- **Performance Issues** - Check Analytics screen for diagnostics
+- **Error Logs** - Enable debug mode for detailed logging
+
+### **Performance Monitoring**
+
+```typescript
+// Real-time performance metrics
+const performanceMetrics = {
+  apiResponseTime: '< 200ms average',
+  locationAccuracy: '1-10 meters',
+  batteryUsage: '< 5% per hour',
+  mccPredictionAccuracy: '90%+',
+  backgroundSessionDuration: '30 minutes',
+  offlineQueueCapacity: '100 requests'
+};
+```
+
+### **Feature Status**
+
+**Authentication System** - Complete with biometric support  
+**Background Location Tracking** - Real-time with battery optimization  
+**MCC Prediction** - AI-powered with 90%+ accuracy  
+**Payment Routing** - Intelligent card selection  
+**Offline Capability** - Queue and sync when online  
+**Analytics & Metrics** - Comprehensive performance tracking  
+**Security & Privacy** - Enterprise-grade protection  
+**Cross-platform** - iOS and Android support  
+
+## **Internal Testing Platform**
+
+### **For Payvo AI Team Members**
+
+This React Native application serves as the **primary testing interface** for validating the Payvo Middleware system before production deployment. Key testing capabilities include:
+
+#### **Validation Testing**
+- **API Endpoint Testing** - Validate all middleware endpoints with real mobile scenarios
+- **Performance Benchmarking** - Monitor response times, accuracy rates, and system reliability
+- **Integration Testing** - Test seamless communication between mobile app and middleware
+- **Edge Case Validation** - Test system behavior under challenging conditions
+
+#### **Demonstration Platform**
+- **Stakeholder Demos** - Showcase middleware capabilities to investors and partners
+- **Product Validation** - Demonstrate payment intelligence features to potential customers
+- **Technical Showcases** - Present system architecture and performance to technical audiences
+- **Business Case Development** - Generate metrics and analytics for business decisions
+
+#### **Development Support**
+- **Feature Prototyping** - Test new middleware features before production implementation
+- **User Experience Validation** - Refine mobile app patterns for consumer application
+- **Performance Optimization** - Identify bottlenecks and optimization opportunities
+- **Security Testing** - Validate authentication and data protection mechanisms
+
+### **Internal Use Only**
+
+**Important**: This testing application is designed exclusively for **Payvo AI employees** and **authorized stakeholders**. It provides comprehensive access to:
+
+- **Live Middleware APIs** - Direct access to production-ready backend systems
+- **Internal Analytics** - Detailed performance metrics and system insights
+- **Development Tools** - Debug interfaces and testing utilities
+- **Sensitive Data** - User profiles, transaction patterns, and business metrics
+
+### **Future Production Integration**
+
+The patterns, APIs, and user experience elements validated through this testing platform will be integrated into the consumer-facing Payvo application, providing:
+
+- **Proven Middleware Integration** - Battle-tested API communication patterns
+- **Optimized User Flows** - Refined authentication and payment experiences  
+- **Performance Benchmarks** - Established baselines for consumer app performance
+- **Security Models** - Validated authentication and data protection approaches
+    return unsubscribe;
+  }, []);
+  
+  return { isConnected, networkType, queueSize };
+};
+```
+
+---
+
+## **Performance & Analytics**
+
+### **Real-time Metrics Dashboard**
+
+#### **Performance Monitoring**
+```typescript
+// src/services/analytics/PerformanceService.ts
+export class PerformanceService {
+  trackAPICall(endpoint: string, duration: number, success: boolean): void
+  trackLocationUpdate(accuracy: number, batteryUsage: number): void
+  trackMCCPrediction(mcc: string, confidence: number, actual?: string): void
+  trackUserAction(action: string, screen: string, duration?: number): void
+  
+  getPerformanceReport(): Promise<PerformanceReport>
+  exportMetrics(format: 'csv' | 'json'): Promise<string>
+}
+```
+
+#### **Analytics Integration**
+```typescript
+// src/hooks/analytics/useAnalytics.ts
+export const useAnalytics = () => {
+  const trackScreen = useCallback((screenName: string) => {
+    analytics.track('screen_view', {
+      screen_name: screenName,
+      timestamp: Date.now()
+    });
+  }, []);
+  
+  const trackEvent = useCallback((event: string, properties?: Record<string, any>) => {
+    analytics.track(event, {
+      ...properties,
+      user_id: user?.id,
+      session_id: sessionId,
+      timestamp: Date.now()
+    });
+  }, [user, sessionId]);
+  
+  return { trackScreen, trackEvent };
+};
+```
+
+### **Battery Optimization**
+
+#### **Smart Power Management**
+```typescript
+// src/services/location/BatteryOptimizationService.ts
+export class BatteryOptimizationService {
+  adjustLocationFrequency(batteryLevel: number): LocationConfig {
+    if (batteryLevel < 20) {
+      return { updateInterval: 10000, accuracy: 'low' }; // 10 seconds, low accuracy
+    } else if (batteryLevel < 50) {
+      return { updateInterval: 6000, accuracy: 'medium' }; // 6 seconds, medium accuracy
+    } else {
+      return { updateInterval: 4000, accuracy: 'high' }; // 4 seconds, high accuracy
+    }
+  }
+  
+  optimizeBackgroundTasks(): void {
+    // Reduce background processing based on battery level
+    // Prioritize critical tasks only
+  }
+}
+```
+
+---
+
+## **Testing & Development**
+
+### **Test Configuration**
+
+#### **Jest Setup** (`jest.config.js`)
+```javascript
+module.exports = {
+  preset: 'react-native',
+  setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
+  testMatch: ['**/__tests__/**/*.test.{ts,tsx}'],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/test/**/*',
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
+};
+```
+
+#### **Test Examples**
+
+**Authentication Service Test**
+```typescript
+// __tests__/services/AuthService.test.ts
+describe('AuthService', () => {
+  let authService: AuthService;
+  
+  beforeEach(() => {
+    authService = new AuthService();
+  });
+  
+  describe('login', () => {
+    it('should authenticate user successfully', async () => {
+      const result = await authService.login('test@example.com', 'password');
+      expect(result.success).toBe(true);
+      expect(result.token).toBeDefined();
+    });
+    
+    it('should handle invalid credentials', async () => {
+      await expect(
+        authService.login('invalid@example.com', 'wrong')
+      ).rejects.toThrow('Invalid credentials');
+    });
+  });
+});
+```
+
+**Location Service Test**
+```typescript
+// __tests__/services/LocationService.test.ts
+describe('LocationService', () => {
+  let locationService: LocationService;
+  
+  beforeEach(() => {
+    locationService = new LocationService();
+  });
+  
+  describe('getCurrentLocation', () => {
+    it('should return current location', async () => {
+      const location = await locationService.getCurrentLocation();
+      expect(location.latitude).toBeDefined();
+      expect(location.longitude).toBeDefined();
+      expect(location.accuracy).toBeGreaterThan(0);
+    });
+  });
+});
+```
+
+### **Development Scripts**
+
+```json
+{
+  "scripts": {
+    "start": "react-native start",
+    "ios": "react-native run-ios",
+    "android": "react-native run-android",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "type-check": "tsc --noEmit",
+    "build:ios": "react-native run-ios --configuration Release",
+    "build:android": "cd android && ./gradlew assembleRelease",
+    "clean": "react-native clean-project-auto",
+    "pod-install": "cd ios && pod install",
+    "postinstall": "cd ios && pod install"
+  }
+}
+```
+
+### **Debug Configuration**
+
+#### **React Native Debugger**
+```typescript
+// src/config/debugger.ts
+if (__DEV__) {
+  import('../../../ReactotronConfig').then(() => console.log('Reactotron Configured'));
+}
+```
+
+#### **Flipper Integration**
+```typescript
+// src/config/flipper.ts
+import { logger } from 'react-native-logs';
+
+const defaultConfig = {
+  severity: __DEV__ ? 'debug' : 'error',
+  transport: __DEV__ ? logger.consoleTransport : logger.fileAsyncTransport,
+  transportOptions: {
+    colors: {
+      info: 'blueBright',
+      warn: 'yellowBright',
+      error: 'redBright',
+    },
+  },
+};
+
+export const log = logger.createLogger(defaultConfig);
+```
+
+---
+
+## **Troubleshooting**
+
+### **Common Issues & Solutions**
+
+#### **1. Authentication Issues**
+
+**Token Expired**
+```typescript
+// Check token validity
+const isValid = await authService.validateToken();
+if (!isValid) {
+  await authService.refreshToken();
+}
+```
+
+**Biometric Not Working**
+```bash
+# iOS: Check Face ID settings
+Settings > Face ID & Passcode > Other Apps > Payvo
+
+# Android: Check biometric settings
+Settings > Security > Biometrics
+```
+
+#### **2. Location Services Issues**
+
+**GPS Not Working**
+```typescript
+// Check location permissions
+const hasPermission = await LocationService.hasPermission();
+if (!hasPermission) {
+  await LocationService.requestPermission();
+}
+```
+
+**Background Tracking Stops**
+```bash
+# iOS: Enable background app refresh
+Settings > General > Background App Refresh > Payvo
+   
+# Android: Disable battery optimization
+Settings > Apps > Payvo > Battery > Don't optimize
+   ```
+
+#### **3. API Connection Issues**
+
+**Network Connectivity**
+   ```typescript
+// Test API connectivity
+const healthCheck = await payvoAPI.healthCheck();
+console.log('API Status:', healthCheck.status);
+```
+
+**SSL Certificate Issues**
+```typescript
+// For development only - disable SSL verification
+const developmentConfig = {
+  trustInvalidCerts: __DEV__,
+  timeout: 30000
+   };
+   ```
+
+### **Debug Tools & Utilities**
+
+#### **Debug Menu** (Development builds only)
+- **Shake device** → Access debug menu
+- **Network Inspector** → View API calls
+- **Location Simulator** → Test with fake GPS
+- **Token Inspector** → View current authentication state
+
+#### **Logging Configuration**
+```typescript
+// src/utils/logger.ts
+export const logger = {
+  debug: (message: string, data?: any) => {
+    if (__DEV__) {
+      console.log(`[DEBUG] ${message}`, data);
+    }
+  },
+  error: (message: string, error?: Error) => {
+    console.error(`[ERROR] ${message}`, error);
+    // Send to crash reporting service
+  }
+};
+```
+
+---
+
+## **Support & Documentation**
+
+### **Getting Help**
+
+- **In-App Support** - Access help via Settings → Support
+- **Documentation** - Comprehensive guides in the app
+- **Performance Issues** - Check Analytics screen for diagnostics
+- **Error Logs** - Enable debug mode for detailed logging
+
+### **Performance Monitoring**
+
+```typescript
+// Real-time performance metrics
+const performanceMetrics = {
+  apiResponseTime: '< 200ms average',
+  locationAccuracy: '1-10 meters',
+  batteryUsage: '< 5% per hour',
+  mccPredictionAccuracy: '90%+',
+  backgroundSessionDuration: '30 minutes',
+  offlineQueueCapacity: '100 requests'
+};
+```
+
+### **Feature Status**
+
+**Authentication System** - Complete with biometric support  
+**Background Location Tracking** - Real-time with battery optimization  
+**MCC Prediction** - AI-powered with 90%+ accuracy  
+**Payment Routing** - Intelligent card selection  
+**Offline Capability** - Queue and sync when online  
+**Analytics & Metrics** - Comprehensive performance tracking  
+**Security & Privacy** - Enterprise-grade protection  
+**Cross-platform** - iOS and Android support  
+
+## **Internal Testing Platform**
+
+### **For Payvo AI Team Members**
+
+This React Native application serves as the **primary testing interface** for validating the Payvo Middleware system before production deployment. Key testing capabilities include:
+
+#### **Validation Testing**
+- **API Endpoint Testing** - Validate all middleware endpoints with real mobile scenarios
+- **Performance Benchmarking** - Monitor response times, accuracy rates, and system reliability
+- **Integration Testing** - Test seamless communication between mobile app and middleware
+- **Edge Case Validation** - Test system behavior under challenging conditions
+
+#### **Demonstration Platform**
+- **Stakeholder Demos** - Showcase middleware capabilities to investors and partners
+- **Product Validation** - Demonstrate payment intelligence features to potential customers
+- **Technical Showcases** - Present system architecture and performance to technical audiences
+- **Business Case Development** - Generate metrics and analytics for business decisions
+
+#### **Development Support**
+- **Feature Prototyping** - Test new middleware features before production implementation
+- **User Experience Validation** - Refine mobile app patterns for consumer application
+- **Performance Optimization** - Identify bottlenecks and optimization opportunities
+- **Security Testing** - Validate authentication and data protection mechanisms
+
+### **Internal Use Only**
+
+**Important**: This testing application is designed exclusively for **Payvo AI employees** and **authorized stakeholders**. It provides comprehensive access to:
+
+- **Live Middleware APIs** - Direct access to production-ready backend systems
+- **Internal Analytics** - Detailed performance metrics and system insights
+- **Development Tools** - Debug interfaces and testing utilities
+- **Sensitive Data** - User profiles, transaction patterns, and business metrics
+
+### **Future Production Integration**
+
+The patterns, APIs, and user experience elements validated through this testing platform will be integrated into the consumer-facing Payvo application, providing:
+
+- **Proven Middleware Integration** - Battle-tested API communication patterns
+- **Optimized User Flows** - Refined authentication and payment experiences  
+- **Performance Benchmarks** - Established baselines for consumer app performance
+- **Security Models** - Validated authentication and data protection approaches
+    return unsubscribe;
+  }, []);
+  
+  return { isConnected, networkType, queueSize };
+};
+```
+
+---
+
+## **Performance & Analytics**
+
+### **Real-time Metrics Dashboard**
+
+#### **Performance Monitoring**
+```typescript
+// src/services/analytics/PerformanceService.ts
+export class PerformanceService {
+  trackAPICall(endpoint: string, duration: number, success: boolean): void
+  trackLocationUpdate(accuracy: number, batteryUsage: number): void
+  trackMCCPrediction(mcc: string, confidence: number, actual?: string): void
+  trackUserAction(action: string, screen: string, duration?: number): void
+  
+  getPerformanceReport(): Promise<PerformanceReport>
+  exportMetrics(format: 'csv' | 'json'): Promise<string>
+}
+```
+
+#### **Analytics Integration**
+```typescript
+// src/hooks/analytics/useAnalytics.ts
+export const useAnalytics = () => {
+  const trackScreen = useCallback((screenName: string) => {
+    analytics.track('screen_view', {
+      screen_name: screenName,
+      timestamp: Date.now()
+    });
+  }, []);
+  
+  const trackEvent = useCallback((event: string, properties?: Record<string, any>) => {
+    analytics.track(event, {
+      ...properties,
+      user_id: user?.id,
+      session_id: sessionId,
+      timestamp: Date.now()
+    });
+  }, [user, sessionId]);
+  
+  return { trackScreen, trackEvent };
+};
+```
+
+### **Battery Optimization**
+
+#### **Smart Power Management**
+```typescript
+// src/services/location/BatteryOptimizationService.ts
+export class BatteryOptimizationService {
+  adjustLocationFrequency(batteryLevel: number): LocationConfig {
+    if (batteryLevel < 20) {
+      return { updateInterval: 10000, accuracy: 'low' }; // 10 seconds, low accuracy
+    } else if (batteryLevel < 50) {
+      return { updateInterval: 6000, accuracy: 'medium' }; // 6 seconds, medium accuracy
+    } else {
+      return { updateInterval: 4000, accuracy: 'high' }; // 4 seconds, high accuracy
+    }
+  }
+  
+  optimizeBackgroundTasks(): void {
+    // Reduce background processing based on battery level
+    // Prioritize critical tasks only
+  }
+}
+```
+
+---
+
+## **Testing & Development**
+
+### **Test Configuration**
+
+#### **Jest Setup** (`jest.config.js`)
+```javascript
+module.exports = {
+  preset: 'react-native',
+  setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
+  testMatch: ['**/__tests__/**/*.test.{ts,tsx}'],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/test/**/*',
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
+};
+```
+
+#### **Test Examples**
+
+**Authentication Service Test**
+```typescript
+// __tests__/services/AuthService.test.ts
+describe('AuthService', () => {
+  let authService: AuthService;
+  
+  beforeEach(() => {
+    authService = new AuthService();
+  });
+  
+  describe('login', () => {
+    it('should authenticate user successfully', async () => {
+      const result = await authService.login('test@example.com', 'password');
+      expect(result.success).toBe(true);
+      expect(result.token).toBeDefined();
+    });
+    
+    it('should handle invalid credentials', async () => {
+      await expect(
+        authService.login('invalid@example.com', 'wrong')
+      ).rejects.toThrow('Invalid credentials');
+    });
+  });
+});
+```
+
+**Location Service Test**
+```typescript
+// __tests__/services/LocationService.test.ts
+describe('LocationService', () => {
+  let locationService: LocationService;
+  
+  beforeEach(() => {
+    locationService = new LocationService();
+  });
+  
+  describe('getCurrentLocation', () => {
+    it('should return current location', async () => {
+      const location = await locationService.getCurrentLocation();
+      expect(location.latitude).toBeDefined();
+      expect(location.longitude).toBeDefined();
+      expect(location.accuracy).toBeGreaterThan(0);
+    });
+  });
+});
+```
+
+### **Development Scripts**
+
+```json
+{
+  "scripts": {
+    "start": "react-native start",
+    "ios": "react-native run-ios",
+    "android": "react-native run-android",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "type-check": "tsc --noEmit",
+    "build:ios": "react-native run-ios --configuration Release",
+    "build:android": "cd android && ./gradlew assembleRelease",
+    "clean": "react-native clean-project-auto",
+    "pod-install": "cd ios && pod install",
+    "postinstall": "cd ios && pod install"
+  }
+}
+```
+
+### **Debug Configuration**
+
+#### **React Native Debugger**
+```typescript
+// src/config/debugger.ts
+if (__DEV__) {
+  import('../../../ReactotronConfig').then(() => console.log('Reactotron Configured'));
+}
+```
+
+#### **Flipper Integration**
+```typescript
+// src/config/flipper.ts
+import { logger } from 'react-native-logs';
+
+const defaultConfig = {
+  severity: __DEV__ ? 'debug' : 'error',
+  transport: __DEV__ ? logger.consoleTransport : logger.fileAsyncTransport,
+  transportOptions: {
+    colors: {
+      info: 'blueBright',
+      warn: 'yellowBright',
+      error: 'redBright',
+    },
+  },
+};
+
+export const log = logger.createLogger(defaultConfig);
+```
+
+---
+
+## **Troubleshooting**
+
+### **Common Issues & Solutions**
+
+#### **1. Authentication Issues**
+
+**Token Expired**
+```typescript
+// Check token validity
+const isValid = await authService.validateToken();
+if (!isValid) {
+  await authService.refreshToken();
+}
+```
+
+**Biometric Not Working**
+   ```bash
+# iOS: Check Face ID settings
+Settings > Face ID & Passcode > Other Apps > Payvo
+
+# Android: Check biometric settings
+Settings > Security > Biometrics
+```
+
+#### **2. Location Services Issues**
+
+**GPS Not Working**
+```typescript
+// Check location permissions
+const hasPermission = await LocationService.hasPermission();
+if (!hasPermission) {
+  await LocationService.requestPermission();
+}
+```
+
+**Background Tracking Stops**
+   ```bash
+# iOS: Enable background app refresh
+Settings > General > Background App Refresh > Payvo
+   
+# Android: Disable battery optimization
+Settings > Apps > Payvo > Battery > Don't optimize
+   ```
+
+#### **3. API Connection Issues**
+
+**Network Connectivity**
+   ```typescript
+// Test API connectivity
+const healthCheck = await payvoAPI.healthCheck();
+console.log('API Status:', healthCheck.status);
+```
+
+**SSL Certificate Issues**
+```typescript
+// For development only - disable SSL verification
+const developmentConfig = {
+  trustInvalidCerts: __DEV__,
+  timeout: 30000
+   };
+   ```
+
+### **Debug Tools & Utilities**
+
+#### **Debug Menu** (Development builds only)
+- **Shake device** → Access debug menu
+- **Network Inspector** → View API calls
+- **Location Simulator** → Test with fake GPS
+- **Token Inspector** → View current authentication state
+
+#### **Logging Configuration**
+```typescript
+// src/utils/logger.ts
+export const logger = {
+  debug: (message: string, data?: any) => {
+    if (__DEV__) {
+      console.log(`[DEBUG] ${message}`, data);
+    }
+  },
+  error: (message: string, error?: Error) => {
+    console.error(`[ERROR] ${message}`, error);
+    // Send to crash reporting service
+  }
+};
+```
+
+---
+
+## **Support & Documentation**
+
+### **Getting Help**
+
+- **In-App Support** - Access help via Settings → Support
+- **Documentation** - Comprehensive guides in the app
+- **Performance Issues** - Check Analytics screen for diagnostics
+- **Error Logs** - Enable debug mode for detailed logging
+
+### **Performance Monitoring**
+
+```typescript
+// Real-time performance metrics
+const performanceMetrics = {
+  apiResponseTime: '< 200ms average',
+  locationAccuracy: '1-10 meters',
+  batteryUsage: '< 5% per hour',
+  mccPredictionAccuracy: '90%+',
+  backgroundSessionDuration: '30 minutes',
+  offlineQueueCapacity: '100 requests'
+};
+```
+
+### **Feature Status**
+
+**Authentication System** - Complete with biometric support  
+**Background Location Tracking** - Real-time with battery optimization  
+**MCC Prediction** - AI-powered with 90%+ accuracy  
+**Payment Routing** - Intelligent card selection  
+**Offline Capability** - Queue and sync when online  
+**Analytics & Metrics** - Comprehensive performance tracking  
+**Security & Privacy** - Enterprise-grade protection  
+**Cross-platform** - iOS and Android support  
+
+## **Internal Testing Platform**
+
+### **For Payvo AI Team Members**
+
+This React Native application serves as the **primary testing interface** for validating the Payvo Middleware system before production deployment. Key testing capabilities include:
+
+#### **Validation Testing**
+- **API Endpoint Testing** - Validate all middleware endpoints with real mobile scenarios
+- **Performance Benchmarking** - Monitor response times, accuracy rates, and system reliability
+- **Integration Testing** - Test seamless communication between mobile app and middleware
+- **Edge Case Validation** - Test system behavior under challenging conditions
+
+#### **Demonstration Platform**
+- **Stakeholder Demos** - Showcase middleware capabilities to investors and partners
+- **Product Validation** - Demonstrate payment intelligence features to potential customers
+- **Technical Showcases** - Present system architecture and performance to technical audiences
+- **Business Case Development** - Generate metrics and analytics for business decisions
+
+#### **Development Support**
+- **Feature Prototyping** - Test new middleware features before production implementation
+- **User Experience Validation** - Refine mobile app patterns for consumer application
+- **Performance Optimization** - Identify bottlenecks and optimization opportunities
+- **Security Testing** - Validate authentication and data protection mechanisms
+
+### **Internal Use Only**
+
+**Important**: This testing application is designed exclusively for **Payvo AI employees** and **authorized stakeholders**. It provides comprehensive access to:
+
+- **Live Middleware APIs** - Direct access to production-ready backend systems
+- **Internal Analytics** - Detailed performance metrics and system insights
+- **Development Tools** - Debug interfaces and testing utilities
+- **Sensitive Data** - User profiles, transaction patterns, and business metrics
+
+### **Future Production Integration**
+
+The patterns, APIs, and user experience elements validated through this testing platform will be integrated into the consumer-facing Payvo application, providing:
+
+- **Proven Middleware Integration** - Battle-tested API communication patterns
+- **Optimized User Flows** - Refined authentication and payment experiences  
+- **Performance Benchmarks** - Established baselines for consumer app performance
+- **Security Models** - Validated authentication and data protection approaches
+    return unsubscribe;
+  }, []);
+  
+  return { isConnected, networkType, queueSize };
+};
+```
+
+---
+
+## **Performance & Analytics**
+
+### **Real-time Metrics Dashboard**
+
+#### **Performance Monitoring**
+```typescript
+// src/services/analytics/PerformanceService.ts
+export class PerformanceService {
+  trackAPICall(endpoint: string, duration: number, success: boolean): void
+  trackLocationUpdate(accuracy: number, batteryUsage: number): void
+  trackMCCPrediction(mcc: string, confidence: number, actual?: string): void
+  trackUserAction(action: string, screen: string, duration?: number): void
+  
+  getPerformanceReport(): Promise<PerformanceReport>
+  exportMetrics(format: 'csv' | 'json'): Promise<string>
+}
+```
+
+#### **Analytics Integration**
+```typescript
+// src/hooks/analytics/useAnalytics.ts
+export const useAnalytics = () => {
+  const trackScreen = useCallback((screenName: string) => {
+    analytics.track('screen_view', {
+      screen_name: screenName,
+      timestamp: Date.now()
+    });
+  }, []);
+  
+  const trackEvent = useCallback((event: string, properties?: Record<string, any>) => {
+    analytics.track(event, {
+      ...properties,
+      user_id: user?.id,
+      session_id: sessionId,
+      timestamp: Date.now()
+    });
+  }, [user, sessionId]);
+  
+  return { trackScreen, trackEvent };
+};
+```
+
+### **Battery Optimization**
+
+#### **Smart Power Management**
+```typescript
+// src/services/location/BatteryOptimizationService.ts
+export class BatteryOptimizationService {
+  adjustLocationFrequency(batteryLevel: number): LocationConfig {
+    if (batteryLevel < 20) {
+      return { updateInterval: 10000, accuracy: 'low' }; // 10 seconds, low accuracy
+    } else if (batteryLevel < 50) {
+      return { updateInterval: 6000, accuracy: 'medium' }; // 6 seconds, medium accuracy
+    } else {
+      return { updateInterval: 4000, accuracy: 'high' }; // 4 seconds, high accuracy
+    }
+  }
+  
+  optimizeBackgroundTasks(): void {
+    // Reduce background processing based on battery level
+    // Prioritize critical tasks only
+  }
+}
+```
+
+---
+
+## **Testing & Development**
+
+### **Test Configuration**
+
+#### **Jest Setup** (`jest.config.js`)
+```javascript
+module.exports = {
+  preset: 'react-native',
+  setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
+  testMatch: ['**/__tests__/**/*.test.{ts,tsx}'],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/test/**/*',
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
+};
+```
+
+#### **Test Examples**
+
+**Authentication Service Test**
+```typescript
+// __tests__/services/AuthService.test.ts
+describe('AuthService', () => {
+  let authService: AuthService;
+  
+  beforeEach(() => {
+    authService = new AuthService();
+  });
+  
+  describe('login', () => {
+    it('should authenticate user successfully', async () => {
+      const result = await authService.login('test@example.com', 'password');
+      expect(result.success).toBe(true);
+      expect(result.token).toBeDefined();
+    });
+    
+    it('should handle invalid credentials', async () => {
+      await expect(
+        authService.login('invalid@example.com', 'wrong')
+      ).rejects.toThrow('Invalid credentials');
+    });
+  });
+});
+```
+
+**Location Service Test**
+```typescript
+// __tests__/services/LocationService.test.ts
+describe('LocationService', () => {
+  let locationService: LocationService;
+  
+  beforeEach(() => {
+    locationService = new LocationService();
+  });
+  
+  describe('getCurrentLocation', () => {
+    it('should return current location', async () => {
+      const location = await locationService.getCurrentLocation();
+      expect(location.latitude).toBeDefined();
+      expect(location.longitude).toBeDefined();
+      expect(location.accuracy).toBeGreaterThan(0);
+    });
+  });
+});
+```
+
+### **Development Scripts**
+
+```json
+{
+  "scripts": {
+    "start": "react-native start",
+    "ios": "react-native run-ios",
+    "android": "react-native run-android",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "type-check": "tsc --noEmit",
+    "build:ios": "react-native run-ios --configuration Release",
+    "build:android": "cd android && ./gradlew assembleRelease",
+    "clean": "react-native clean-project-auto",
+    "pod-install": "cd ios && pod install",
+    "postinstall": "cd ios && pod install"
+  }
+}
+```
+
+### **Debug Configuration**
+
+#### **React Native Debugger**
+```typescript
+// src/config/debugger.ts
+if (__DEV__) {
+  import('../../../ReactotronConfig').then(() => console.log('Reactotron Configured'));
+}
+```
+
+#### **Flipper Integration**
+```typescript
+// src/config/flipper.ts
+import { logger } from 'react-native-logs';
+
+const defaultConfig = {
+  severity: __DEV__ ? 'debug' : 'error',
+  transport: __DEV__ ? logger.consoleTransport : logger.fileAsyncTransport,
+  transportOptions: {
+    colors: {
+      info: 'blueBright',
+      warn: 'yellowBright',
+      error: 'redBright',
+    },
+  },
+};
+
+export const log = logger.createLogger(defaultConfig);
+```
+
+---
+
+## **Troubleshooting**
+
+### **Common Issues & Solutions**
+
+#### **1. Authentication Issues**
+
+**Token Expired**
+```typescript
+// Check token validity
+const isValid = await authService.validateToken();
+if (!isValid) {
+  await authService.refreshToken();
+}
+```
+
+**Biometric Not Working**
+```bash
+# iOS: Check Face ID settings
+Settings > Face ID & Passcode > Other Apps > Payvo
+
+# Android: Check biometric settings
+Settings > Security > Biometrics
+```
+
+#### **2. Location Services Issues**
+
+**GPS Not Working**
+```typescript
+// Check location permissions
+const hasPermission = await LocationService.hasPermission();
+if (!hasPermission) {
+  await LocationService.requestPermission();
+}
+```
+
+**Background Tracking Stops**
+   ```bash
+# iOS: Enable background app refresh
+Settings > General > Background App Refresh > Payvo
+   
+# Android: Disable battery optimization
+Settings > Apps > Payvo > Battery > Don't optimize
+   ```
+
+#### **3. API Connection Issues**
+
+**Network Connectivity**
+```typescript
+// Test API connectivity
+const healthCheck = await payvoAPI.healthCheck();
+console.log('API Status:', healthCheck.status);
+```
+
+**SSL Certificate Issues**
+```typescript
+// For development only - disable SSL verification
+const developmentConfig = {
+  trustInvalidCerts: __DEV__,
+  timeout: 30000
+   };
+   ```
+
+### **Debug Tools & Utilities**
+
+#### **Debug Menu** (Development builds only)
+- **Shake device** → Access debug menu
+- **Network Inspector** → View API calls
+- **Location Simulator** → Test with fake GPS
+- **Token Inspector** → View current authentication state
+
+#### **Logging Configuration**
+```typescript
+// src/utils/logger.ts
+export const logger = {
+  debug: (message: string, data?: any) => {
+    if (__DEV__) {
+      console.log(`[DEBUG] ${message}`, data);
+    }
+  },
+  error: (message: string, error?: Error) => {
+    console.error(`[ERROR] ${message}`, error);
+    // Send to crash reporting service
+  }
+};
+```
+
+---
+
+## **Support & Documentation**
+
+### **Getting Help**
+
+- **In-App Support** - Access help via Settings → Support
+- **Documentation** - Comprehensive guides in the app
+- **Performance Issues** - Check Analytics screen for diagnostics
+- **Error Logs** - Enable debug mode for detailed logging
+
+### **Performance Monitoring**
+
+```typescript
+// Real-time performance metrics
+const performanceMetrics = {
+  apiResponseTime: '< 200ms average',
+  locationAccuracy: '1-10 meters',
+  batteryUsage: '< 5% per hour',
+  mccPredictionAccuracy: '90%+',
+  backgroundSessionDuration: '30 minutes',
+  offlineQueueCapacity: '100 requests'
+};
+```
+
+### **Feature Status**
+
+**Authentication System** - Complete with biometric support  
+**Background Location Tracking** - Real-time with battery optimization  
+**MCC Prediction** - AI-powered with 90%+ accuracy  
+**Payment Routing** - Intelligent card selection  
+**Offline Capability** - Queue and sync when online  
+**Analytics & Metrics** - Comprehensive performance tracking  
+**Security & Privacy** - Enterprise-grade protection  
+**Cross-platform** - iOS and Android support  
+
+## **Internal Testing Platform**
+
+### **For Payvo AI Team Members**
+
+This React Native application serves as the **primary testing interface** for validating the Payvo Middleware system before production deployment. Key testing capabilities include:
+
+#### **Validation Testing**
+- **API Endpoint Testing** - Validate all middleware endpoints with real mobile scenarios
+- **Performance Benchmarking** - Monitor response times, accuracy rates, and system reliability
+- **Integration Testing** - Test seamless communication between mobile app and middleware
+- **Edge Case Validation** - Test system behavior under challenging conditions
+
+#### **Demonstration Platform**
+- **Stakeholder Demos** - Showcase middleware capabilities to investors and partners
+- **Product Validation** - Demonstrate payment intelligence features to potential customers
+- **Technical Showcases** - Present system architecture and performance to technical audiences
+- **Business Case Development** - Generate metrics and analytics for business decisions
+
+#### **Development Support**
+- **Feature Prototyping** - Test new middleware features before production implementation
+- **User Experience Validation** - Refine mobile app patterns for consumer application
+- **Performance Optimization** - Identify bottlenecks and optimization opportunities
+- **Security Testing** - Validate authentication and data protection mechanisms
+
+### **Internal Use Only**
+
+**Important**: This testing application is designed exclusively for **Payvo AI employees** and **authorized stakeholders**. It provides comprehensive access to:
+
+- **Live Middleware APIs** - Direct access to production-ready backend systems
+- **Internal Analytics** - Detailed performance metrics and system insights
+- **Development Tools** - Debug interfaces and testing utilities
+- **Sensitive Data** - User profiles, transaction patterns, and business metrics
+
+### **Future Production Integration**
+
+The patterns, APIs, and user experience elements validated through this testing platform will be integrated into the consumer-facing Payvo application, providing:
+
+- **Proven Middleware Integration** - Battle-tested API communication patterns
+- **Optimized User Flows** - Refined authentication and payment experiences  
+- **Performance Benchmarks** - Established baselines for consumer app performance
+- **Security Models** - Validated authentication and data protection approaches
+    return unsubscribe;
+  }, []);
+  
+  return { isConnected, networkType, queueSize };
+};
+```
+
+---
+
+## **Performance & Analytics**
+
+### **Real-time Metrics Dashboard**
+
+#### **Performance Monitoring**
+```typescript
+// src/services/analytics/PerformanceService.ts
+export class PerformanceService {
+  trackAPICall(endpoint: string, duration: number, success: boolean): void
+  trackLocationUpdate(accuracy: number, batteryUsage: number): void
+  trackMCCPrediction(mcc: string, confidence: number, actual?: string): void
+  trackUserAction(action: string, screen: string, duration?: number): void
+  
+  getPerformanceReport(): Promise<PerformanceReport>
+  exportMetrics(format: 'csv' | 'json'): Promise<string>
+}
+```
+
+#### **Analytics Integration**
+```typescript
+// src/hooks/analytics/useAnalytics.ts
+export const useAnalytics = () => {
+  const trackScreen = useCallback((screenName: string) => {
+    analytics.track('screen_view', {
+      screen_name: screenName,
+      timestamp: Date.now()
+    });
+  }, []);
+  
+  const trackEvent = useCallback((event: string, properties?: Record<string, any>) => {
+    analytics.track(event, {
+      ...properties,
+      user_id: user?.id,
+      session_id: sessionId,
+      timestamp: Date.now()
+    });
+  }, [user, sessionId]);
+  
+  return { trackScreen, trackEvent };
+};
+```
+
+### **Battery Optimization**
+
+#### **Smart Power Management**
+```typescript
+// src/services/location/BatteryOptimizationService.ts
+export class BatteryOptimizationService {
+  adjustLocationFrequency(batteryLevel: number): LocationConfig {
+    if (batteryLevel < 20) {
+      return { updateInterval: 10000, accuracy: 'low' }; // 10 seconds, low accuracy
+    } else if (batteryLevel < 50) {
+      return { updateInterval: 6000, accuracy: 'medium' }; // 6 seconds, medium accuracy
+    } else {
+      return { updateInterval: 4000, accuracy: 'high' }; // 4 seconds, high accuracy
+    }
+  }
+  
+  optimizeBackgroundTasks(): void {
+    // Reduce background processing based on battery level
+    // Prioritize critical tasks only
+  }
+}
+```
+
+---
+
+## **Testing & Development**
+
+### **Test Configuration**
+
+#### **Jest Setup** (`jest.config.js`)
+```javascript
+module.exports = {
+  preset: 'react-native',
+  setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
+  testMatch: ['**/__tests__/**/*.test.{ts,tsx}'],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/test/**/*',
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
+};
+```
+
+#### **Test Examples**
+
+**Authentication Service Test**
+```typescript
+// __tests__/services/AuthService.test.ts
+describe('AuthService', () => {
+  let authService: AuthService;
+  
+  beforeEach(() => {
+    authService = new AuthService();
+  });
+  
+  describe('login', () => {
+    it('should authenticate user successfully', async () => {
+      const result = await authService.login('test@example.com', 'password');
+      expect(result.success).toBe(true);
+      expect(result.token).toBeDefined();
+    });
+    
+    it('should handle invalid credentials', async () => {
+      await expect(
+        authService.login('invalid@example.com', 'wrong')
+      ).rejects.toThrow('Invalid credentials');
+    });
+  });
+});
+```
+
+**Location Service Test**
+```typescript
+// __tests__/services/LocationService.test.ts
+describe('LocationService', () => {
+  let locationService: LocationService;
+  
+  beforeEach(() => {
+    locationService = new LocationService();
+  });
+  
+  describe('getCurrentLocation', () => {
+    it('should return current location', async () => {
+      const location = await locationService.getCurrentLocation();
+      expect(location.latitude).toBeDefined();
+      expect(location.longitude).toBeDefined();
+      expect(location.accuracy).toBeGreaterThan(0);
+    });
+  });
+});
+```
+
+### **Development Scripts**
+
+```json
+{
+  "scripts": {
+    "start": "react-native start",
+    "ios": "react-native run-ios",
+    "android": "react-native run-android",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "type-check": "tsc --noEmit",
+    "build:ios": "react-native run-ios --configuration Release",
+    "build:android": "cd android && ./gradlew assembleRelease",
+    "clean": "react-native clean-project-auto",
+    "pod-install": "cd ios && pod install",
+    "postinstall": "cd ios && pod install"
+  }
+}
+```
+
+### **Debug Configuration**
+
+#### **React Native Debugger**
+```typescript
+// src/config/debugger.ts
+if (__DEV__) {
+  import('../../../ReactotronConfig').then(() => console.log('Reactotron Configured'));
+}
+```
+
+#### **Flipper Integration**
+```typescript
+// src/config/flipper.ts
+import { logger } from 'react-native-logs';
+
+const defaultConfig = {
+  severity: __DEV__ ? 'debug' : 'error',
+  transport: __DEV__ ? logger.consoleTransport : logger.fileAsyncTransport,
+  transportOptions: {
+    colors: {
+      info: 'blueBright',
+      warn: 'yellowBright',
+      error: 'redBright',
+    },
+  },
+};
+
+export const log = logger.createLogger(defaultConfig);
+```
+
+---
+
+## **Troubleshooting**
+
+### **Common Issues & Solutions**
+
+#### **1. Authentication Issues**
+
+**Token Expired**
+```typescript
+// Check token validity
+const isValid = await authService.validateToken();
+if (!isValid) {
+  await authService.refreshToken();
+}
+```
+
+**Biometric Not Working**
+```bash
+# iOS: Check Face ID settings
+Settings > Face ID & Passcode > Other Apps > Payvo
+
+# Android: Check biometric settings
+Settings > Security > Biometrics
+```
+
+#### **2. Location Services Issues**
+
+**GPS Not Working**
+```typescript
+// Check location permissions
+const hasPermission = await LocationService.hasPermission();
+if (!hasPermission) {
+  await LocationService.requestPermission();
+}
+```
+
+**Background Tracking Stops**
+```bash
+# iOS: Enable background app refresh
+Settings > General > Background App Refresh > Payvo
+   
+# Android: Disable battery optimization
+Settings > Apps > Payvo > Battery > Don't optimize
+   ```
+
+#### **3. API Connection Issues**
+
+**Network Connectivity**
+   ```typescript
+// Test API connectivity
+const healthCheck = await payvoAPI.healthCheck();
+console.log('API Status:', healthCheck.status);
+```
+
+**SSL Certificate Issues**
+```typescript
+// For development only - disable SSL verification
+const developmentConfig = {
+  trustInvalidCerts: __DEV__,
+  timeout: 30000
+   };
+   ```
+
+### **Debug Tools & Utilities**
+
+#### **Debug Menu** (Development builds only)
+- **Shake device** → Access debug menu
+- **Network Inspector** → View API calls
+- **Location Simulator** → Test with fake GPS
+- **Token Inspector** → View current authentication state
+
+#### **Logging Configuration**
+```typescript
+// src/utils/logger.ts
+export const logger = {
+  debug: (message: string, data?: any) => {
+    if (__DEV__) {
+      console.log(`[DEBUG] ${message}`, data);
+    }
+  },
+  error: (message: string, error?: Error) => {
+    console.error(`[ERROR] ${message}`, error);
+    // Send to crash reporting service
+  }
+};
+```
+
+---
+
+## **Support & Documentation**
+
+### **Getting Help**
+
+- **In-App Support** - Access help via Settings → Support
+- **Documentation** - Comprehensive guides in the app
+- **Performance Issues** - Check Analytics screen for diagnostics
+- **Error Logs** - Enable debug mode for detailed logging
+
+### **Performance Monitoring**
+
+```typescript
+// Real-time performance metrics
+const performanceMetrics = {
+  apiResponseTime: '< 200ms average',
+  locationAccuracy: '1-10 meters',
+  batteryUsage: '< 5% per hour',
+  mccPredictionAccuracy: '90%+',
+  backgroundSessionDuration: '30 minutes',
+  offlineQueueCapacity: '100 requests'
+};
+```
+
+### **Feature Status**
+
+**Authentication System** - Complete with biometric support  
+**Background Location Tracking** - Real-time with battery optimization  
+**MCC Prediction** - AI-powered with 90%+ accuracy  
+**Payment Routing** - Intelligent card selection  
+**Offline Capability** - Queue and sync when online  
+**Analytics & Metrics** - Comprehensive performance tracking  
+**Security & Privacy** - Enterprise-grade protection  
+**Cross-platform** - iOS and Android support  
+
+## **Internal Testing Platform**
+
+### **For Payvo AI Team Members**
+
+This React Native application serves as the **primary testing interface** for validating the Payvo Middleware system before production deployment. Key testing capabilities include:
+
+#### **Validation Testing**
+- **API Endpoint Testing** - Validate all middleware endpoints with real mobile scenarios
+- **Performance Benchmarking** - Monitor response times, accuracy rates, and system reliability
+- **Integration Testing** - Test seamless communication between mobile app and middleware
+- **Edge Case Validation** - Test system behavior under challenging conditions
+
+#### **Demonstration Platform**
+- **Stakeholder Demos** - Showcase middleware capabilities to investors and partners
+- **Product Validation** - Demonstrate payment intelligence features to potential customers
+- **Technical Showcases** - Present system architecture and performance to technical audiences
+- **Business Case Development** - Generate metrics and analytics for business decisions
+
+#### **Development Support**
+- **Feature Prototyping** - Test new middleware features before production implementation
+- **User Experience Validation** - Refine mobile app patterns for consumer application
+- **Performance Optimization** - Identify bottlenecks and optimization opportunities
+- **Security Testing** - Validate authentication and data protection mechanisms
+
+### **Internal Use Only**
+
+**Important**: This testing application is designed exclusively for **Payvo AI employees** and **authorized stakeholders**. It provides comprehensive access to:
+
+- **Live Middleware APIs** - Direct access to production-ready backend systems
+- **Internal Analytics** - Detailed performance metrics and system insights
+- **Development Tools** - Debug interfaces and testing utilities
+- **Sensitive Data** - User profiles, transaction patterns, and business metrics
+
+### **Future Production Integration**
+
+The patterns, APIs, and user experience elements validated through this testing platform will be integrated into the consumer-facing Payvo application, providing:
+
+- **Proven Middleware Integration** - Battle-tested API communication patterns
+- **Optimized User Flows** - Refined authentication and payment experiences  
+- **Performance Benchmarks** - Established baselines for consumer app performance
+- **Security Models** - Validated authentication and data protection approaches
+    return unsubscribe;
+  }, []);
+  
+  return { isConnected, networkType, queueSize };
+};
+```
+
+---
+
+## **Performance & Analytics**
+
+### **Real-time Metrics Dashboard**
+
+#### **Performance Monitoring**
+```typescript
+// src/services/analytics/PerformanceService.ts
+export class PerformanceService {
+  trackAPICall(endpoint: string, duration: number, success: boolean): void
+  trackLocationUpdate(accuracy: number, batteryUsage: number): void
+  trackMCCPrediction(mcc: string, confidence: number, actual?: string): void
+  trackUserAction(action: string, screen: string, duration?: number): void
+  
+  getPerformanceReport(): Promise<PerformanceReport>
+  exportMetrics(format: 'csv' | 'json'): Promise<string>
+}
+```
+
+#### **Analytics Integration**
+```typescript
+// src/hooks/analytics/useAnalytics.ts
+export const useAnalytics = () => {
+  const trackScreen = useCallback((screenName: string) => {
+    analytics.track('screen_view', {
+      screen_name: screenName,
+      timestamp: Date.now()
+    });
+  }, []);
+  
+  const trackEvent = useCallback((event: string, properties?: Record<string, any>) => {
+    analytics.track(event, {
+      ...properties,
+      user_id: user?.id,
+      session_id: sessionId,
+      timestamp: Date.now()
+    });
+  }, [user, sessionId]);
+  
+  return { trackScreen, trackEvent };
+};
+```
+
+### **Battery Optimization**
+
+#### **Smart Power Management**
+```typescript
+// src/services/location/BatteryOptimizationService.ts
+export class BatteryOptimizationService {
+  adjustLocationFrequency(batteryLevel: number): LocationConfig {
+    if (batteryLevel < 20) {
+      return { updateInterval: 10000, accuracy: 'low' }; // 10 seconds, low accuracy
+    } else if (batteryLevel < 50) {
+      return { updateInterval: 6000, accuracy: 'medium' }; // 6 seconds, medium accuracy
+    } else {
+      return { updateInterval: 4000, accuracy: 'high' }; // 4 seconds, high accuracy
+    }
+  }
+  
+  optimizeBackgroundTasks(): void {
+    // Reduce background processing based on battery level
+    // Prioritize critical tasks only
+  }
+}
+```
+
+---
+
+## **Testing & Development**
+
+### **Test Configuration**
+
+#### **Jest Setup** (`jest.config.js`)
+```javascript
+module.exports = {
+  preset: 'react-native',
+  setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
+  testMatch: ['**/__tests__/**/*.test.{ts,tsx}'],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/test/**/*',
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
+};
+```
+
+#### **Test Examples**
+
+**Authentication Service Test**
+```typescript
+// __tests__/services/AuthService.test.ts
+describe('AuthService', () => {
+  let authService: AuthService;
+  
+  beforeEach(() => {
+    authService = new AuthService();
+  });
+  
+  describe('login', () => {
+    it('should authenticate user successfully', async () => {
+      const result = await authService.login('test@example.com', 'password');
+      expect(result.success).toBe(true);
+      expect(result.token).toBeDefined();
+    });
+    
+    it('should handle invalid credentials', async () => {
+      await expect(
+        authService.login('invalid@example.com', 'wrong')
+      ).rejects.toThrow('Invalid credentials');
+    });
+  });
+});
+```
+
+**Location Service Test**
+```typescript
+// __tests__/services/LocationService.test.ts
+describe('LocationService', () => {
+  let locationService: LocationService;
+  
+  beforeEach(() => {
+    locationService = new LocationService();
+  });
+  
+  describe('getCurrentLocation', () => {
+    it('should return current location', async () => {
+      const location = await locationService.getCurrentLocation();
+      expect(location.latitude).toBeDefined();
+      expect(location.longitude).toBeDefined();
+      expect(location.accuracy).toBeGreaterThan(0);
+    });
+  });
+});
+```
+
+### **Development Scripts**
+
+```json
+{
+  "scripts": {
+    "start": "react-native start",
+    "ios": "react-native run-ios",
+    "android": "react-native run-android",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "type-check": "tsc --noEmit",
+    "build:ios": "react-native run-ios --configuration Release",
+    "build:android": "cd android && ./gradlew assembleRelease",
+    "clean": "react-native clean-project-auto",
+    "pod-install": "cd ios && pod install",
+    "postinstall": "cd ios && pod install"
+  }
+}
+```
+
+### **Debug Configuration**
+
+#### **React Native Debugger**
+```typescript
+// src/config/debugger.ts
+if (__DEV__) {
+  import('../../../ReactotronConfig').then(() => console.log('Reactotron Configured'));
+}
+```
+
+#### **Flipper Integration**
+```typescript
+// src/config/flipper.ts
+import { logger } from 'react-native-logs';
+
+const defaultConfig = {
+  severity: __DEV__ ? 'debug' : 'error',
+  transport: __DEV__ ? logger.consoleTransport : logger.fileAsyncTransport,
+  transportOptions: {
+    colors: {
+      info: 'blueBright',
+      warn: 'yellowBright',
+      error: 'redBright',
+    },
+  },
+};
+
+export const log = logger.createLogger(defaultConfig);
+```
+
+---
+
+## **Troubleshooting**
+
+### **Common Issues & Solutions**
+
+#### **1. Authentication Issues**
+
+**Token Expired**
+```typescript
+// Check token validity
+const isValid = await authService.validateToken();
+if (!isValid) {
+  await authService.refreshToken();
+}
+```
+
+**Biometric Not Working**
    ```bash
 # iOS: Check Face ID settings
 Settings > Face ID & Passcode > Other Apps > Payvo

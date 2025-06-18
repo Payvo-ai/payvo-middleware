@@ -91,7 +91,10 @@ export class DeepLinkHandler {
 
   // Helper method to handle auth-related deep links
   public handleAuthDeepLink(url: string): boolean {
-    if (url.startsWith('payvo://auth') || url.startsWith('payvo://reset-password')) {
+    if (url.startsWith('payvo://auth') || 
+        url.startsWith('payvo://reset-password') ||
+        url.startsWith('ai.payvo.middleware://auth') || 
+        url.startsWith('ai.payvo.middleware://reset-password')) {
       console.log('🔐 Auth deep link detected:', url);
       // The Supabase client will automatically handle these URLs
       return true;

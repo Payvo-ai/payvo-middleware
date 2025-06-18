@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./images/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "ai.payvo.middleware",
     "splash": {
       "image": "./images/splash.png",
       "resizeMode": "contain",

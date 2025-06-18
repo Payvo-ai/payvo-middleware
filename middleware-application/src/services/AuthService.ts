@@ -115,7 +115,7 @@ class AuthService {
       console.log('📧 Sending forgot password email to:', request.email);
 
       const { error } = await supabase.auth.resetPasswordForEmail(request.email, {
-        redirectTo: 'payvo://reset-password', // Deep link for mobile app
+        redirectTo: 'ai.payvo.middleware://reset-password', // Deep link for mobile app
       });
 
       if (error) {
