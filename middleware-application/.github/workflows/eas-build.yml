@@ -1,0 +1,54 @@
+name: EAS Build
+
+on:
+  push:
+    branches: [main]
+    paths: ['middleware-application/**']
+  pull_request:
+    branches: [main]
+    paths: ['middleware-application/**']
+
+jobs:
+  build:
+    name: Install and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: middleware-application
+    steps:
+      - name: Check for EXPO_TOKEN
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "You must provide an EXPO_TOKEN secret linked to this project's Expo account in this repo's secrets. Learn more: https://docs.expo.dev/eas-update/github-actions"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+          cache: npm
+          cache-dependency-path: middleware-application/package-lock.json
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build on EAS
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # For PRs, build preview
+            eas build --platform all --profile preview --non-interactive --no-wait
+          else
+            # For main branch, build production
+            eas build --platform all --profile production --non-interactive --no-wait
+          fi 
